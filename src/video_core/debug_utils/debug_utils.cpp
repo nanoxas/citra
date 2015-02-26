@@ -333,9 +333,9 @@ const Math::Vec4<u8> LookupTexture(const u8* source, int x, int y, const Texture
     // Interleave the lower 3 bits of each coordinate to get the intra-block offsets, which are
     // arranged in a Z-order curve. More details on the bit manipulation at:
     // https://fgiesen.wordpress.com/2009/12/13/decoding-morton-codes/
-    unsigned int i = (x | (y << 8)) & 0x0707; // ---- -210
-    i = (i ^ (i << 2)) & 0x1313;              // ---2 --10
-    i = (i ^ (i << 1)) & 0x1515;              // ---2 -1-0
+    unsigned int i = (x & 7) | ((y & 7) << 8); // ---- -210
+    i = (i ^ (i << 2)) & 0x1313;               // ---2 --10
+    i = (i ^ (i << 1)) & 0x1515;               // ---2 -1-0
     i = (i | (i >> 7)) & 0x3F;
 
     if (info.format != Regs::TextureFormat::ETC1 &&
@@ -436,9 +436,9 @@ const Math::Vec4<u8> LookupTexture(const u8* source, int x, int y, const Texture
 
     case Regs::TextureFormat::A4:
     {
-        const u8* source_ptr = source + offset / 2 + i / 2;
+        const u8* source_ptr = source + (offset + i) / 2;
 
-        u8 a = (coarse_x % 2) ? ((*source_ptr)&0xF) : (((*source_ptr) & 0xF0) >> 4);
+        u8 a = (i % 2) ? ((*source_ptr & 0xF0) >> 4) : (*source_ptr & 0xF);
         a = Color::Convert4To8(a);
 
         if (disable_alpha) {
