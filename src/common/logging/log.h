@@ -71,6 +71,7 @@ enum class Class : ClassType {
     Render_Software,            ///< Software renderer backend
     Render_OpenGL,              ///< OpenGL backend
     Loader,                     ///< ROM loader
+    GDB,                   ///< GDB stub messages
 
     Count ///< Total number of logging classes
 };

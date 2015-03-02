@@ -14,6 +14,9 @@
 #include "core/hle/hle.h"
 #include "core/hle/kernel/thread.h"
 #include "core/hw/hw.h"
+// #ifdef USE_GDBSTUB
+#include "core/arm/gdb_stub.h"
+// #endif
 
 namespace Core {
 
@@ -47,6 +50,8 @@ void SingleStep() {
 /// Halt the core
 void Halt(const char *msg) {
     // TODO(ShizZy): ImplementMe
+    LOG_DEBUG(Core, "Halt called with message %s", msg);
+    
 }
 
 /// Kill the core
@@ -60,6 +65,12 @@ int Init() {
     g_app_core = new ARM_DynCom(USER32MODE);
 
     LOG_DEBUG(Core, "Initialized OK");
+
+    // if (_CoreParameter.iGDBPort > 0) {
+    gdb_init(12345);
+    // break at next instruction (the first instruction)
+    gdb_break();
+    // }
     return 0;
 }
 
