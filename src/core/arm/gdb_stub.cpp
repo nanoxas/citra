@@ -8,15 +8,25 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
-#include <unistd.h>
 #ifdef _WIN32
+#include <io.h>
 #include <ws2tcpip.h>
 #include <iphlpapi.h>
 #include <iphlpapi.h>
 #else
+#include <unistd.h>
 #include <sys/select.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#endif
+
+#ifndef _SSIZE_T_DEFINED
+#ifdef  _WIN64
+typedef unsigned __int64    ssize_t;
+#else
+typedef _W64 unsigned int   ssize_t;
+#endif
+#define _SSIZE_T_DEFINED
 #endif
 
 #include "core/arm/gdb_stub.h"
@@ -29,8 +39,6 @@
 #define GDB_STUB_ACK   '+'
 #define GDB_STUB_NAK   '-'
 
-namespace GDB {
-
 static int tmpsock = -1;
 static int sock = -1;
 static struct sockaddr_in saddr_server, saddr_client;
@@ -42,7 +50,185 @@ static u32 sig = 0;
 static u32 send_signal = 0;
 static u32 step_break = 0;
 
-static std::vector<TBreakPoint> breakpoints;
+static std::vector<GDB::BreakPoint> breakpoints;
+
+
+#ifdef _WIN32
+WSADATA InitData;
+#endif
+
+namespace GDB {
+
+	void Init(u32 port) {
+		socklen_t len;
+		int on;
+#ifdef _WIN32
+		WSAStartup(MAKEWORD(2, 2), &InitData);
+#endif
+
+		// memset(bp_x, 0, sizeof bp_x);
+		// memset(bp_r, 0, sizeof bp_r);
+		// memset(bp_w, 0, sizeof bp_w);
+		// memset(bp_a, 0, sizeof bp_a);
+
+		tmpsock = socket(AF_INET, SOCK_STREAM, 0);
+		if (tmpsock == -1) {
+			LOG_ERROR(GDB, "Failed to create gdb socket");
+		}
+
+		on = 1;
+#ifdef _WIN32
+		// Windows wants the sockOpt as a char*
+		if (setsockopt(tmpsock, SOL_SOCKET, SO_REUSEADDR, (char*)&on, sizeof on) < 0) {
+			LOG_ERROR(GDB, "Failed to setsockopt");
+		}
+#else
+		if (setsockopt(tmpsock, SOL_SOCKET, SO_REUSEADDR, &on, sizeof on) < 0) {
+			LOG_ERROR(GDB, "Failed to setsockopt");
+		}
+#endif
+
+		memset(&saddr_server, 0, sizeof saddr_server);
+		saddr_server.sin_family = AF_INET;
+		saddr_server.sin_port = htons(port);
+		saddr_server.sin_addr.s_addr = INADDR_ANY;
+
+		if (bind(tmpsock, (struct sockaddr *)&saddr_server, sizeof saddr_server) < 0)
+			LOG_ERROR(GDB, "Failed to bind gdb socket");
+
+		if (listen(tmpsock, 1) < 0)
+			LOG_ERROR(GDB, "Failed to listen to gdb socket");
+
+		LOG_INFO(GDB, "Waiting for gdb to connect...\n");
+
+		sock = accept(tmpsock, (struct sockaddr *)&saddr_client, &len);
+		if (sock < 0)
+			LOG_ERROR(GDB, "Failed to accept gdb client");
+		LOG_INFO(GDB, "Client connected.\n");
+
+		saddr_client.sin_addr.s_addr = ntohl(saddr_client.sin_addr.s_addr);
+		/*if (((saddr_client.sin_addr.s_addr >> 24) & 0xff) != 127 ||
+		*      ((saddr_client.sin_addr.s_addr >> 16) & 0xff) !=   0 ||
+		*      ((saddr_client.sin_addr.s_addr >>  8) & 0xff) !=   0 ||
+		*      ((saddr_client.sin_addr.s_addr >>  0) & 0xff) !=   1)
+		*      LOG_ERROR(GDB, "gdb: incoming connection not from localhost");
+		*/
+#ifdef _WIN32
+		closesocket(tmpsock);
+#else
+		close(tmpsock);
+#endif
+		tmpsock = -1;
+	}
+
+	void DeInit() {
+		if (tmpsock != -1) {
+			shutdown(tmpsock, SHUT_RDWR);
+			tmpsock = -1;
+		}
+		if (sock != -1) {
+			shutdown(sock, SHUT_RDWR);
+			sock = -1;
+		}
+
+#ifdef _WIN32
+		WSACleanup();
+#endif
+	}
+
+	bool IsActive() {
+		return tmpsock != -1 || sock != -1;
+	}
+
+	int Signal(u32 s) {
+		if (sock == -1)
+			return 1;
+
+		sig = s;
+
+		if (send_signal) {
+			gdb_handle_signal();
+			send_signal = 0;
+		}
+
+		return 0;
+	}
+
+
+	void HandleException() {
+		while (GDB::IsActive()) {
+			if (!gdb_data_available())
+				continue;
+			gdb_read_command();
+			if (cmd_len == 0)
+				continue;
+
+			switch (cmd_bfr[0]) {
+			case 'q':
+				gdb_handle_query();
+				break;
+			case 'H':
+				gdb_handle_set_thread();
+				break;
+			case '?':
+				gdb_handle_signal();
+				break;
+			case 'k':
+				GDB::DeInit();
+				LOG_INFO(GDB, "killed by gdb");
+				return;
+			case 'g':
+				gdb_read_registers();
+				break;
+			case 'G':
+				gdb_write_registers();
+				break;
+			case 'p':
+				gdb_read_register();
+				break;
+			case 'P':
+				gdb_write_register();
+				break;
+			case 'm':
+				gdb_read_mem();
+				break;
+			case 'M':
+				gdb_write_mem();
+				// PowerPC::ppcState.iCache.Reset();
+				// Host_UpdateDisasmDialog();
+				break;
+			case 's':
+				gdb_step();
+				return;
+			case 'C':
+			case 'c':
+				gdb_continue();
+				return;
+			case 'z':
+				//gdb_remove_bp();
+				break;
+			case 'Z':
+				//_gdb_add_bp();
+				break;
+			default:
+				gdb_reply("");
+				break;
+			}
+		}
+	}
+	int  Signal(u32 signal);
+
+
+}
+// int  gdb_bp_x(u32 addr);
+// int  gdb_bp_r(u32 addr);
+// int  gdb_bp_w(u32 addr);
+// int  gdb_bp_a(u32 addr);
+
+// bool AddBreakPoint(u32 type, u32 addr, u32 len);
+
+// void AddBreakPoint(BreakPoint& bp);
+
 // Use the BreakPoints.h instead
 // typedef struct {
 //     u32 active;
@@ -95,12 +281,12 @@ static void hex2mem(u8 *dst, u8 *src, u32 len) {
 
 static u8 gdb_read_byte() {
     ssize_t res;
-    u8 c = '+';
+    char c = '+';
 
     res = recv(sock, &c, 1, MSG_WAITALL);
     if (res != 1) {
         LOG_ERROR(GDB, "recv failed : %ld", res);
-        gdb_deinit();
+        GDB::DeInit();
     }
 
     return c;
@@ -227,7 +413,7 @@ static void gdb_read_command() {
         return;
     } else if (c == 0x03) {
         Core::Halt("gdb: CtrlC Signal sent");
-        gdb_signal(SIGTRAP);
+        GDB::Signal(SIGTRAP);
         return;
     } else if (c != GDB_STUB_START) {
         LOG_DEBUG(GDB, "gdb: read invalid byte %02x\n", c);
@@ -286,7 +472,7 @@ static void gdb_reply(const char *reply) {
     u8 *ptr;
     int n;
 
-    if (!gdb_active())
+    if (!GDB::IsActive())
         return;
 
     memset(cmd_bfr, 0, sizeof cmd_bfr);
@@ -310,10 +496,15 @@ static void gdb_reply(const char *reply) {
     ptr = cmd_bfr;
     left = cmd_len + 4;
     while (left > 0) {
+#ifdef _WIN32
+		n = send(sock, (char *)ptr, left, 0);
+#else
         n = send(sock, ptr, left, 0);
+#endif
+
         if (n < 0) {
             LOG_ERROR(GDB, "gdb: send failed");
-            return gdb_deinit();
+            return GDB::DeInit();
         }
         left -= n;
         ptr += n;
@@ -392,43 +583,52 @@ static void gdb_read_register() {
     }
 
 
-    switch (id) {
-        // TODO: Registers are only 0 ... 15 
-        case 0 ... 31:
-            // wbe32hex(reply, GPR(id));
-            wbe32hex(reply, Core::g_app_core->GetReg(id));
-            break;
-        case 32 ... 63:
-            // wbe64hex(reply, riPS0(id-32));
-            break;
-        case 64:
-            wbe32hex(reply, Core::g_app_core->GetPC());
-            break;
-        case 65:
-            // wbe32hex(reply, MSR);
-            break;
-        case 66:
-            wbe32hex(reply, Core::g_app_core->GetCPSR());
-            break;
-        case 67:
-            // wbe32hex(reply, LR);
-            break;
-        case 68:
-            // wbe32hex(reply, CTR);
-            break;
-        case 69:
-            // wbe32hex(reply, PowerPC::ppcState.spr[SPR_XER]);
-            break;
-        case 70:
-            wbe32hex(reply, 0x0BADC0DE);
-            break;
-        case 71:
-            // wbe32hex(reply, FPSCR.Hex);
-            break;
-        default:
-            return gdb_reply("E01");
-            break;
-    }
+	if (0 <= id && id <= 12) {
+		wbe32hex(reply, Core::g_app_core->GetReg(id));
+	} else if (id == 15) {
+		wbe32hex(reply, Core::g_app_core->GetPC());
+	} else {
+		return gdb_reply("E01");
+	}
+
+
+    //switch (id) {
+    //    // TODO: Registers are only 0 ... 15 
+    //    case 0 ... 31:
+    //        // wbe32hex(reply, GPR(id));
+    //        wbe32hex(reply, Core::g_app_core->GetReg(id));
+    //        break;
+    //    case 32 ... 63:
+    //        // wbe64hex(reply, riPS0(id-32));
+    //        break;
+    //    case 64:
+    //        wbe32hex(reply, Core::g_app_core->GetPC());
+    //        break;
+    //    case 65:
+    //        // wbe32hex(reply, MSR);
+    //        break;
+    //    case 66:
+    //        wbe32hex(reply, Core::g_app_core->GetCPSR());
+    //        break;
+    //    case 67:
+    //        // wbe32hex(reply, LR);
+    //        break;
+    //    case 68:
+    //        // wbe32hex(reply, CTR);
+    //        break;
+    //    case 69:
+    //        // wbe32hex(reply, PowerPC::ppcState.spr[SPR_XER]);
+    //        break;
+    //    case 70:
+    //        wbe32hex(reply, 0x0BADC0DE);
+    //        break;
+    //    case 71:
+    //        // wbe32hex(reply, FPSCR.Hex);
+    //        break;
+    //    default:
+    //        return gdb_reply("E01");
+    //        break;
+    //}
 
     gdb_reply((char *)reply);
 }
@@ -488,49 +688,57 @@ static void gdb_write_register() {
     u8 * bufptr = cmd_bfr + 3;
 
     id = hex2char(cmd_bfr[1]);
-    if (cmd_bfr[2] != '=')     {
+    if (cmd_bfr[2] != '=') {
         ++bufptr;
         id <<= 4;
         id |= hex2char(cmd_bfr[2]);
     }
 
-    switch (id) {
-        // TODO: Only 15 Registers
-        case 0 ... 31:
-            Core::g_app_core->SetReg(id, re32hex(bufptr));
-            break;
-        case 32 ... 63:
-            // riPS0(id-32) = re64hex(bufptr);
-            break;
-        case 64:
-            Core::g_app_core->SetPC(re32hex(bufptr));
-            break;
-        case 65:
-            // MSR = re32hex(bufptr);
-            break;
-        case 66:
-            // SetCR(re32hex(bufptr));
-            Core::g_app_core->SetCPSR(re32hex(bufptr));
-            break;
-        case 67:
-            // LR = re32hex(bufptr);
-            break;
-        case 68:
-            // CTR = re32hex(bufptr);
-            break;
-        case 69:
-            // PowerPC::ppcState.spr[SPR_XER] = re32hex(bufptr);
-            break;
-        case 70:
-            // do nothing, we dont have MQ
-            break;
-        case 71:
-            // FPSCR.Hex = re32hex(bufptr);
-            break;
-        default:
-            return gdb_reply("E01");
-            break;
-    }
+	if (0 <= id && id <= 12) {
+		Core::g_app_core->SetReg(id, re32hex(bufptr));
+	} else if (id == 15) {
+		Core::g_app_core->SetPC(re32hex(bufptr));
+	} else {
+		return gdb_reply("E01");
+	}
+
+
+    //switch (id) {
+    //    case 0 ... 31:
+    //        Core::g_app_core->SetReg(id, re32hex(bufptr));
+    //        break;
+    //    case 32 ... 63:
+    //        // riPS0(id-32) = re64hex(bufptr);
+    //        break;
+    //    case 64:
+    //        Core::g_app_core->SetPC(re32hex(bufptr));
+    //        break;
+    //    case 65:
+    //        // MSR = re32hex(bufptr);
+    //        break;
+    //    case 66:
+    //        // SetCR(re32hex(bufptr));
+    //        Core::g_app_core->SetCPSR(re32hex(bufptr));
+    //        break;
+    //    case 67:
+    //        // LR = re32hex(bufptr);
+    //        break;
+    //    case 68:
+    //        // CTR = re32hex(bufptr);
+    //        break;
+    //    case 69:
+    //        // PowerPC::ppcState.spr[SPR_XER] = re32hex(bufptr);
+    //        break;
+    //    case 70:
+    //        // do nothing, we dont have MQ
+    //        break;
+    //    case 71:
+    //        // FPSCR.Hex = re32hex(bufptr);
+    //        break;
+    //    default:
+    //        return gdb_reply("E01");
+    //        break;
+    //}
 
     gdb_reply("OK");
 }
@@ -599,26 +807,26 @@ static void gdb_continue() {
     // send_signal = 1;
     Core::RunLoop();
 }
-// /*u32 type,*/ u32 addr /*, u32 len*/
-void AddBreakPoint(TBreakPoint& bp) {
-    // gdb_bp_t *bp;
-    // bp = gdb_bp_empty_slot(type);
-
-    // if (bp == nullptr)
-    //     return false;
-
-
-
-    // bp->active = 1;
-    // bp->addr = addr;
-    // bp->len = len;
-
-    breakpoints.push_back(bp);
-
-    LOG_DEBUG(GDB, "gdb: added breakpoint at %08x\n", bp.iAddress);
-    gdb_reply("OK");
-    // return true;
-}
+//// /*u32 type,*/ u32 addr /*, u32 len*/
+//void AddBreakPoint(TBreakPoint& bp) {
+//    // gdb_bp_t *bp;
+//    // bp = gdb_bp_empty_slot(type);
+//
+//    // if (bp == nullptr)
+//    //     return false;
+//
+//
+//
+//    // bp->active = 1;
+//    // bp->addr = addr;
+//    // bp->len = len;
+//
+//    breakpoints.push_back(bp);
+//
+//    LOG_DEBUG(GDB, "gdb: added breakpoint at %08x\n", bp.iAddress);
+//    gdb_reply("OK");
+//    // return true;
+//}
 
 // static void _gdb_add_bp() {
 //     u32 type;
@@ -693,160 +901,94 @@ void AddBreakPoint(TBreakPoint& bp) {
 //     gdb_reply("OK");
 // }
 
-void gdb_handle_exception() {
-    while (gdb_active()) {
-        if (!gdb_data_available())
-            continue;
-        gdb_read_command();
-        if (cmd_len == 0)
-            continue;
-
-        switch (cmd_bfr[0]) {
-            case 'q':
-                gdb_handle_query();
-                break;
-            case 'H':
-                gdb_handle_set_thread();
-                break;
-            case '?':
-                gdb_handle_signal();
-                break;
-            case 'k':
-                gdb_deinit();
-                LOG_INFO(GDB, "killed by gdb");
-                return;
-            case 'g':
-                gdb_read_registers();
-                break;
-            case 'G':
-                gdb_write_registers();
-                break;
-            case 'p':
-                gdb_read_register();
-                break;
-            case 'P':
-                gdb_write_register();
-                break;
-            case 'm':
-                gdb_read_mem();
-                break;
-            case 'M':
-                gdb_write_mem();
-                // PowerPC::ppcState.iCache.Reset();
-                // Host_UpdateDisasmDialog();
-                break;
-            case 's':
-                gdb_step();
-                return;
-            case 'C':
-            case 'c':
-                gdb_continue();
-                return;
-            case 'z':
-                gdb_remove_bp();
-                break;
-            case 'Z':
-                _gdb_add_bp();
-                break;
-            default:
-                gdb_reply("");
-                break;
-        }
-    }
-}
-
-#ifdef _WIN32
-WSADATA InitData;
-#endif
-
 
 //////////////////////////////////////////////////////
 // exported functions
-
-void Init(u32 port) {
-    socklen_t len;
-    int on;
-    #ifdef _WIN32
-    WSAStartup(MAKEWORD(2,2), &InitData);
-    #endif
-
-    // memset(bp_x, 0, sizeof bp_x);
-    // memset(bp_r, 0, sizeof bp_r);
-    // memset(bp_w, 0, sizeof bp_w);
-    // memset(bp_a, 0, sizeof bp_a);
-
-    tmpsock = socket(AF_INET, SOCK_STREAM, 0);
-    if (tmpsock == -1)
-        LOG_ERROR(GDB, "Failed to create gdb socket");
-
-    on = 1;
-    if (setsockopt(tmpsock, SOL_SOCKET, SO_REUSEADDR, &on, sizeof on) < 0)
-        LOG_ERROR(GDB, "Failed to setsockopt");
-
-    memset(&saddr_server, 0, sizeof saddr_server);
-    saddr_server.sin_family = AF_INET;
-    saddr_server.sin_port = htons(port);
-    saddr_server.sin_addr.s_addr = INADDR_ANY;
-
-    if (bind(tmpsock, (struct sockaddr *)&saddr_server, sizeof saddr_server) < 0)
-        LOG_ERROR(GDB, "Failed to bind gdb socket");
-
-    if (listen(tmpsock, 1) < 0)
-        LOG_ERROR(GDB, "Failed to listen to gdb socket");
-
-    LOG_INFO(GDB, "Waiting for gdb to connect...\n");
-
-    sock = accept(tmpsock, (struct sockaddr *)&saddr_client, &len);
-    if (sock < 0)
-        LOG_ERROR(GDB, "Failed to accept gdb client");
-    LOG_INFO(GDB, "Client connected.\n");
-
-    saddr_client.sin_addr.s_addr = ntohl(saddr_client.sin_addr.s_addr);
-    /*if (((saddr_client.sin_addr.s_addr >> 24) & 0xff) != 127 ||
-     *      ((saddr_client.sin_addr.s_addr >> 16) & 0xff) !=   0 ||
-     *      ((saddr_client.sin_addr.s_addr >>  8) & 0xff) !=   0 ||
-     *      ((saddr_client.sin_addr.s_addr >>  0) & 0xff) !=   1)
-     *      LOG_ERROR(GDB, "gdb: incoming connection not from localhost");
-     */
-    close(tmpsock);
-    tmpsock = -1;
-}
-
-
-void DeInit() {
-    if (tmpsock != -1)
-    {
-        shutdown(tmpsock, SHUT_RDWR);
-        tmpsock = -1;
-    }
-    if (sock != -1)
-    {
-        shutdown(sock, SHUT_RDWR);
-        sock = -1;
-    }
-
-    #ifdef _WIN32
-    WSACleanup();
-    #endif
-}
-
-bool IsActive() {
-    return tmpsock != -1 || sock != -1;
-}
-
-int Signal(u32 s) {
-    if (sock == -1)
-        return 1;
-
-    sig = s;
-
-    if (send_signal) {
-        gdb_handle_signal();
-        send_signal = 0;
-    }
-
-    return 0;
-}
+//
+//void Init(u32 port) {
+//    socklen_t len;
+//    int on;
+//    #ifdef _WIN32
+//    WSAStartup(MAKEWORD(2,2), &InitData);
+//    #endif
+//
+//    // memset(bp_x, 0, sizeof bp_x);
+//    // memset(bp_r, 0, sizeof bp_r);
+//    // memset(bp_w, 0, sizeof bp_w);
+//    // memset(bp_a, 0, sizeof bp_a);
+//
+//    tmpsock = socket(AF_INET, SOCK_STREAM, 0);
+//    if (tmpsock == -1)
+//        LOG_ERROR(GDB, "Failed to create gdb socket");
+//
+//    on = 1;
+//    if (setsockopt(tmpsock, SOL_SOCKET, SO_REUSEADDR, &on, sizeof on) < 0)
+//        LOG_ERROR(GDB, "Failed to setsockopt");
+//
+//    memset(&saddr_server, 0, sizeof saddr_server);
+//    saddr_server.sin_family = AF_INET;
+//    saddr_server.sin_port = htons(port);
+//    saddr_server.sin_addr.s_addr = INADDR_ANY;
+//
+//    if (bind(tmpsock, (struct sockaddr *)&saddr_server, sizeof saddr_server) < 0)
+//        LOG_ERROR(GDB, "Failed to bind gdb socket");
+//
+//    if (listen(tmpsock, 1) < 0)
+//        LOG_ERROR(GDB, "Failed to listen to gdb socket");
+//
+//    LOG_INFO(GDB, "Waiting for gdb to connect...\n");
+//
+//    sock = accept(tmpsock, (struct sockaddr *)&saddr_client, &len);
+//    if (sock < 0)
+//        LOG_ERROR(GDB, "Failed to accept gdb client");
+//    LOG_INFO(GDB, "Client connected.\n");
+//
+//    saddr_client.sin_addr.s_addr = ntohl(saddr_client.sin_addr.s_addr);
+//    /*if (((saddr_client.sin_addr.s_addr >> 24) & 0xff) != 127 ||
+//     *      ((saddr_client.sin_addr.s_addr >> 16) & 0xff) !=   0 ||
+//     *      ((saddr_client.sin_addr.s_addr >>  8) & 0xff) !=   0 ||
+//     *      ((saddr_client.sin_addr.s_addr >>  0) & 0xff) !=   1)
+//     *      LOG_ERROR(GDB, "gdb: incoming connection not from localhost");
+//     */
+//    close(tmpsock);
+//    tmpsock = -1;
+//}
+//
+//
+//void DeInit() {
+//    if (tmpsock != -1)
+//    {
+//        shutdown(tmpsock, SHUT_RDWR);
+//        tmpsock = -1;
+//    }
+//    if (sock != -1)
+//    {
+//        shutdown(sock, SHUT_RDWR);
+//        sock = -1;
+//    }
+//
+//    #ifdef _WIN32
+//    WSACleanup();
+//    #endif
+//}
+//
+//bool IsActive() {
+//    return tmpsock != -1 || sock != -1;
+//}
+//
+//int Signal(u32 s) {
+//    if (sock == -1)
+//        return 1;
+//
+//    sig = s;
+//
+//    if (send_signal) {
+//        gdb_handle_signal();
+//        send_signal = 0;
+//    }
+//
+//    return 0;
+//}
 
 // int gdb_bp_x(u32 addr) {
 //     if (sock == -1)
@@ -882,5 +1024,3 @@ int Signal(u32 s) {
 
 //     return gdb_bp_check(addr, GDB_BP_TYPE_A);
 // }
-
-}

@@ -10,7 +10,6 @@
 
 #include "common/common.h"
 #include "common/thread.h"
-#include "common/break_points.h"
 
 #include "core/core.h"
 #include "core/mem_map.h"
@@ -20,37 +19,24 @@
 #define SIGTRAP      5
 #define SIGTERM     15
 #define MSG_WAITALL  8
+// windows uses SD_BOTH instead of SHUT_*
+#define SHUT_RDWR 2
 #endif
 
-// typedef enum {
-//     GDB_BP_TYPE_NONE = 0,
-//     GDB_BP_TYPE_X,
-//     GDB_BP_TYPE_R,
-//     GDB_BP_TYPE_W,
-//     GDB_BP_TYPE_A
-// } gdb_bp_type;
-
-
 namespace GDB {
+
 struct BreakPoint {
     u32 address;
     u32 length;
     bool active;
 };
+
 void Init(u32 port);
 void DeInit();
 bool IsActive();
-void Break();
 
 void HandleException();
 int  Signal(u32 signal);
 
-// int  gdb_bp_x(u32 addr);
-// int  gdb_bp_r(u32 addr);
-// int  gdb_bp_w(u32 addr);
-// int  gdb_bp_a(u32 addr);
-
-// bool AddBreakPoint(u32 type, u32 addr, u32 len);
-
-void AddBreakPoint(TBreakPoint& bp);
+void AddBreakPoint(BreakPoint& bp);
 }
