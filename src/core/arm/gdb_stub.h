@@ -19,7 +19,7 @@
 #define SIGTRAP      5
 #define SIGTERM     15
 #define MSG_WAITALL  8
-// windows uses SD_BOTH instead of SHUT_*
+// windows uses SD_BOTH instead of SHUT_* and SD_BOTH == 2
 #define SHUT_RDWR 2
 #endif
 
@@ -34,9 +34,14 @@ struct BreakPoint {
 void Init(u32 port);
 void DeInit();
 bool IsActive();
+bool IsStepping();
 
 void HandleException();
 int  Signal(u32 signal);
 
 void AddBreakPoint(BreakPoint& bp);
+void Break();
+
+extern std::vector<BreakPoint> breakpoints;
+
 }

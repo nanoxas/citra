@@ -47,6 +47,19 @@ void SingleStep() {
     RunLoop(1);
 }
 
+/// 
+void Debug() {
+    SingleStep();
+    u32 pc = g_app_core->GetPC();
+    if (GDB::IsStepping() || std::find_if(GDB::breakpoints.begin(), GDB::breakpoints.end(), 
+                    [pc](GDB::BreakPoint const& b){
+                        return b.address == pc;
+                    }) != GDB::breakpoints.end()) {
+        GDB::Signal(SIGTRAP);
+        GDB::HandleException();
+    }
+}
+
 /// Halt the core
 void Halt(const char *msg) {
     // TODO(ShizZy): ImplementMe
@@ -67,9 +80,12 @@ int Init() {
     LOG_DEBUG(Core, "Initialized OK");
 
     // if (_CoreParameter.iGDBPort > 0) {
-    gdb_init(12345);
+    if (Settings::values.gdb_port > 0) {
+        GDB::Init(12345);
+        GDB::Break();
+    }
     // break at next instruction (the first instruction)
-    gdb_break();
+    // gdb_break();
     // }
     return 0;
 }

@@ -47,6 +47,9 @@ void RunLoop(int tight_loop=1000);
 /// Step the CPU one instruction
 void SingleStep();
 
+/// Runs the core loop while checking for breakpoints
+void Debug();
+
 /// Halt the core
 void Halt(const char *msg);
 

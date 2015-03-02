@@ -34,7 +34,7 @@ void Filter::SetSubclassesLevel(const ClassInfo& log_class, Level level) {
 
 void Filter::ParseFilterString(const std::string& filter_str) {
     auto clause_begin = filter_str.cbegin();
-    while (clause_begin != filter_str.cend()) {
+    while (clause_begin != filter_str.cend() && *clause_begin != '#') {
         auto clause_end = std::find(clause_begin, filter_str.cend(), ' ');
 
         // If clause isn't empty

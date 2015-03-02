@@ -14,6 +14,7 @@
 #include "core/system.h"
 #include "core/core.h"
 #include "core/loader/loader.h"
+#include "core/arm/gdb_stub.h"
 
 #include "citra/config.h"
 #include "citra/emu_window/emu_window_glfw.h"
@@ -47,8 +48,18 @@ int __cdecl main(int argc, char **argv) {
         return -1;
     }
 
-    while (emu_window->IsOpen()) {
-        Core::RunLoop();
+    if (Settings::values.gdb_port > 0) {
+        while (emu_window->IsOpen()) {
+            if (GDB::IsActive()){
+                Core::Debug();
+            } else {
+                Core::RunLoop();
+            }
+        }
+    } else {
+        while (emu_window->IsOpen()) {
+            Core::RunLoop();
+        }
     }
 
     System::Shutdown();

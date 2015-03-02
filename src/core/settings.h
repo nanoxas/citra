@@ -44,7 +44,9 @@ struct Values {
     // System Region
     int region_value;
 
+    // Miscellaneous
     std::string log_filter;
+    int gdb_port;
 } extern values;
 
 }
