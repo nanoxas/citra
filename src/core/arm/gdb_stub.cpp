@@ -8,6 +8,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
+#include <algorithm>
 #ifdef _WIN32
 #include <io.h>
 #include <ws2tcpip.h>
@@ -45,27 +46,6 @@ static u32 step_break = 0;
 #ifdef _WIN32
 WSADATA InitData;
 #endif
-
-// int  gdb_bp_x(u32 addr);
-// int  gdb_bp_r(u32 addr);
-// int  gdb_bp_w(u32 addr);
-// int  gdb_bp_a(u32 addr);
-
-// bool AddBreakPoint(u32 type, u32 addr, u32 len);
-
-// void AddBreakPoint(BreakPoint& bp);
-
-// Use the BreakPoints.h instead
-// typedef struct {
-//     u32 active;
-//     u32 addr;
-//     u32 len;
-// } gdb_bp_t;
-
-// static gdb_bp_t bp_x[GDB_MAX_BP];
-// static gdb_bp_t bp_r[GDB_MAX_BP];
-// static gdb_bp_t bp_w[GDB_MAX_BP];
-// static gdb_bp_t bp_a[GDB_MAX_BP];
 
 // private helpers
 static u8 hex2char(u8 hex) {
@@ -128,85 +108,6 @@ static u8 gdb_calc_chksum() {
 
     return c;
 }
-
-// static gdb_bp_t *gdb_bp_ptr(u32 type) {
-//     switch (type) {
-//         case GDB_BP_TYPE_X:
-//             return bp_x;
-//         case GDB_BP_TYPE_R:
-//             return bp_x;
-//         case GDB_BP_TYPE_W:
-//             return bp_x;
-//         case GDB_BP_TYPE_A:
-//             return bp_x;
-//         default:
-//             return nullptr;
-//     }
-// }
-
-// static gdb_bp_t *gdb_bp_empty_slot(u32 type) {
-//     gdb_bp_t *p;
-//     u32 i;
-
-//     p = gdb_bp_ptr(type);
-//     if (p == nullptr)
-//         return nullptr;
-
-//     for (i = 0; i < GDB_MAX_BP; i++) {
-//         if (p[i].active == 0)
-//             return &p[i];
-//     }
-
-//     return nullptr;
-// }
-
-// static TBreakPoint *gdb_bp_find(u32 type, u32 addr, u32 len) {
-    // TBreakPoint *p;
-    // u32 i;
-
-    // p = gdb_bp_ptr(type);
-    // if (p == nullptr)
-    //     return nullptr;
-
-    // for (i = 0; i < GDB_MAX_BP; i++) {
-    //     if (p[i].active == 1 &&
-    //         p[i].addr == addr &&
-    //         p[i].len == len)
-    //         return &p[i];
-    // }
-
-//     return nullptr;
-// }
-
-// static void gdb_bp_remove(u32 type, u32 addr, u32 len) {
-//     TBreakPoint *p;
-
-//     do
-//     {
-//         p = gdb_bp_find(type, addr, len);
-//         if (p != nullptr) {
-//             LOG_DEBUG(GDB, "gdb: removed a breakpoint: %08x bytes at %08x\n", len, addr);
-//             p->active = 0;
-//             memset(p, 0, sizeof(gdb_bp_t));
-//         }
-//     } while (p != nullptr);
-// }
-
-// static int gdb_bp_check(u32 addr, u32 type) {
-//     TBreakPoint *p;
-//     u32 i;
-
-//     // p = gdb_bp_ptr(type);
-//     // if (p == nullptr)
-//     //     return 0;
-
-//     for (i = 0; i < GDB_MAX_BP; i++) {
-//         if (p[i].active == 1 && (addr >= p[i].addr && addr < p[i].addr + p[i].len))
-//             return 1;
-//     }
-
-//     return 0;
-// }
 
 static void gdb_nak() {
     const char nak = GDB_STUB_NAK;
@@ -359,8 +260,7 @@ static void gdb_handle_set_thread() {
 static void gdb_handle_signal() {
     char bfr[128];
     memset(bfr, 0, sizeof bfr);
-    //sprintf(bfr, "T%02x%02x:%08x;%02x:%08x;", sig, 64, PC, 1, GPR(1));
-    sprintf(bfr, "T%02x%02x:%08x;%02x:%08x;", sig, 64, Core::g_app_core->GetPC(), 1, Core::g_app_core->GetReg(1));
+    sprintf(bfr, "T%02x%02x:%08x;%02x:%08x;", sig, 15, Core::g_app_core->GetPC(), 1, Core::g_app_core->GetReg(1));
     gdb_reply(bfr);
 }
 
@@ -408,7 +308,7 @@ static void gdb_read_register() {
         id |= hex2char(cmd_bfr[2]);
     }
 
-
+    LOG_DEBUG(GDB, "Reading register %d contents: %d", id, Core::g_app_core->GetReg(id));
     if (0 <= id && id <= 12) {
         wbe32hex(reply, Core::g_app_core->GetReg(id));
     } else if (id == 15) {
@@ -467,11 +367,11 @@ static void gdb_read_registers() {
     memset(bfr, 0, sizeof bfr);
 
     // TODO: Only 15 registers 
-    for (i = 0; i < 32; i++)
+    for (i = 0; i < 16; i++)
     {
         wbe32hex(bufptr + i*8, Core::g_app_core->GetReg(i));
     }
-    bufptr += 32 * 8;
+    bufptr += 16 * 8;
 
     /*
     for (i = 0; i < 32; i++)
@@ -617,13 +517,6 @@ static void gdb_write_mem() {
     gdb_reply("OK");
 }
 
-// forces a break on next instruction check
-static void gdb_break() {
-    // step_break = 1;
-    // send_signal = 1;
-    // Core::Halt("Gdb break called");
-}
-
 static void gdb_step() {
     GDB::Break();
     Core::RunLoop(1);
@@ -633,225 +526,6 @@ static void gdb_continue() {
     send_signal = 1;
     Core::RunLoop();
 }
-//// /*u32 type,*/ u32 addr /*, u32 len*/
-//void AddBreakPoint(TBreakPoint& bp) {
-//    // gdb_bp_t *bp;
-//    // bp = gdb_bp_empty_slot(type);
-//
-//    // if (bp == nullptr)
-//    //     return false;
-//
-//
-//
-//    // bp->active = 1;
-//    // bp->addr = addr;
-//    // bp->len = len;
-//
-//    breakpoints.push_back(bp);
-//
-//    LOG_DEBUG(GDB, "gdb: added breakpoint at %08x\n", bp.iAddress);
-//    gdb_reply("OK");
-//    // return true;
-//}
-
-// static void _gdb_add_bp() {
-//     u32 type;
-//     u32 i, addr = 0, len = 0;
-
-//     type = hex2char(cmd_bfr[1]);
-//     switch (type) {
-//         case 0:
-//         case 1:
-//             type = GDB_BP_TYPE_X;
-//             break;
-//         case 2:
-//             type = GDB_BP_TYPE_W;
-//             break;
-//         case 3:
-//             type = GDB_BP_TYPE_R;
-//             break;
-//         case 4:
-//             type = GDB_BP_TYPE_A;
-//             break;
-//         default:
-//             return gdb_reply("E01");
-//     }
-
-//     i = 3;
-//     while (cmd_bfr[i] != ',')
-//         addr = addr << 4 | hex2char(cmd_bfr[i++]);
-//     i++;
-
-//     while (i < cmd_len)
-//         len = len << 4 | hex2char(cmd_bfr[i++]);
-
-//     if (!gdb_add_bp(type, addr, len))
-//         return gdb_reply("E02");
-//     gdb_reply("OK");
-// }
-
-// static void gdb_remove_bp() {
-//     u32 type, addr, len, i;
-
-//     type = hex2char(cmd_bfr[1]);
-//     switch (type) {
-//         case 0:
-//         case 1:
-//             type = GDB_BP_TYPE_X;
-//             break;
-//         case 2:
-//             type = GDB_BP_TYPE_W;
-//             break;
-//         case 3:
-//             type = GDB_BP_TYPE_R;
-//             break;
-//         case 4:
-//             type = GDB_BP_TYPE_A;
-//             break;
-//         default:
-//             return gdb_reply("E01");
-//     }
-
-//     addr = 0;
-//     len = 0;
-
-//     i = 3;
-//     while (cmd_bfr[i] != ',')
-//         addr = (addr << 4) | hex2char(cmd_bfr[i++]);
-//     i++;
-
-//     while (i < cmd_len)
-//         len = (len << 4) | hex2char(cmd_bfr[i++]);
-
-//     gdb_bp_remove(type, addr, len);
-//     gdb_reply("OK");
-// }
-
-
-//////////////////////////////////////////////////////
-// exported functions
-//
-//void Init(u32 port) {
-//    socklen_t len;
-//    int on;
-//    #ifdef _WIN32
-//    WSAStartup(MAKEWORD(2,2), &InitData);
-//    #endif
-//
-//    // memset(bp_x, 0, sizeof bp_x);
-//    // memset(bp_r, 0, sizeof bp_r);
-//    // memset(bp_w, 0, sizeof bp_w);
-//    // memset(bp_a, 0, sizeof bp_a);
-//
-//    tmpsock = socket(AF_INET, SOCK_STREAM, 0);
-//    if (tmpsock == -1)
-//        LOG_ERROR(GDB, "Failed to create gdb socket");
-//
-//    on = 1;
-//    if (setsockopt(tmpsock, SOL_SOCKET, SO_REUSEADDR, &on, sizeof on) < 0)
-//        LOG_ERROR(GDB, "Failed to setsockopt");
-//
-//    memset(&saddr_server, 0, sizeof saddr_server);
-//    saddr_server.sin_family = AF_INET;
-//    saddr_server.sin_port = htons(port);
-//    saddr_server.sin_addr.s_addr = INADDR_ANY;
-//
-//    if (bind(tmpsock, (struct sockaddr *)&saddr_server, sizeof saddr_server) < 0)
-//        LOG_ERROR(GDB, "Failed to bind gdb socket");
-//
-//    if (listen(tmpsock, 1) < 0)
-//        LOG_ERROR(GDB, "Failed to listen to gdb socket");
-//
-//    LOG_INFO(GDB, "Waiting for gdb to connect...\n");
-//
-//    sock = accept(tmpsock, (struct sockaddr *)&saddr_client, &len);
-//    if (sock < 0)
-//        LOG_ERROR(GDB, "Failed to accept gdb client");
-//    LOG_INFO(GDB, "Client connected.\n");
-//
-//    saddr_client.sin_addr.s_addr = ntohl(saddr_client.sin_addr.s_addr);
-//    /*if (((saddr_client.sin_addr.s_addr >> 24) & 0xff) != 127 ||
-//     *      ((saddr_client.sin_addr.s_addr >> 16) & 0xff) !=   0 ||
-//     *      ((saddr_client.sin_addr.s_addr >>  8) & 0xff) !=   0 ||
-//     *      ((saddr_client.sin_addr.s_addr >>  0) & 0xff) !=   1)
-//     *      LOG_ERROR(GDB, "gdb: incoming connection not from localhost");
-//     */
-//    close(tmpsock);
-//    tmpsock = -1;
-//}
-//
-//
-//void DeInit() {
-//    if (tmpsock != -1)
-//    {
-//        shutdown(tmpsock, SHUT_RDWR);
-//        tmpsock = -1;
-//    }
-//    if (sock != -1)
-//    {
-//        shutdown(sock, SHUT_RDWR);
-//        sock = -1;
-//    }
-//
-//    #ifdef _WIN32
-//    WSACleanup();
-//    #endif
-//}
-//
-//bool IsActive() {
-//    return tmpsock != -1 || sock != -1;
-//}
-//
-//int Signal(u32 s) {
-//    if (sock == -1)
-//        return 1;
-//
-//    sig = s;
-//
-//    if (send_signal) {
-//        gdb_handle_signal();
-//        send_signal = 0;
-//    }
-//
-//    return 0;
-//}
-
-// int gdb_bp_x(u32 addr) {
-//     if (sock == -1)
-//         return 0;
-
-//     if (step_break) {
-//         step_break = 0;
-
-//         LOG_DEBUG(GDB, "Step was successful.");
-//         return 1;
-//     }
-
-//     return gdb_bp_check(addr, GDB_BP_TYPE_X);
-// }
-
-// int gdb_bp_r(u32 addr) {
-//     if (sock == -1)
-//         return 0;
-
-//     return gdb_bp_check(addr, GDB_BP_TYPE_R);
-// }
-
-// int gdb_bp_w(u32 addr) {
-//     if (sock == -1)
-//         return 0;
-
-//     return gdb_bp_check(addr, GDB_BP_TYPE_W);
-// }
-
-// int gdb_bp_a(u32 addr) {
-//     if (sock == -1)
-//         return 0;
-
-//     return gdb_bp_check(addr, GDB_BP_TYPE_A);
-// }
-
-
 
 namespace GDB {
 std::vector<GDB::BreakPoint> breakpoints = {};
@@ -933,7 +607,18 @@ bool IsActive() {
 }
 
 bool IsStepping() {
-    return step_break;
+    if (step_break) {
+        step_break = 0;
+
+        LOG_DEBUG(GDB, "Step was successful.");
+        return 1;
+    }
+
+    u32 pc = Core::g_app_core->GetPC();
+    return std::count_if(GDB::breakpoints.begin(), GDB::breakpoints.end(), 
+                    [pc](GDB::BreakPoint const& b){
+                        return b.address == pc;
+                    }) > 0;
 }
 
 int Signal(u32 s) {

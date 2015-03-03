@@ -50,11 +50,7 @@ void SingleStep() {
 /// 
 void Debug() {
     SingleStep();
-    u32 pc = g_app_core->GetPC();
-    if (GDB::IsStepping() || std::find_if(GDB::breakpoints.begin(), GDB::breakpoints.end(), 
-                    [pc](GDB::BreakPoint const& b){
-                        return b.address == pc;
-                    }) != GDB::breakpoints.end()) {
+    if (GDB::IsStepping()) {
         GDB::Signal(SIGTRAP);
         GDB::HandleException();
     }
