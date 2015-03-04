@@ -39,7 +39,7 @@ bool IsStepping();
 void HandleException();
 int  Signal(u32 signal);
 
-void AddBreakPoint(BreakPoint& bp);
+// bool AddBreakPointHere();
 void Break();
 
 extern std::vector<BreakPoint> breakpoints;

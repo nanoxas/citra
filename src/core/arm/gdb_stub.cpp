@@ -366,31 +366,11 @@ static void gdb_read_registers() {
 
     memset(bfr, 0, sizeof bfr);
 
-    // TODO: Only 15 registers 
     for (i = 0; i < 16; i++)
     {
         wbe32hex(bufptr + i*8, Core::g_app_core->GetReg(i));
     }
     bufptr += 16 * 8;
-
-    /*
-    for (i = 0; i < 32; i++)
-    {
-        wbe32hex(bufptr + i*8, riPS0(i));
-    }
-    bufptr += 32 * 8;
-    wbe32hex(bufptr, PC);      bufptr += 4;
-    wbe32hex(bufptr, MSR);     bufptr += 4;
-    wbe32hex(bufptr, GetCR()); bufptr += 4;
-    wbe32hex(bufptr, LR);      bufptr += 4;
-
-
-    wbe32hex(bufptr, CTR);     bufptr += 4;
-    wbe32hex(bufptr, PowerPC::ppcState.spr[SPR_XER]); bufptr += 4;
-    // MQ register not used.
-    wbe32hex(bufptr, 0x0BADC0DE); bufptr += 4;
-    */
-
 
     gdb_reply((char *)bfr);
 }
@@ -489,7 +469,7 @@ static void gdb_read_mem() {
         gdb_reply("E01");
     u8 * data = Memory::GetPointer(addr);
     if (!data)
-        return gdb_reply("E0");
+        return gdb_reply("E00");
     mem2hex(reply, data, len);
     reply[len*2] = '\0';
     gdb_reply((char *)reply);
@@ -526,6 +506,47 @@ static void gdb_continue() {
     send_signal = 1;
     Core::RunLoop();
 }
+
+static void gdb_add_bp() {
+    u32 type;
+    u32 i, addr = 0, len = 0;
+    type = hex2char(cmd_bfr[1]);
+    i = 3;
+    while (cmd_bfr[i] != ',')
+    addr = addr << 4 | hex2char(cmd_bfr[i++]);
+    i++;
+    while (i < cmd_len)
+    len = len << 4 | hex2char(cmd_bfr[i++]);
+    // if (!gdb_add_bp(type, addr, len))
+    // return gdb_reply("E02");
+    GDB::BreakPoint b = {addr, len, true};
+    LOG_DEBUG(GDB, "Adding a breakpoint at %08x with len %08x", addr, len);
+    GDB::breakpoints.push_back(b);
+    gdb_reply("OK");
+}
+
+static void gdb_remove_bp() {
+    u32 type, addr, len, i;
+    type = hex2char(cmd_bfr[1]);
+
+    addr = 0;
+    len = 0;
+    i = 3;
+    while (cmd_bfr[i] != ',') {
+        addr = (addr << 4) | hex2char(cmd_bfr[i++]);
+    }
+    i++;
+    while (i < cmd_len) {
+        len = (len << 4) | hex2char(cmd_bfr[i++]);
+    }
+    std::remove_if (GDB::breakpoints.begin(), GDB::breakpoints.end(), 
+        [addr](GDB::BreakPoint const& b){
+            return b.address == addr;
+        });
+    gdb_reply("OK");
+}
+
+// Public Functionality 
 
 namespace GDB {
 std::vector<GDB::BreakPoint> breakpoints = {};
@@ -640,6 +661,10 @@ void Break() {
     send_signal = 1;
 }
 
+// bool AddBreakPointHere() {
+//     BreakPoint bp;
+// }
+
 void HandleException() {
     while (GDB::IsActive()) {
         if (!gdb_data_available())
@@ -690,10 +715,10 @@ void HandleException() {
             gdb_continue();
             return;
         case 'z':
-            //gdb_remove_bp();
+            gdb_remove_bp();
             break;
         case 'Z':
-            //_gdb_add_bp();
+            gdb_add_bp();
             break;
         default:
             gdb_reply("");
