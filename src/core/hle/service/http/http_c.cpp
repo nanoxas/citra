@@ -4,86 +4,20 @@
 
 #include <stdexcept>
 #include <thread>
-#include <mutex>
-
-#include <curl/curl.h>
 
 #include "core/hle/hle.h"
-#include "core/hle/service/http_c.h"
+#include "core/hle/service/http/http.h"
+#include "core/hle/service/http/http_c.h"
 
 #include "common/logging/log.h"
 #include "common/make_unique.h"
 #include "common/string_util.h"
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
-// Namespace HTTP_C
-
-namespace HTTP_C {
-
-typedef u32 ContextHandle;
-
-enum RequestType : u32 {
-    REQUEST_TYPE_NONE   = 0,
-    REQUEST_TYPE_GET    = 1,
-    REQUEST_TYPE_POST   = 2,
-    REQUEST_TYPE_HEAD   = 3,
-    REQUEST_TYPE_PUT    = 4,
-    REQUEST_TYPE_DELETE = 5,
-    REQUEST_TYPE_POST_  = 6,
-    REQUEST_TYPE_PUT_   = 7
-};
-
-enum RequestState : u32 {
-    REQUEST_STATE_DEFAULT, // TODO
-    REQUEST_STATE_IN_PROGRESS = 5,
-    REQUEST_STATE_READY = 7,
-};
-
-struct HttpContext {
-    std::mutex mutex;
-
-    RequestState state;
-
-    std::string url;
-    RequestType req_type;
-    curl_slist* request_hdrs;
-
-    std::vector<u8> response_hdrs;
-    std::vector<u8> response_data;
-    long response_code;
-    double download_size;
-    double downloaded_size;
-
-    ~HttpContext() {
-        curl_slist_free_all(request_hdrs);
-    }
-};
-
-static std::unordered_map<ContextHandle, std::unique_ptr<HttpContext>> context_map;
-static ContextHandle next_handle;
-
-static int writer_hdrs(u8* data, size_t size, size_t nmemb, HttpContext* context) {
-    if (context == nullptr)
-        return 0;
-    std::lock_guard<std::mutex> lock(context->mutex);
-    context->response_hdrs.reserve(context->response_hdrs.size() + size * nmemb);
-    context->response_hdrs.insert(context->response_hdrs.end(), data, data + size * nmemb);
-    return (int)(size * nmemb);
-}
-
-static int writer_data(u8* data, size_t size, size_t nmemb, HttpContext* context) {
-    if (context == nullptr)
-        return 0;
-    std::lock_guard<std::mutex> lock(context->mutex);
-    context->response_data.reserve(context->response_data.size() + size * nmemb);
-    context->response_data.insert(context->response_data.end(), data, data + size * nmemb);
-    return (int)(size * nmemb);
-}
+namespace Service {
+namespace HTTP {
 
 static void Initialize(Service::Interface* self) {
     u32* cmd_buff = Kernel::GetCommandBuffer();
-
-    curl_global_init(CURL_GLOBAL_DEFAULT);
 
     cmd_buff[1] = RESULT_SUCCESS.raw;
 }
@@ -105,7 +39,6 @@ static void CreateContext(Service::Interface* self) {
 
     context->req_type = req_type;
     context->url = url;
-
     context_map.emplace(next_handle, std::move(context));
 
     cmd_buff[1] = RESULT_SUCCESS.raw;
@@ -118,13 +51,32 @@ static void CloseContext(Service::Interface* self) {
     u32* cmd_buff = Kernel::GetCommandBuffer();
 
     ContextHandle handle = static_cast<ContextHandle>(cmd_buff[1]);
-//    auto map_it = request_map.find(handle);
-//    if (map_it == request_map.end()) {
-//        cmd_buff[1] = -1; // TODO: Find proper result code for invalid handle
-//        return;
-//    }
-    // TODO: wait for thread to finish!
+    auto map_it = context_map.find(handle);
+    if (map_it == context_map.end()) {
+        cmd_buff[1] = -1; // TODO: Find proper result code for invalid handle
+        return;
+    }
+
+    map_it->second->should_quit = true;
+    if (map_it->second->req_thread != nullptr)
+        map_it->second->req_thread->join();
+
     context_map.erase(handle);
+
+    cmd_buff[1] = RESULT_SUCCESS.raw;
+}
+
+static void CancelConnection(Service::Interface* self) {
+    u32* cmd_buff = Kernel::GetCommandBuffer();
+
+    ContextHandle handle = static_cast<ContextHandle>(cmd_buff[1]);
+
+    auto map_it = context_map.find(handle);
+    if (map_it == context_map.end()) {
+        cmd_buff[1] = -1; // TODO: Find proper result code for invalid handle
+        return;
+    }
+    map_it->second->should_quit = true;
 
     cmd_buff[1] = RESULT_SUCCESS.raw;
 }
@@ -169,56 +121,6 @@ static void GetDownloadSizeState(Service::Interface* self) {
     return;
 }
 
-static void MakeRequest(HttpContext* context) {
-    CURL* connection = curl_easy_init();
-    CURLcode res;
-    {
-        std::lock_guard<std::mutex> lock(context->mutex);
-
-        context->state = REQUEST_STATE_IN_PROGRESS;
-        res = curl_easy_setopt(connection, CURLOPT_URL, context->url.c_str());
-        switch (context->req_type) {
-            case REQUEST_TYPE_GET:
-                res = curl_easy_setopt(connection, CURLOPT_HTTPGET, 1);
-                break;
-            case REQUEST_TYPE_POST:
-            case REQUEST_TYPE_POST_:
-                res = curl_easy_setopt(connection, CURLOPT_POST, 1);
-                break;
-            case REQUEST_TYPE_PUT:
-            case REQUEST_TYPE_PUT_:
-                res = curl_easy_setopt(connection, CURLOPT_UPLOAD, 1);
-                break;
-            case REQUEST_TYPE_DELETE:
-                // TODO
-                break;
-            case REQUEST_TYPE_HEAD:
-                res = curl_easy_setopt(connection, CURLOPT_NOBODY, 1);
-                break;
-        }
-
-        res = curl_easy_setopt(connection, CURLOPT_HEADERFUNCTION, writer_hdrs);
-        res = curl_easy_setopt(connection, CURLOPT_WRITEFUNCTION, writer_data);
-        res = curl_easy_setopt(connection, CURLOPT_HEADERDATA, context);
-        res = curl_easy_setopt(connection, CURLOPT_WRITEDATA, context);
-
-        curl_easy_setopt(connection, CURLOPT_HTTPHEADER, context->request_hdrs);
-    }
-
-    res = curl_easy_perform(connection);
-    {
-        std::lock_guard<std::mutex> lock(context->mutex);
-
-        curl_easy_getinfo(connection, CURLINFO_RESPONSE_CODE, &context->response_code);
-        curl_easy_getinfo(connection, CURLINFO_SIZE_DOWNLOAD, &context->downloaded_size);
-        curl_easy_getinfo(connection, CURLINFO_CONTENT_LENGTH_DOWNLOAD, &context->download_size);
-
-        context->state = REQUEST_STATE_READY;
-    }
-
-    curl_easy_cleanup(connection);
-}
-
 static void BeginRequest(Service::Interface* self) {
     u32* cmd_buff = Kernel::GetCommandBuffer();
 
@@ -231,9 +133,8 @@ static void BeginRequest(Service::Interface* self) {
     }
 
     HttpContext* context = map_it->second.get();
-
-    std::thread req_thread(MakeRequest, context);
-    req_thread.detach();
+    std::lock_guard<std::mutex> lock(context->mutex);
+    context->req_thread = Common::make_unique<std::thread>(MakeRequest, context);
 
     cmd_buff[1] = RESULT_SUCCESS.raw;
 }
@@ -242,7 +143,7 @@ static void ReceiveData(Service::Interface* self) {
     u32* cmd_buff = Kernel::GetCommandBuffer();
 
     ContextHandle handle = static_cast<ContextHandle>(cmd_buff[1]);
-    u32 buf_size = cmd_buff[2];    
+    u32 buf_size = cmd_buff[2];
     u8* buffer = Memory::GetPointer(cmd_buff[4]);
 
     auto map_it = context_map.find(handle);
@@ -268,15 +169,12 @@ static void AddRequestHeader(Service::Interface* self) {
     ContextHandle handle = static_cast<ContextHandle>(cmd_buff[1]);
     u32 hdr_name_len = cmd_buff[2];
     u32 hdr_val_len  = cmd_buff[3];
-    u32 hdr_name_buf = cmd_buff[5];
-    u32 hdr_val_buf  = cmd_buff[7];
+    const char* hdr_name_buf = reinterpret_cast<const char*>(Memory::GetPointer(cmd_buff[5]));
+    const char* hdr_val_buf = reinterpret_cast<const char*>(Memory::GetPointer(cmd_buff[7]));
 
     // TODO: something is NULL
     // TODO: header value is empty
     // TODO: header name is empty
-    std::string header = Common::StringFromFormat("%s: %s",
-        std::string(reinterpret_cast<const char*>(Memory::GetPointer(hdr_name_buf)), hdr_name_len).c_str(),
-        std::string(reinterpret_cast<const char*>(Memory::GetPointer(hdr_val_buf)), hdr_val_len).c_str());
 
     auto map_it = context_map.find(handle);
     if (map_it == context_map.end()) {
@@ -285,7 +183,9 @@ static void AddRequestHeader(Service::Interface* self) {
     }
 
     std::lock_guard<std::mutex> lock(map_it->second->mutex);
-    map_it->second->request_hdrs = curl_slist_append(map_it->second->request_hdrs, header.c_str());
+    AddRequestHeader(std::string(hdr_name_buf, hdr_name_len).c_str(),
+                     std::string(hdr_val_buf, hdr_val_len).c_str(),
+                     &map_it->second->request_hdrs);
     cmd_buff[1] = RESULT_SUCCESS.raw;
 }
 
@@ -300,6 +200,7 @@ static void GetResponseStatusCode(Service::Interface* self) {
         return;
     }
 
+    // TODO: Verify behavior
     while (true) {
         std::lock_guard<std::mutex> lock(map_it->second->mutex);
         if (map_it->second->state == REQUEST_STATE_READY)
@@ -317,9 +218,7 @@ static void GetResponseStatusCode(Service::Interface* self) {
 static void Finalize(Service::Interface* self) {
     u32* cmd_buff = Kernel::GetCommandBuffer();
 
-    context_map.clear();
-    next_handle = 0;
-    curl_global_cleanup();
+    ClearInstance();
 
     cmd_buff[1] = RESULT_SUCCESS.raw;
 }
@@ -328,7 +227,7 @@ const Interface::FunctionInfo FunctionTable[] = {
     {0x00010044, Initialize,              "Initialize"},
     {0x00020082, CreateContext,           "CreateContext"},
     {0x00030040, CloseContext,            "CloseContext"},
-    {0x00040040, nullptr,                 "CancelConnection"},
+    {0x00040040, CancelConnection,        "CancelConnection"},
     {0x00050040, GetRequestState,         "GetRequestState"},
     {0x00060040, GetDownloadSizeState,    "GetDownloadSizeState"},
     {0x00070040, nullptr,                 "GetRequestError"},
@@ -370,8 +269,9 @@ const Interface::FunctionInfo FunctionTable[] = {
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // Interface class
 
-Interface::Interface() {
+HTTP_C_Interface::HTTP_C_Interface() {
     Register(FunctionTable);
 }
 
+}
 } // namespace

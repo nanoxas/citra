@@ -6,14 +6,12 @@
 
 #include "core/hle/service/service.h"
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
-// Namespace HTTP_C
+namespace Service {
+namespace HTTP {
 
-namespace HTTP_C {
-
-class Interface : public Service::Interface {
+class HTTP_C_Interface : public Service::Interface {
 public:
-    Interface();
+    HTTP_C_Interface();
 
     std::string GetPortName() const override {
         return "http:C";
@@ -21,3 +19,4 @@ public:
 };
 
 } // namespace
+}
