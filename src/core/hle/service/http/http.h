@@ -50,7 +50,7 @@ struct HttpContext {
     std::vector<u8> response_hdrs;
     std::vector<u8> response_data;
     long response_code;
-    double download_size;
+    double content_length;
     double downloaded_size;
 
     ~HttpContext();
@@ -60,7 +60,7 @@ extern std::unordered_map<ContextHandle, std::unique_ptr<HttpContext>> context_m
 extern ContextHandle next_handle;
 
 void MakeRequest(HttpContext* context);
-void AddRequestHeader(std::string name, std::string value, curl_slist** hdr_list);
+void AddRequestHeader(const std::string& name, const std::string& value, curl_slist** hdr_list);
 
 /// Initialize the HTTP service
 void Init();

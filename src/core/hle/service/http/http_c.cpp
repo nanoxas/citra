@@ -2,7 +2,6 @@
 // Licensed under GPLv2 or any later version
 // Refer to the license.txt file included.
 
-#include <stdexcept>
 #include <thread>
 
 #include "core/hle/hle.h"
@@ -27,18 +26,15 @@ static void CreateContext(Service::Interface* self) {
 
     u32 url_len = cmd_buff[1];
     RequestType req_type = static_cast<RequestType>(cmd_buff[2]);
-    u32 url_ptr = cmd_buff[4];
+    char* url_ptr = reinterpret_cast<char*>(Memory::GetPointer(cmd_buff[4]));
 
-    std::string url(reinterpret_cast<const char*>(Memory::GetPointer(url_ptr)), url_len);
-
-    LOG_DEBUG(Service, "request url=%s req_type=%u",
-              url.c_str(), req_type);
+    LOG_DEBUG(Service, "request url=%s req_type=%u", url_ptr, req_type);
 
     // TODO: give HttpContext a proper constructor
     std::unique_ptr<HttpContext> context(new HttpContext{});
 
     context->req_type = req_type;
-    context->url = url;
+    context->url = std::string(url_ptr, url_len);
     context_map.emplace(next_handle, std::move(context));
 
     cmd_buff[1] = RESULT_SUCCESS.raw;
@@ -117,8 +113,7 @@ static void GetDownloadSizeState(Service::Interface* self) {
     cmd_buff[1] = RESULT_SUCCESS.raw;
     cmd_buff[2] = (u32) response->downloaded_size;
     // TODO: invalid content-length?
-    cmd_buff[3] = (u32) response->download_size;
-    return;
+    cmd_buff[3] = (u32) response->content_length;
 }
 
 static void BeginRequest(Service::Interface* self) {
@@ -135,6 +130,7 @@ static void BeginRequest(Service::Interface* self) {
     HttpContext* context = map_it->second.get();
     std::lock_guard<std::mutex> lock(context->mutex);
     context->req_thread = Common::make_unique<std::thread>(MakeRequest, context);
+    context->state = REQUEST_STATE_IN_PROGRESS;
 
     cmd_buff[1] = RESULT_SUCCESS.raw;
 }
@@ -169,8 +165,8 @@ static void AddRequestHeader(Service::Interface* self) {
     ContextHandle handle = static_cast<ContextHandle>(cmd_buff[1]);
     u32 hdr_name_len = cmd_buff[2];
     u32 hdr_val_len  = cmd_buff[3];
-    const char* hdr_name_buf = reinterpret_cast<const char*>(Memory::GetPointer(cmd_buff[5]));
-    const char* hdr_val_buf = reinterpret_cast<const char*>(Memory::GetPointer(cmd_buff[7]));
+    char* hdr_name_buf = reinterpret_cast<char*>(Memory::GetPointer(cmd_buff[5]));
+    char* hdr_val_buf = reinterpret_cast<char*>(Memory::GetPointer(cmd_buff[7]));
 
     // TODO: something is NULL
     // TODO: header value is empty
