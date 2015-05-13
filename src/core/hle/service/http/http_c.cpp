@@ -29,9 +29,7 @@ static void CreateContext(Service::Interface* self) {
     char* url_ptr = reinterpret_cast<char*>(Memory::GetPointer(cmd_buff[4]));
 
     LOG_DEBUG(Service, "request url=%s req_type=%u", url_ptr, req_type);
-
-    // TODO: give HttpContext a proper constructor
-    std::unique_ptr<HttpContext> context(new HttpContext{});
+    auto context = Common::make_unique<HttpContext>();
 
     context->req_type = req_type;
     context->url = std::string(url_ptr, url_len);
@@ -53,7 +51,7 @@ static void CloseContext(Service::Interface* self) {
         return;
     }
 
-    map_it->second->should_quit = true;
+    map_it->second->cancel_request = true;
     if (map_it->second->req_thread != nullptr)
         map_it->second->req_thread->join();
 
@@ -72,7 +70,7 @@ static void CancelConnection(Service::Interface* self) {
         cmd_buff[1] = -1; // TODO: Find proper result code for invalid handle
         return;
     }
-    map_it->second->should_quit = true;
+    map_it->second->cancel_request = true;
 
     cmd_buff[1] = RESULT_SUCCESS.raw;
 }

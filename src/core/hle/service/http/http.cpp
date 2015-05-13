@@ -39,8 +39,7 @@ static CURLcode SetConnectionType(CURL* connection, RequestType type) {
     case REQUEST_TYPE_PUT_:
         return curl_easy_setopt(connection, CURLOPT_UPLOAD, 1);
     case REQUEST_TYPE_DELETE:
-        // TODO
-        break;
+        break; // TODO
     case REQUEST_TYPE_HEAD:
         return curl_easy_setopt(connection, CURLOPT_NOBODY, 1);
     }
@@ -90,7 +89,7 @@ void MakeRequest(HttpContext* context) {
 
         {
             std::lock_guard<std::mutex> lock(context->mutex);
-            if (context->should_quit)
+            if (context->cancel_request)
                 break;
         }
 
@@ -127,7 +126,7 @@ void Init() {
 
 void ClearInstance() {
     for (auto& pair : context_map) {
-        pair.second->should_quit = true;
+        pair.second->cancel_request = true;
         if (pair.second->req_thread != nullptr)
             pair.second->req_thread->join();
     }
