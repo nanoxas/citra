@@ -25,7 +25,7 @@ static int BufWriter(u8 *data, size_t size, size_t nmemb, std::vector<u8>* out_b
 }
 
 HttpContext::HttpContext() {
-    state = REQUEST_STATE_NONE;
+    state = REQUEST_STATE_NOT_STARTED;
     cancel_request = false;
     req_type = REQUEST_TYPE_NONE;
     request_hdrs = nullptr;
@@ -76,24 +76,28 @@ void MakeRequest(HttpContext* context) {
     res = curl_easy_setopt(connection, CURLOPT_HEADERDATA, &response_hdrs);
     res = curl_easy_setopt(connection, CURLOPT_WRITEDATA, &response_data);
 
-    mres = curl_multi_add_handle(manager, connection);
+    curl_multi_add_handle(manager, connection);
 
     int still_running = 0;
     int repeats = 0;
-    mres = curl_multi_perform(manager, &still_running);
+    curl_multi_perform(manager, &still_running);
 
     do {
         // Number of file descriptors. If this is zero, nothing happened to
         // the active connection.
         int numfds;
 
+        // Set the timeout to 1sec.
         if (curl_multi_wait(manager, NULL, 0, 1000, &numfds) != CURLM_OK)
             break;
 
         if (numfds == 0) {
+            // We allow one repeat try--after which, we start to sleep the
+            // thread until the timeout runs out.
             if (repeats++ > 1)
-                std::this_thread::sleep_for(std::chrono::milliseconds(25));
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
         } else {
+            // While the file descriptor is responding, there's no need to check for repeats.
             repeats = 0;
         }
 
@@ -103,7 +107,7 @@ void MakeRequest(HttpContext* context) {
                 break;
         }
 
-        mres = curl_multi_perform(manager, &still_running);
+        curl_multi_perform(manager, &still_running);
     } while (still_running != 0);
 
     {
@@ -124,6 +128,7 @@ void MakeRequest(HttpContext* context) {
 }
 
 void AddRequestHeader(const std::string& name, const std::string& value, curl_slist** hdr_list) {
+    // TODO: header value is empty
     std::string header = Common::StringFromFormat("%s: %s", name.c_str(), value.c_str());
     *hdr_list = curl_slist_append(*hdr_list, header.c_str());
 }

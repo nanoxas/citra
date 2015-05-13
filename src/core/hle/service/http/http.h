@@ -34,9 +34,10 @@ enum RequestType : u32 {
 
 /// Current state of the HTTP request (API-exposed).
 enum RequestState : u32 {
-    REQUEST_STATE_NONE = 0, // TODO: Verify
+    REQUEST_STATE_NOT_STARTED = 1,
     REQUEST_STATE_IN_PROGRESS = 5,
     REQUEST_STATE_READY = 8,
+    REQUEST_STATE_TIMEOUT = 10,
 };
 
 /** A helper struct that contains all the required information for a HTTP request.

@@ -47,7 +47,7 @@ static void CloseContext(Service::Interface* self) {
     ContextHandle handle = static_cast<ContextHandle>(cmd_buff[1]);
     auto map_it = context_map.find(handle);
     if (map_it == context_map.end()) {
-        cmd_buff[1] = -1; // TODO: Find proper result code for invalid handle
+        cmd_buff[1] = 0xD8E007F7;
         return;
     }
 
@@ -67,7 +67,7 @@ static void CancelConnection(Service::Interface* self) {
 
     auto map_it = context_map.find(handle);
     if (map_it == context_map.end()) {
-        cmd_buff[1] = -1; // TODO: Find proper result code for invalid handle
+        cmd_buff[1] = 0xD8E007F7;
         return;
     }
     map_it->second->cancel_request = true;
@@ -82,7 +82,7 @@ static void GetRequestState(Service::Interface* self) {
 
     auto map_it = context_map.find(handle);
     if (map_it == context_map.end()) {
-        cmd_buff[1] = -1; // TODO: Find proper result code for invalid handle
+        cmd_buff[1] = 0xD8E007F7;
         return;
     }
 
@@ -99,14 +99,12 @@ static void GetDownloadSizeState(Service::Interface* self) {
 
     auto map_it = context_map.find(handle);
     if (map_it == context_map.end()) {
-        cmd_buff[1] = -1; // TODO: Find proper result code for invalid handle
+        cmd_buff[1] = 0xD8E007F7;
         return;
     }
 
     HttpContext* response = map_it->second.get();
     std::lock_guard<std::mutex> lock(response->mutex);
-
-    // TODO: Request not done yet
 
     cmd_buff[1] = RESULT_SUCCESS.raw;
     cmd_buff[2] = (u32) response->downloaded_size;
@@ -121,12 +119,13 @@ static void BeginRequest(Service::Interface* self) {
 
     auto map_it = context_map.find(handle);
     if (map_it == context_map.end()) {
-        cmd_buff[1] = -1; // TODO: Find proper result code for invalid handle
+        cmd_buff[1] = 0xD8E007F7;
         return;
     }
 
     HttpContext* context = map_it->second.get();
     std::lock_guard<std::mutex> lock(context->mutex);
+
     context->req_thread = Common::make_unique<std::thread>(MakeRequest, context);
     context->state = REQUEST_STATE_IN_PROGRESS;
 
@@ -142,14 +141,14 @@ static void ReceiveData(Service::Interface* self) {
 
     auto map_it = context_map.find(handle);
     if (map_it == context_map.end()) {
-        cmd_buff[1] = -1; // TODO: Find proper result code for invalid handle
+        cmd_buff[1] = 0xD8E007F7;
         return;
     }
 
     std::lock_guard<std::mutex> lock(map_it->second->mutex);
     const std::vector<u8>& data = map_it->second->response_data;
     if (buf_size < data.size()) {
-        cmd_buff[1] = 0xd840a02b;
+        cmd_buff[1] = 0xD840A02B;
         return;
     }
 
@@ -164,21 +163,25 @@ static void AddRequestHeader(Service::Interface* self) {
     u32 hdr_name_len = cmd_buff[2];
     u32 hdr_val_len  = cmd_buff[3];
     char* hdr_name_buf = reinterpret_cast<char*>(Memory::GetPointer(cmd_buff[5]));
-    char* hdr_val_buf = reinterpret_cast<char*>(Memory::GetPointer(cmd_buff[7]));
+    char* hdr_val_buf  = reinterpret_cast<char*>(Memory::GetPointer(cmd_buff[7]));
 
-    // TODO: something is NULL
-    // TODO: header value is empty
-    // TODO: header name is empty
+    std::string hdr_name = std::string(hdr_name_buf, hdr_name_len);
+    std::string hdr_val  = std::string(hdr_val_buf, hdr_val_len);
+
+    if (hdr_name.empty()) {
+        cmd_buff[1] = 0xD8E0A002;
+        return;
+    }
 
     auto map_it = context_map.find(handle);
     if (map_it == context_map.end()) {
-        cmd_buff[1] = -1; // TODO: Find proper result code for invalid handle
+        cmd_buff[1] = 0xD8E007F7;
         return;
     }
 
     std::lock_guard<std::mutex> lock(map_it->second->mutex);
-    AddRequestHeader(std::string(hdr_name_buf, hdr_name_len).c_str(),
-                     std::string(hdr_val_buf, hdr_val_len).c_str(),
+    AddRequestHeader(hdr_name.c_str(),
+                     hdr_val.c_str(),
                      &map_it->second->request_hdrs);
     cmd_buff[1] = RESULT_SUCCESS.raw;
 }
@@ -190,7 +193,7 @@ static void GetResponseStatusCode(Service::Interface* self) {
 
     auto map_it = context_map.find(handle);
     if (map_it == context_map.end()) {
-        cmd_buff[1] = -1; // TODO: Find proper result code for invalid handle
+        cmd_buff[1] = 0xD8E007F7;
         return;
     }
 
