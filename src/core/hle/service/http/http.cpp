@@ -24,6 +24,16 @@ static int BufWriter(u8 *data, size_t size, size_t nmemb, std::vector<u8>* out_b
     return static_cast<int>(size * nmemb);
 }
 
+HttpContext::HttpContext() {
+    state = REQUEST_STATE_NONE;
+    cancel_request = false;
+    req_type = REQUEST_TYPE_NONE;
+    request_hdrs = nullptr;
+    response_code = 0;
+    content_length = 0.0;
+    downloaded_size = 0.0;
+}
+
 HttpContext::~HttpContext() {
     curl_slist_free_all(request_hdrs);
 }
@@ -68,8 +78,8 @@ void MakeRequest(HttpContext* context) {
 
     mres = curl_multi_add_handle(manager, connection);
 
-    int still_running;
-    int repeats;
+    int still_running = 0;
+    int repeats = 0;
     mres = curl_multi_perform(manager, &still_running);
 
     do {

@@ -34,6 +34,7 @@ enum RequestType : u32 {
 
 /// Current state of the HTTP request (API-exposed).
 enum RequestState : u32 {
+    REQUEST_STATE_NONE = 0, // TODO: Verify
     REQUEST_STATE_IN_PROGRESS = 5,
     REQUEST_STATE_READY = 8,
 };
@@ -63,6 +64,7 @@ struct HttpContext {
     double content_length;            //< The total size in bytes that will be downloaded this request.
     double downloaded_size;           //< The amount in bytes that has been downloaded so far.
 
+    HttpContext();
     ~HttpContext();
 };
 
