@@ -15,6 +15,10 @@ platform:
 configuration:
   - Release
 
+build:
+  parallel: true
+  project: build/ALL_BUILD.vcxproj
+
 install:
   - git submodule update --init --recursive
 

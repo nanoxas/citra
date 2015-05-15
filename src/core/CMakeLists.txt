@@ -220,3 +220,4 @@ set(HEADERS
 create_directory_groups(${SRCS} ${HEADERS})
 
 add_library(core STATIC ${SRCS} ${HEADERS})
+add_dependencies(core curl)

@@ -190,7 +190,7 @@ find_package(CURL 7.28.0)
 if (NOT CURL_FOUND)
     set(CURL_SOURCE_PREFIX "${CMAKE_CURRENT_SOURCE_DIR}/externals/curl")
     set(CURL_BUILT_PREFIX "${CMAKE_CURRENT_BINARY_DIR}/externals/curl")
-    externalproject_add(
+    externalproject_add(curl
         PREFIX SOURCE_DIR ${CURL_SOURCE_PREFIX}
         CMAKE_CACHE_ARGS
           -DBUILD_CURL_EXE:string=off
@@ -201,7 +201,11 @@ if (NOT CURL_FOUND)
         )
     include_directories("${CURL_BUILT_PREFIX}/include")
     link_directories("${CURL_BUILT_PREFIX}/lib")
-    set(CURL_LIBRARIES "curl")
+    if (NOT MSVC)
+        set(CURL_LIBRARIES "curl")
+    else()
+        set(CURL_LIBRARIES "libcurl_imp")
+    endif()
 else()
     include_directories(${CURL_INCLUDE_DIRS})
 endif()
