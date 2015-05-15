@@ -16,6 +16,6 @@ create_directory_groups(${SRCS} ${HEADERS})
 add_executable(citra ${SRCS} ${HEADERS})
 target_link_libraries(citra core common video_core)
 target_link_libraries(citra ${GLFW_LIBRARIES} ${OPENGL_gl_LIBRARY} inih)
-target_link_libraries(citra ${PLATFORM_LIBRARIES})
+target_link_libraries(citra ${PLATFORM_LIBRARIES} ${CURL_LIBRARIES})
 
 #install(TARGETS citra RUNTIME DESTINATION ${bindir})

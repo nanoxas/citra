@@ -7,3 +7,6 @@
 [submodule "nihstro"]
 	path = externals/nihstro
 	url = https://github.com/neobrain/nihstro.git
+[submodule "curl"]
+	path = externals/curl
+	url = https://github.com/bagder/curl.git

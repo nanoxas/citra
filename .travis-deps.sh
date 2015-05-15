@@ -25,5 +25,5 @@ if [ "$TRAVIS_OS_NAME" = "linux" -o -z "$TRAVIS_OS_NAME" ]; then
         | sudo tar -xz -C /usr/local --strip-components=1
 elif [ "$TRAVIS_OS_NAME" = "osx" ]; then
     brew tap homebrew/versions
-    brew install qt5 glfw3 pkgconfig
+    brew install qt5 glfw3 pkgconfig curl
 fi

@@ -1,6 +1,7 @@
 # CMake 2.8.11 required for Qt5 settings to be applied automatically on
 # dependent libraries.
 cmake_minimum_required(VERSION 2.8.11)
+include(ExternalProject)
 
 project(citra)
 
@@ -123,7 +124,7 @@ IF (APPLE)
     FIND_LIBRARY(IOKIT_LIBRARY IOKit)           # GLFW dependency
     FIND_LIBRARY(COREVIDEO_LIBRARY CoreVideo)   # GLFW dependency
     set(PLATFORM_LIBRARIES iconv ${COCOA_LIBRARY} ${IOKIT_LIBRARY} ${COREVIDEO_LIBRARY})
-    
+
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -stdlib=libc++")
 ELSEIF(MINGW)
@@ -184,6 +185,26 @@ git_branch_name(GIT_BRANCH)
 set(INI_PREFIX "${CMAKE_CURRENT_SOURCE_DIR}/externals/inih")
 include_directories(${INI_PREFIX})
 add_subdirectory(${INI_PREFIX})
+
+find_package(CURL 7.28.0)
+if (NOT CURL_FOUND)
+    set(CURL_SOURCE_PREFIX "${CMAKE_CURRENT_SOURCE_DIR}/externals/curl")
+    set(CURL_BUILT_PREFIX "${CMAKE_CURRENT_BINARY_DIR}/externals/curl")
+    externalproject_add(
+        PREFIX SOURCE_DIR ${CURL_SOURCE_PREFIX}
+        CMAKE_CACHE_ARGS
+          -DBUILD_CURL_EXE:string=off
+          -DBUILD_CURL_TESTS:string=off
+          -DHTTP_ONLY:string=on
+          -DENABLE_MANUAL:string=off
+          -DCMAKE_INSTALL_PREFIX:string=${CURL_BUILT_PREFIX}
+        )
+    include_directories("${CURL_BUILT_PREFIX}/include")
+    link_directories("${CURL_BUILT_PREFIX}/lib")
+    set(CURL_LIBRARIES "curl")
+else()
+    include_directories(${CURL_INCLUDE_DIRS})
+endif()
 
 include_directories(externals/nihstro/include)
 
