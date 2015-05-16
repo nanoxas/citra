@@ -74,3 +74,49 @@ target_link_libraries(citra-qt ${OPENGL_gl_LIBRARY} ${CITRA_QT_LIBS})
 target_link_libraries(citra-qt ${PLATFORM_LIBRARIES} ${CURL_LIBRARIES})
 
 #install(TARGETS citra-qt RUNTIME DESTINATION ${bindir})
+
+if (MSVC)
+    # /NJH /NJS /NDL /NFL /NC /NS /NP - Silence any output
+    # cmake adds an extra check for command success which doesn't work too well with robocopy 
+    # so trick it into thinking the command was successful with the || cmd /c "exit /b 0"
+    set(SILENT_ROBOCOPY "/NJH /NJS /NDL /NFL /NC /NS /NP || cmd /c \"exit /b 0\"")
+    set(CURL_DLL_SRC "${CURL_BUILT_PREFIX}/bin/")
+    set(DLL_DEST "${CMAKE_BINARY_DIR}/bin/$<CONFIG>/")
+    # windows commandline expects the / to be \ so switch them
+    string(REPLACE "/" "\\" CURL_DLL_SRC ${CURL_DLL_SRC})
+    string(REPLACE "/" "\\" DLL_DEST ${DLL_DEST})
+    add_custom_command(TARGET citra-qt POST_BUILD
+        COMMAND robocopy "${CURL_DLL_SRC}" "${DLL_DEST}" "libcurl.dll" ${SILENT_ROBOCOPY}
+    )
+    unset(CURL_DLL_SRC)
+    if (Qt5_FOUND)
+        set(Qt5_DLL_DIR "${Qt5_DIR}/../../../bin")
+        set(Qt5_PLATFORMS_DIR "${Qt5_DIR}/../../../plugins/platforms/")
+        set(Qt5_DLLS
+            icudt*.dll
+            icuin*.dll
+            icuuc*.dll
+            Qt5Core$<$<CONFIG:Debug>:d>.*
+            Qt5Gui$<$<CONFIG:Debug>:d>.*
+            Qt5OpenGL$<$<CONFIG:Debug>:d>.*
+            Qt5Widgets$<$<CONFIG:Debug>:d>.*
+        )
+        set(PLATFORMS ${DLL_DEST}platforms/)
+        
+        string(REPLACE "/" "\\" Qt5_DLL_DIR ${Qt5_DLL_DIR})
+        string(REPLACE "/" "\\" Qt5_PLATFORMS_DIR ${Qt5_PLATFORMS_DIR})
+        string(REPLACE "/" "\\" PLATFORMS ${PLATFORMS})
+        
+        add_custom_command(TARGET citra-qt POST_BUILD
+            COMMAND robocopy ${Qt5_DLL_DIR} ${DLL_DEST} ${Qt5_DLLS} ${SILENT_ROBOCOPY}
+            COMMAND if not exist ${PLATFORMS} mkdir ${PLATFORMS} 2> nul
+            COMMAND robocopy ${Qt5_PLATFORMS_DIR} ${PLATFORMS} qwindows$<$<CONFIG:Debug>:d>.* ${SILENT_ROBOCOPY}
+        )
+        unset(Qt5_DLLS)
+        unset(Qt5_DLL_DIR)
+        unset(Qt5_PLATFORMS_DIR)
+        unset(PLATFORMS)
+    endif()
+    unset(DLL_DEST)
+    unset(SILENT_ROBOCOPY)
+endif()
