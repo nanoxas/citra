@@ -16,6 +16,8 @@
 #include "core/hle/kernel/thread.h"
 #include "core/hw/hw.h"
 
+#include "core/arm/gdb_stub.h"
+
 namespace Core {
 
 ARM_Interface*     g_app_core = nullptr;  ///< ARM11 application core
@@ -45,6 +47,15 @@ void SingleStep() {
     RunLoop(1);
 }
 
+/// Single Step, but also check for GDB interrupts and handle GDB commands
+void Debug() {
+    SingleStep();
+    if (GDB::IsStepping()) {
+        GDB::Signal(SIGTRAP);
+        GDB::HandleException();
+    }
+}
+
 /// Halt the core
 void Halt(const char *msg) {
     // TODO(ShizZy): ImplementMe
@@ -61,6 +72,11 @@ int Init() {
     g_app_core = new ARM_DynCom(USER32MODE);
 
     LOG_DEBUG(Core, "Initialized OK");
+
+    if (Settings::values.gdb_port > 0) {
+        GDB::Init(12345);
+        GDB::Break();
+    }
     return 0;
 }
 

@@ -51,6 +51,7 @@ struct Values {
     float bg_blue;
 
     std::string log_filter;
+    int gdb_port;
 } extern values;
 
 }

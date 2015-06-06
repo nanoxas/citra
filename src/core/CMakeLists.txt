@@ -12,6 +12,7 @@ set(SRCS
             arm/skyeye_common/vfp/vfpdouble.cpp
             arm/skyeye_common/vfp/vfpinstr.cpp
             arm/skyeye_common/vfp/vfpsingle.cpp
+            arm/gdb_stub.cpp
             core.cpp
             core_timing.cpp
             file_sys/archive_backend.cpp
@@ -134,6 +135,8 @@ set(HEADERS
             arm/skyeye_common/vfp/asm_vfp.h
             arm/skyeye_common/vfp/vfp.h
             arm/skyeye_common/vfp/vfp_helper.h
+            arm/arm_interface.h
+            arm/gdb_stub.h
             core.h
             core_timing.h
             file_sys/archive_backend.h

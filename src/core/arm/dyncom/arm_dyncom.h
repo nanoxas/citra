@@ -24,6 +24,10 @@ public:
     void SetCPSR(u32 cpsr) override;
     u32 GetCP15Register(CP15Register reg) override;
     void SetCP15Register(CP15Register reg, u32 value) override;
+    u64 GetVFP(int index) const override;
+    void SetVFP(int index, u64 value) override;
+    u32 GetFPSCR() const override;
+    void SetFPSCR(u32 fpscr) override;
 
     void AddTicks(u64 ticks) override;
 

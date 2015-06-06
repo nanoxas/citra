@@ -83,6 +83,7 @@ void Config::ReadValues() {
 
     // Miscellaneous
     Settings::values.log_filter = glfw_config->Get("Miscellaneous", "log_filter", "*:Info");
+    Settings::values.gdb_port = glfw_config->GetInteger("Miscellaneous", "gdb_port", 0);
 }
 
 void Config::Reload() {

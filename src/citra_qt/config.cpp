@@ -70,6 +70,7 @@ void Config::ReadValues() {
 
     qt_config->beginGroup("Miscellaneous");
     Settings::values.log_filter = qt_config->value("log_filter", "*:Info").toString().toStdString();
+    Settings::values.gdb_port = qt_config->value("gdb_port", 0).toInt();
     qt_config->endGroup();
 }
 
@@ -123,6 +124,7 @@ void Config::SaveValues() {
 
     qt_config->beginGroup("Miscellaneous");
     qt_config->setValue("log_filter", QString::fromStdString(Settings::values.log_filter));
+    qt_config->setValue("gdb_port", Settings::values.gdb_port);
     qt_config->endGroup();
 }
 

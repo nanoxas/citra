@@ -74,6 +74,32 @@ public:
     virtual void SetCPSR(u32 cpsr) = 0;
 
     /**
+     * Gets the VFP from the fpu_registers
+     * @param index fpu_register at index
+     * @return u32 the value at index
+     */
+    virtual u64 GetVFP(int index) const = 0;
+
+    /**
+     * Sets the VFP from the fpu_registers
+     * @param index fpu_register at index
+     * @param value the new value for the VFP
+     */
+    virtual void SetVFP(int index, u64 value) = 0;
+
+    /**
+     * Get the current FPSCR register
+     * @return Returns the value of the FPSCR register
+     */
+    virtual u32 GetFPSCR() const = 0;
+
+    /**
+     * Set the current FPSCR register
+     * @param cpsr Value to set FPSCR to
+     */
+    virtual void SetFPSCR(u32 fpscr) = 0;
+
+    /**
      * Gets the value stored in a CP15 register.
      * @param reg The CP15 register to retrieve the value from.
      * @return the value stored in the given CP15 register.

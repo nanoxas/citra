@@ -74,6 +74,22 @@ void ARM_DynCom::SetCP15Register(CP15Register reg, u32 value) {
     state->CP15[reg] = value;
 }
 
+u64 ARM_DynCom::GetVFP(int index) const {
+    return vfp_get_double(state.get(), index);
+}
+
+void ARM_DynCom::SetVFP(int index, u64 value) {
+    vfp_put_double(state.get(), index, value);
+}
+
+u32 ARM_DynCom::GetFPSCR() const {
+    return state->VFP[1];
+}
+
+void ARM_DynCom::SetFPSCR(u32 cpsr) {
+    state->VFP[1] = cpsr;
+}
+
 void ARM_DynCom::AddTicks(u64 ticks) {
     down_count -= ticks;
     if (down_count < 0)

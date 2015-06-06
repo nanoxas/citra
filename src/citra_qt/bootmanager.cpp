@@ -14,6 +14,7 @@
 #include "core/core.h"
 #include "core/settings.h"
 #include "core/system.h"
+#include "core/arm/gdb_stub.h"
 
 #include "video_core/debug_utils/debug_utils.h"
 
@@ -40,7 +41,7 @@ void EmuThread::run() {
     // next execution step
     bool was_active = false;
     while (!stop_run) {
-        if (running) {
+        if (cpu_running) {
             if (!was_active)
                 emit DebugModeLeft();
 
@@ -59,6 +60,8 @@ void EmuThread::run() {
             yieldCurrentThread();
 
             was_active = false;
+        } else if (Settings::values.gdb_port > 0 && GDB::IsActive()) {
+            Core::Debug();
         } else {
             std::unique_lock<std::mutex> lock(running_mutex);
             running_cv.wait(lock, [this]{ return IsRunning() || stop_run; });
