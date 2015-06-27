@@ -74,7 +74,7 @@ int Init() {
     LOG_DEBUG(Core, "Initialized OK");
 
     if (Settings::values.gdb_port > 0) {
-        GDB::Init(Settings::values.gdb_port > 0);
+        GDB::Init(Settings::values.gdb_port);
         GDB::Break();
     }
     return 0;

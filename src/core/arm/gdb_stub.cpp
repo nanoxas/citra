@@ -430,10 +430,10 @@ void Init(u16 port) {
 #ifdef _WIN32
     WSAStartup(MAKEWORD(2, 2), &InitData);
 #endif
-
     int tmpsock = socket(AF_INET, SOCK_STREAM, 0);
     if (tmpsock == -1) {
         LOG_ERROR(GDB, "Failed to create gdb socket");
+        return;
     }
 
     int on = 1;
@@ -441,10 +441,12 @@ void Init(u16 port) {
     // Windows wants the sockOpt as a char*
     if (setsockopt(tmpsock, SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<char*>(&on), sizeof on) < 0) {
         LOG_ERROR(GDB, "Failed to setsockopt");
+        return;
     }
 #else
     if (setsockopt(tmpsock, SOL_SOCKET, SO_REUSEADDR, &on, sizeof on) < 0) {
         LOG_ERROR(GDB, "Failed to setsockopt");
+        return;
     }
 #endif
 
@@ -453,26 +455,28 @@ void Init(u16 port) {
     GDBState.saddr_server.sin_port = htons(port);
     GDBState.saddr_server.sin_addr.s_addr = INADDR_ANY;
 
-    if (bind(tmpsock, (struct sockaddr *)&GDBState.saddr_server, sizeof GDBState.saddr_server) < 0)
-        LOG_ERROR(GDB, "Failed to bind gdb socket");
+    if (bind(tmpsock, (struct sockaddr *)&GDBState.saddr_server, sizeof GDBState.saddr_server) < 0) {
+        LOG_ERROR(GDB, "Failed to bind gdb socket on port %d. Error code: %d", port, errno);
+        return;
+    }
 
-    if (listen(tmpsock, 1) < 0)
-        LOG_ERROR(GDB, "Failed to listen to gdb socket");
+    if (listen(tmpsock, 1) < 0) {
+        LOG_ERROR(GDB, "Failed to listen to gdb socket on port %d. Error code: %d", port, errno);
+        return;
+    }
 
-    LOG_INFO(GDB, "Waiting for gdb to connect...\n");
+    LOG_INFO(GDB, "Waiting for gdb to connect on port %d...\n", port);
     
     int len = sizeof(GDBState.saddr_client);
     GDBState.socket = accept(tmpsock, reinterpret_cast<struct sockaddr *>(&GDBState.saddr_client), reinterpret_cast<socklen_t*>(&len));
-    if (GDBState.socket < 0)
-        LOG_ERROR(GDB, "Failed to accept gdb client");
+    if (GDBState.socket < 0) {
+        LOG_ERROR(GDB, "Failed to accept gdb client on port %d. Error code: %d", port, errno);
+        return;
+    }
+    
 
     LOG_INFO(GDB, "Client connected.\n");
     GDBState.saddr_client.sin_addr.s_addr = ntohl(GDBState.saddr_client.sin_addr.s_addr);
-//    if (((saddr_client.sin_addr.s_addr >> 24) & 0xff) != 127 ||
-//         ((saddr_client.sin_addr.s_addr >> 16) & 0xff) !=   0 ||
-//         ((saddr_client.sin_addr.s_addr >>  8) & 0xff) !=   0 ||
-//         ((saddr_client.sin_addr.s_addr >>  0) & 0xff) !=   1)
-//         LOG_ERROR(GDB, "gdb: incoming connection not from localhost");
 #ifdef _WIN32
     closesocket(tmpsock);
 #else
