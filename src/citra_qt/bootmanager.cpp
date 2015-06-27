@@ -41,7 +41,7 @@ void EmuThread::run() {
     // next execution step
     bool was_active = false;
     while (!stop_run) {
-        if (cpu_running) {
+        if (running) {
             if (!was_active)
                 emit DebugModeLeft();
 

@@ -1,8 +1,3 @@
-// Copyright 2014 Dolphin Emulator Project
-// Licensed under GPLv2
-// Refer to the license.txt file included.
-
-// Originally written by Sven Peter <sven@fail0verflow.com> for anergistic.
 
 #include <fcntl.h>
 #include <stdio.h>
@@ -20,7 +15,10 @@
 #include <netinet/in.h>
 #endif
 
+#include "common/logging/log.h"
+#include "common/swap.h"
 #include "core/arm/gdb_stub.h"
+#include "core/memory.h"
 
 // notice: the PacketSize needs to be set to the hex of this number
 #define GDB_BFR_MAX  10000
@@ -43,51 +41,50 @@ static struct gdb_state {
 // for sample xmls see the gdb source /gdb/features
 // gdb also wants the l character at the start
 // this XML defines what the registers are for this specific ARM device
-static const char* target_xml =
-    "l<?xml version=\"1.0\"?>"
-    "<!DOCTYPE target SYSTEM \"gdb-target.dtd\">"
-//    "<architechture>arm</architechture>" // gdb didn't like this tag and i dunno why
-    "<target>"
-        "<feature name=\"org.gnu.gdb.arm.core\">"
-            "<reg name=\"r0\" bitsize=\"32\" type=\"uint32\"/>"
-            "<reg name=\"r1\" bitsize=\"32\" type=\"uint32\"/>"
-            "<reg name=\"r2\" bitsize=\"32\" type=\"uint32\"/>"
-            "<reg name=\"r3\" bitsize=\"32\" type=\"uint32\"/>"
-            "<reg name=\"r4\" bitsize=\"32\" type=\"uint32\"/>"
-            "<reg name=\"r5\" bitsize=\"32\" type=\"uint32\"/>"
-            "<reg name=\"r6\" bitsize=\"32\" type=\"uint32\"/>"
-            "<reg name=\"r7\" bitsize=\"32\" type=\"uint32\"/>"
-            "<reg name=\"r8\" bitsize=\"32\" type=\"uint32\"/>"
-            "<reg name=\"r9\" bitsize=\"32\" type=\"uint32\"/>"
-            "<reg name=\"r10\" bitsize=\"32\" type=\"uint32\"/>"
-            "<reg name=\"r11\" bitsize=\"32\" type=\"uint32\"/>"
-            "<reg name=\"r12\" bitsize=\"32\" type=\"uint32\"/>"
-            "<reg name=\"sp\" bitsize=\"32\" type=\"data_ptr\"/>"
-            "<reg name=\"lr\" bitsize=\"32\"/>"
-            "<reg name=\"pc\" bitsize=\"32\" type=\"code_ptr\"/>"
-            "<reg name=\"cpsr\" bitsize=\"32\" regnum=\"25\"/>"
-        "</feature>"
-        "<feature name=\"org.gnu.gdb.arm.vfp\">"
-            "<reg name=\"d0\" bitsize=\"64\" type=\"ieee_double\"/>"
-            "<reg name=\"d1\" bitsize=\"64\" type=\"ieee_double\"/>"
-            "<reg name=\"d2\" bitsize=\"64\" type=\"ieee_double\"/>"
-            "<reg name=\"d3\" bitsize=\"64\" type=\"ieee_double\"/>"
-            "<reg name=\"d4\" bitsize=\"64\" type=\"ieee_double\"/>"
-            "<reg name=\"d5\" bitsize=\"64\" type=\"ieee_double\"/>"
-            "<reg name=\"d6\" bitsize=\"64\" type=\"ieee_double\"/>"
-            "<reg name=\"d7\" bitsize=\"64\" type=\"ieee_double\"/>"
-            "<reg name=\"d8\" bitsize=\"64\" type=\"ieee_double\"/>"
-            "<reg name=\"d9\" bitsize=\"64\" type=\"ieee_double\"/>"
-            "<reg name=\"d10\" bitsize=\"64\" type=\"ieee_double\"/>"
-            "<reg name=\"d11\" bitsize=\"64\" type=\"ieee_double\"/>"
-            "<reg name=\"d12\" bitsize=\"64\" type=\"ieee_double\"/>"
-            "<reg name=\"d13\" bitsize=\"64\" type=\"ieee_double\"/>"
-            "<reg name=\"d14\" bitsize=\"64\" type=\"ieee_double\"/>"
-            "<reg name=\"d15\" bitsize=\"64\" type=\"ieee_double\"/>"
-            "<reg name=\"fpscr\" bitsize=\"32\" type=\"int\" group=\"float\"/>"
-        "</feature>"
-    "</target>"
-;
+static const char* target_xml = R"(
+l<?xml version="1.0"?>
+<!DOCTYPE target SYSTEM "gdb-target.dtd">
+<target>
+  <feature name="org.gnu.gdb.arm.core">
+    <reg name="r0" bitsize="32" type="uint32"/>
+    <reg name="r1" bitsize="32" type="uint32"/>
+    <reg name="r2" bitsize="32" type="uint32"/>
+    <reg name="r3" bitsize="32" type="uint32"/>
+    <reg name="r4" bitsize="32" type="uint32"/>
+    <reg name="r5" bitsize="32" type="uint32"/>
+    <reg name="r6" bitsize="32" type="uint32"/>
+    <reg name="r7" bitsize="32" type="uint32"/>
+    <reg name="r8" bitsize="32" type="uint32"/>
+    <reg name="r9" bitsize="32" type="uint32"/>
+    <reg name="r10" bitsize="32" type="uint32"/>
+    <reg name="r11" bitsize="32" type="uint32"/>
+    <reg name="r12" bitsize="32" type="uint32"/>
+    <reg name="sp" bitsize="32" type="data_ptr"/>
+    <reg name="lr" bitsize="32/>
+    <reg name="pc" bitsize="32" type="code_ptr"/>
+    <reg name="cpsr" bitsize="32" regnum="25"/>
+  </feature>
+    <feature name="org.gnu.gdb.arm.vfp">
+    <reg name="d0" bitsize="64" type="ieee_double"/>
+    <reg name="d1" bitsize="64" type="ieee_double"/>
+    <reg name="d2" bitsize="64" type="ieee_double"/>
+    <reg name="d3" bitsize="64" type="ieee_double"/>
+    <reg name="d4" bitsize="64" type="ieee_double"/>
+    <reg name="d5" bitsize="64" type="ieee_double"/>
+    <reg name="d6" bitsize="64" type="ieee_double"/>
+    <reg name="d7" bitsize="64" type="ieee_double"/>
+    <reg name="d8" bitsize="64" type="ieee_double"/>
+    <reg name="d9" bitsize="64" type="ieee_double"/>
+    <reg name="d10" bitsize="64" type="ieee_double"/>
+    <reg name="d11" bitsize="64" type="ieee_double"/>
+    <reg name="d12" bitsize="64" type="ieee_double"/>
+    <reg name="d13" bitsize="64" type="ieee_double"/>
+    <reg name="d14" bitsize="64" type="ieee_double"/>
+    <reg name="d15" bitsize="64" type="ieee_double"/>
+    <reg name="fpscr" bitsize="32" type="int" group="float"/>
+  </feature>
+</target>
+)";
 
 #ifdef _WIN32
 WSADATA InitData;
@@ -277,7 +274,7 @@ static void gdb_handle_set_thread(std::string command) {
 
 static std::string _read_register(u32 id) {
     u8 reply[9] = {0};
-    if (0 <= id && id < 0x10) {
+    if (id < 0x10) {
         wbe32hex(reply, Core::g_app_core->GetReg(id));
     } else if (id == 0x19) {
         wbe32hex(reply, Core::g_app_core->GetCPSR());
@@ -318,7 +315,7 @@ static void gdb_read_registers() {
 }
 
 static std::string _write_register(u32 id, const u8* buf) {
-    if (0 <= id && id < 0x10) {
+    if (id < 0x10) {
         Core::g_app_core->SetReg(id, re32hex(buf));
     } else if (id == 0x19) {
         Core::g_app_core->SetCPSR(re32hex(buf));
@@ -465,7 +462,7 @@ void Init(u16 port) {
     LOG_INFO(GDB, "Waiting for gdb to connect...\n");
     
     int len = sizeof(GDBState.saddr_client);
-    GDBState.socket = accept(tmpsock, (struct sockaddr *)&GDBState.saddr_client, &len);
+    GDBState.socket = accept(tmpsock, reinterpret_cast<struct sockaddr *>(&GDBState.saddr_client), reinterpret_cast<socklen_t*>(&len));
     if (GDBState.socket < 0)
         LOG_ERROR(GDB, "Failed to accept gdb client");
 

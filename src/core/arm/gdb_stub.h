@@ -8,7 +8,6 @@
 
 #include <signal.h>
 
-#include "common/common.h"
 #include "common/thread.h"
 
 #include "core/core.h"
