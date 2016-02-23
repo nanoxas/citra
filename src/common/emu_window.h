@@ -143,7 +143,28 @@ public:
     const FramebufferLayout& GetFramebufferLayout() const {
         return framebuffer_layout;
     }
-
+#ifdef VKENABLED
+    /**
+     * Query if the vulkan api is supported.
+     */
+    virtual bool VulkanSupported();
+    /**
+     * Check if the device can present.
+     */
+    virtual bool CanDevicePresent(void* instance, void* device,uint32_t queue);
+    /**
+     * Gets a vulkan surface for this emu window returns NULL if unsupported.
+     */
+    virtual void * CreateVulkanSurface(void * instance);
+    /**
+     * Destroys the passed vulkan surface for the passed instance and this emu window.
+     */
+    virtual void DestroyVulkanSurface(void * instance, void * surface);
+    /**
+     * Lists all required vulkan extensions for this emu window
+     */
+    virtual const char** RequiredVulkanExtensions(uint32_t * count);
+#endif
 protected:
     EmuWindow() {
         // TODO: Find a better place to set this.

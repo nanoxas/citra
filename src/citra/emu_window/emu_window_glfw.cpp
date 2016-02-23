@@ -8,8 +8,17 @@
 
 // Let’s use our own GL header, instead of one from GLFW.
 #include <glad/glad.h>
+#ifdef VKENABLED
+#ifdef _WIN32
+#define VK_USE_PLATFORM_WIN32_KHR
+#else
+#define VK_USE_PLATFORM_XCB_KHR
+#endif
+#include <vulkan/vulkan.h>
+#endif
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
+
 
 #include "common/assert.h"
 #include "common/key_map.h"
@@ -27,7 +36,26 @@
 EmuWindow_GLFW* EmuWindow_GLFW::GetEmuWindow(GLFWwindow* win) {
     return static_cast<EmuWindow_GLFW*>(glfwGetWindowUserPointer(win));
 }
-
+#ifdef VKENABLED
+bool EmuWindow_GLFW::VulkanSupported(){
+    return glfwVulkanSupported() == GLFW_TRUE;
+}
+bool EmuWindow_GLFW::CanDevicePresent(void * instance, void * device,uint32_t queue){
+    return glfwGetPhysicalDevicePresentationSupport((VkInstance)instance,(VkPhysicalDevice)device,queue);
+}
+void * EmuWindow_GLFW::CreateVulkanSurface(void * instance){
+    VkSurfaceKHR surface;
+    if(glfwCreateWindowSurface((VkInstance)instance, this->m_render_window, VK_NULL_HANDLE, &surface)==VK_SUCCESS)
+        return surface;
+    return NULL;
+}
+void EmuWindow_GLFW::DestroyVulkanSurface(void * instance, void * surface){
+    vkDestroySurfaceKHR((VkInstance)instance, (VkSurfaceKHR)surface, VK_NULL_HANDLE);
+}
+const char** EmuWindow_GLFW::RequiredVulkanExtensions(uint32_t * count){
+    return glfwGetRequiredInstanceExtensions(count);
+}
+#endif
 void EmuWindow_GLFW::OnMouseButtonEvent(GLFWwindow* win, int button, int action, int mods) {
     if (button == GLFW_MOUSE_BUTTON_LEFT) {
         auto emu_window = GetEmuWindow(win);
@@ -88,28 +116,49 @@ EmuWindow_GLFW::EmuWindow_GLFW() {
         LOG_CRITICAL(Frontend, "Failed to initialize GLFW! Exiting...");
         exit(1);
     }
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    // GLFW on OSX requires these window hints to be set to create a 3.2+ GL context.
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-
-    std::string window_title = Common::StringFromFormat("Citra | %s-%s", Common::g_scm_branch, Common::g_scm_desc);
-    m_render_window = glfwCreateWindow(VideoCore::kScreenTopWidth,
-        (VideoCore::kScreenTopHeight + VideoCore::kScreenBottomHeight),
-        window_title.c_str(), nullptr, nullptr);
-
-    if (m_render_window == nullptr) {
-        LOG_CRITICAL(Frontend, "Failed to create GLFW window! Exiting...");
-        exit(1);
-    }
-
-    glfwSetWindowUserPointer(m_render_window, this);
-
-    // Notify base interface about window state
     int width, height;
-    glfwGetFramebufferSize(m_render_window, &width, &height);
-    OnFramebufferResizeEvent(m_render_window, width, height);
+#ifdef VKENABLED
+    if (!VulkanSupported()){
+#endif
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+        // GLFW on OSX requires these window hints to be set to create a 3.2+ GL context.
+        glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
+        std::string window_title = Common::StringFromFormat("Citra | %s-%s", Common::g_scm_branch, Common::g_scm_desc);
+        m_render_window = glfwCreateWindow(VideoCore::kScreenTopWidth,
+            (VideoCore::kScreenTopHeight + VideoCore::kScreenBottomHeight),
+            window_title.c_str(), nullptr, nullptr);
+
+        if (m_render_window == nullptr) {
+            LOG_CRITICAL(Frontend, "Failed to create GLFW window! Exiting...");
+            exit(1);
+        }
+
+        glfwSetWindowUserPointer(m_render_window, this);
+
+        // Notify base interface about window state
+        glfwGetFramebufferSize(m_render_window, &width, &height);
+        OnFramebufferResizeEvent(m_render_window, width, height);
+
+#ifdef VKENABLED
+    }else{
+        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+
+        std::string window_title = Common::StringFromFormat("Citra | %s-%s (Vulkan)", Common::g_scm_branch, Common::g_scm_desc);
+        m_render_window = glfwCreateWindow(VideoCore::kScreenTopWidth,
+            (VideoCore::kScreenTopHeight + VideoCore::kScreenBottomHeight),
+            window_title.c_str(), nullptr, nullptr);
+
+        if (m_render_window == nullptr) {
+            LOG_CRITICAL(Frontend, "Failed to create GLFW window! Exiting...");
+            exit(1);
+        }
+
+        glfwSetWindowUserPointer(m_render_window, this);
+    }
+#endif
 
     glfwGetWindowSize(m_render_window, &width, &height);
     OnClientAreaResizeEvent(m_render_window, width, height);

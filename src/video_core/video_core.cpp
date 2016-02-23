@@ -14,6 +14,9 @@
 #include "video_core/pica.h"
 #include "video_core/renderer_base.h"
 #include "video_core/video_core.h"
+#ifdef VKENABLED
+#include "video_core/renderer_vulkan/renderer_vulkan.h"
+#endif
 #include "video_core/renderer_opengl/renderer_opengl.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -32,7 +35,15 @@ void Init(EmuWindow* emu_window) {
     Pica::Init();
 
     g_emu_window = emu_window;
+#ifdef VKENABLED
+    if (emu_window->VulkanSupported()){
+        g_renderer = Common::make_unique<RendererVulkan>();
+    }else{
+        g_renderer = Common::make_unique<RendererOpenGL>();
+    }
+#else
     g_renderer = Common::make_unique<RendererOpenGL>();
+#endif
     g_renderer->SetWindow(g_emu_window);
     g_renderer->Init();
 

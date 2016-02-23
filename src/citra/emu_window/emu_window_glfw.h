@@ -41,7 +41,13 @@ public:
     static void OnFramebufferResizeEvent(GLFWwindow* win, int width, int height);
 
     void ReloadSetKeymaps() override;
-
+#ifdef VKENABLED
+    bool VulkanSupported() override;
+    bool CanDevicePresent(void * instance, void * device,uint32_t queue) override;
+    void * CreateVulkanSurface(void * instance) override;
+    void DestroyVulkanSurface(void * instance, void * surface) override;
+    const char** RequiredVulkanExtensions(uint32_t * count) override;
+#endif
 private:
     void OnMinimalClientAreaChangeRequest(const std::pair<unsigned,unsigned>& minimal_size) override;
 

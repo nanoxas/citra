@@ -42,6 +42,12 @@ option(ENABLE_QT "Enable the Qt frontend" ON)
 option(CITRA_USE_BUNDLED_QT "Download bundled Qt binaries" OFF)
 option(CITRA_FORCE_QT4 "Use Qt4 even if Qt5 is available." OFF)
 
+if (NOT ENABLE_QT)
+    option(ENABLE_VULKAN "Enable Vulkan support." OFF)
+else()
+    set(ENABLE_VULKAN OFF)
+endif()
+
 if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/.git/hooks/pre-commit)
     message(STATUS "Copying pre-commit hook")
     file(COPY hooks/pre-commit
@@ -136,9 +142,14 @@ find_package(OpenGL REQUIRED)
 include_directories(${OPENGL_INCLUDE_DIR})
 
 if (ENABLE_GLFW)
+    if (ENABLE_VULKAN)
+        add_definitions(-DGLFW_INCLUDE_VULKAN)
+    endif()
     if (CITRA_USE_BUNDLED_GLFW)
         # Detect toolchain and platform
-        if (MSVC14 AND ARCHITECTURE_x86_64)
+        if (ENABLE_VULKAN)
+            message(FATAL_ERROR "No beta GLFW binaries are available bundled, please install glfw 3.2 manually.")
+        elseif (MSVC14 AND ARCHITECTURE_x86_64)
             set(GLFW_VER "glfw-3.1.1-msvc2015_64")
         elseif (MSVC12 AND ARCHITECTURE_x86_64)
             set(GLFW_VER "glfw-3.1.1-msvc2013_64")
@@ -209,6 +220,13 @@ if (ENABLE_QT)
         find_package(Qt4 REQUIRED COMPONENTS QtGui QtOpenGL ${QT_PREFIX_HINT})
         set(CITRA_QT_LIBS Qt4::QtGui Qt4::QtOpenGL)
     endif()
+endif()
+
+if (ENABLE_VULKAN)
+    find_package(Vulkan REQUIRED)
+    include_directories(${Vulkan_INCLUDE_DIRS})
+    set(VK_LIBRARYS ${Vulkan_LIBRARIES})
+    add_definitions(-DVKENABLED)
 endif()
 
 # This function should be passed a list of all files in a target. It will automatically generate

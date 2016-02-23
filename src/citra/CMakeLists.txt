@@ -18,7 +18,7 @@ link_directories(${GLFW_LIBRARY_DIRS})
 
 add_executable(citra ${SRCS} ${HEADERS})
 target_link_libraries(citra core video_core common)
-target_link_libraries(citra ${GLFW_LIBRARIES} ${OPENGL_gl_LIBRARY} inih glad)
+target_link_libraries(citra ${GLFW_LIBRARIES} ${OPENGL_gl_LIBRARY} ${VK_LIBRARYS} inih glad)
 if (MSVC)
     target_link_libraries(citra getopt)
 endif()
