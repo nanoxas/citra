@@ -63,5 +63,5 @@ protected:
     int m_current_frame;            ///< Current frame, should be set by the renderer
 
 private:
-    bool opengl_rasterizer_active = false;
+    bool accelerated_rasterizer_active = false;
 };

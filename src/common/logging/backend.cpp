@@ -58,6 +58,7 @@ namespace Log {
         CLS(Render) \
         SUB(Render, Software) \
         SUB(Render, OpenGL) \
+        SUB(Render, Vulkan) \
         CLS(Loader)
 
 // GetClassName is a macro defined by Windows.h, grrr...

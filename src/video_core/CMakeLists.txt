@@ -1,9 +1,11 @@
 if(ENABLE_VULKAN)
 set(RENDER_VK_SRCS
             renderer_vulkan/renderer_vulkan.cpp
+            renderer_vulkan/vk_rasterizer.cpp
             )
 set(RENDER_VK_HEADERS
             renderer_vulkan/renderer_vulkan.h
+            renderer_vulkan/vk_rasterizer.h
             )
 endif()
 set(RENDER_SRCS
