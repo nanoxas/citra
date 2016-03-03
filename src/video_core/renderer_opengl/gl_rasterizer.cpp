@@ -530,6 +530,15 @@ void RasterizerOpenGL::InvalidateRegion(PAddr addr, u32 size) {
     res_cache.InvalidateInRange(addr, size);
 }
 
+bool RasterizerOpenGL::SupportsRendererDelegate()
+{
+    return false;
+}
+
+void RasterizerOpenGL::SetRendererDelegate(void * renderDelegate)
+{
+}
+
 void RasterizerOpenGL::SamplerInfo::Create() {
     sampler.Create();
     mag_filter = min_filter = TextureConfig::Linear;

@@ -21,6 +21,8 @@ class SWRasterizer : public RasterizerInterface {
     void NotifyPicaRegisterChanged(u32 id) override {}
     void FlushRegion(PAddr addr, u32 size) override {}
     void InvalidateRegion(PAddr addr, u32 size) override {}
+    bool SupportsRendererDelegate() override { return false; }
+    void SetRendererDelegate(void * renderDelegate) override {};
 };
 
 }

@@ -25,6 +25,21 @@ class EmuWindow;
 #define DEBUG_INTEGRATION
 #endif
 
+typedef struct {
+    VkSampler sampler;
+    VkImage texture;
+    VkImageLayout layout;
+    VkDeviceMemory memory;
+    VkImageView view;
+} VkTextureInfo;
+
+typedef struct {
+    u32 type;
+    VkInstance instance;
+    VkDevice device;
+    VkTextureInfo screens[2];
+} VkDelegate;
+
 class RendererVulkan : public RendererBase {
 public:
 
@@ -52,23 +67,42 @@ private:
     VkSurfaceKHR screen;
     VkSwapchainKHR swapchain;
     VkQueue queue;
+    VkSemaphore presentSemaphore;
+    VkCommandPool commandPool;
+    VkBuffer vertexBuffer;
+    VkBuffer indexBuffer;
+    VkBuffer uniformBuffer;
+    VkRenderPass renderPass;
+    VkPipeline pipeline;
+    VkViewport viewport;
+    VkPipelineCache pipelineCache;
+    VkCommandBuffer commandBuffers[3];
+
+    VkImage * swapImages = VK_NULL_HANDLE;
+    VkImageView * swapImageViews = VK_NULL_HANDLE;
+    VkFramebuffer * swapImageFramebuffers = VK_NULL_HANDLE;
+    uint32_t swapImageCount = 0;
 #ifdef DEBUG_INTEGRATION
     bool hasDebugCallback = false;
     VkDebugReportCallbackEXT debugCallback;
 #endif
     /// Structure used for storing information about the textures for each 3DS screen
-    struct TextureInfo {
-        VkSampler sampler;
-        VkImage texture;
-        VkImageLayout layout;
-        VkDeviceMemory memory;
-        VkImageView view;
-    };
+
+    VkDelegate rendererDelegate = { RD_TYPE_VULKAN, 0 , 0 };
+    VideoCore::RasterizerInterface* lastRasterizer;
 
     void InitVulkanObjects();
+    bool createVertexBuffers();
+    bool createIndexBuffers();
+    bool createUniformBuffers();
+    bool createPipeline();
+    bool createPipelineCache();
+    bool createRenderPass();
+    bool createFrameBuffers();
     void DrawScreens();
-    //void DrawSingleScreenRotated(const TextureInfo& texture, float x, float y, float w, float h);
+    void DrawSingleScreenRotated(VkCommandBuffer buff, const VkTextureInfo& texture, float left, float top, float width, float height);
     void UpdateFramerate();
+    void RefreshDelegate();
 
     // Loads framebuffer from emulated memory into the active Vulkan texture.
     //void LoadFBToActiveVKTexture(const GPU::Regs::FramebufferConfig& framebuffer,
@@ -77,7 +111,7 @@ private:
     //void LoadColorToActiveVKTexture(u8 color_r, u8 color_g, u8 color_b,
     //                               const TextureInfo& texture);
 
-    short Initialized = 0;
+    uint32_t Initialized = 0;
 
     uint32_t publicHeapIndex;
     uint32_t privateHeapIndex;
@@ -91,5 +125,5 @@ private:
 
     uint32_t currentBuffer;
 
-    std::array<TextureInfo, 2> textures;          ///< Textures for top and bottom screens respectively
+    std::array<VkTextureInfo, 2> textures;          ///< Textures for top and bottom screens respectively
 };

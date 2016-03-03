@@ -6,6 +6,10 @@
 
 #include "common/common_types.h"
 
+#define RD_TYPE_SOFTWARE 0
+#define RD_TYPE_OPENGL 1
+#define RD_TYPE_VULKAN 2
+
 namespace Pica {
 namespace Shader {
 struct OutputVertex;
@@ -43,6 +47,12 @@ public:
 
     /// Notify rasterizer that any caches of the specified region should be discraded and reloaded from 3DS memory.
     virtual void InvalidateRegion(PAddr addr, u32 size) = 0;
+
+    /// Does the rasterizer support a renderer delegate struct
+    virtual bool SupportsRendererDelegate() = 0;
+
+    /// Set the renderer delegate for the rasterizer
+    virtual void SetRendererDelegate(void * renderDelegate) = 0;
 };
 
 }
