@@ -82,6 +82,19 @@ endif()
 target_link_libraries(citra-qt core video_core audio_core common qhexedit)
 target_link_libraries(citra-qt ${OPENGL_gl_LIBRARY} ${CITRA_QT_LIBS})
 target_link_libraries(citra-qt ${PLATFORM_LIBRARIES})
+if(ENABLE_UNICORN)
+    if (MSVC)
+        target_link_libraries(citra-qt ${UNICORN_LIBRARY})
+        set(DLL_DEST "${CMAKE_BINARY_DIR}/bin/$<CONFIG>/")
+        windows_copy_files(citra-qt ${UNICORN_DLL_DIR} ${DLL_DEST}
+            unicorn$<$<CONFIG:Debug>:-d>.dll
+            deps/*
+        )
+        unset(DLL_DEST)
+    else()
+        target_link_libraries(citra unicorn)
+    endif()
+endif()
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Linux|FreeBSD|OpenBSD|NetBSD")
     install(TARGETS citra-qt RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}/bin")

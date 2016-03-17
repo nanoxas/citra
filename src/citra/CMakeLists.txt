@@ -22,6 +22,19 @@ if (MSVC)
     target_link_libraries(citra getopt)
 endif()
 target_link_libraries(citra ${PLATFORM_LIBRARIES})
+if(ENABLE_UNICORN)
+    if (MSVC)
+        target_link_libraries(citra ${UNICORN_LIBRARY})
+        set(DLL_DEST "${CMAKE_BINARY_DIR}/bin/$<CONFIG>/")
+        windows_copy_files(citra ${UNICORN_DLL_DIR} ${DLL_DEST}
+            unicorn$<$<CONFIG:Debug>:-d>.dll
+            deps/*
+        )
+        unset(DLL_DEST)
+    else()
+        target_link_libraries(citra unicorn)
+    endif()
+endif()
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Linux|FreeBSD|OpenBSD|NetBSD")
     install(TARGETS citra RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}/bin")

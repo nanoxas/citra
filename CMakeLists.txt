@@ -7,7 +7,7 @@ function(download_bundled_external remote_path lib_name prefix_var)
     if (NOT EXISTS "${prefix}")
         message(STATUS "Downloading binaries for ${lib_name}...")
         file(DOWNLOAD
-            https://github.com/citra-emu/ext-windows-bin/raw/master/${remote_path}${lib_name}.7z
+            https://github.com/jroweboy/ext-windows-bin/raw/master/${remote_path}${lib_name}.7z
             "${CMAKE_BINARY_DIR}/externals/${lib_name}.7z" SHOW_PROGRESS)
         execute_process(COMMAND ${CMAKE_COMMAND} -E tar xf "${CMAKE_BINARY_DIR}/externals/${lib_name}.7z"
             WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/externals")
@@ -41,6 +41,9 @@ option(CITRA_USE_BUNDLED_SDL2 "Download bundled SDL2 binaries" OFF)
 option(ENABLE_QT "Enable the Qt frontend" ON)
 option(CITRA_USE_BUNDLED_QT "Download bundled Qt binaries" OFF)
 option(CITRA_FORCE_QT4 "Use Qt4 even if Qt5 is available." OFF)
+
+option(ENABLE_UNICORN "Enable the Unicorn CPU backend" ON)
+option(CITRA_USE_BUNDLED_UNICORN "Download bundled Unicorn binaries" OFF)
 
 if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/.git/hooks/pre-commit)
     message(STATUS "Copying pre-commit hook")
@@ -153,6 +156,30 @@ if (ENABLE_SDL2)
         set(SDL2_DLL_DIR "${SDL2_PREFIX}/lib/x64/" CACHE PATH "Path to SDL2.dll")
     else()
         find_package(SDL2 REQUIRED)
+    endif()
+endif()
+
+if (ENABLE_UNICORN)
+    if (CITRA_USE_BUNDLED_UNICORN)
+        # Detect toolchain and platform
+        if (MSVC14 AND ARCHITECTURE_x86_64)
+            set(UNICORN_VER "unicorn-mar-17-0af4baa")
+        else()
+            message(FATAL_ERROR "No bundled Unicorn binaries for your toolchain. Disable CITRA_USE_BUNDLED_UNICORN and provide your own.")
+        endif()
+
+        if (DEFINED UNICORN_VER)
+            download_bundled_external("unicorn/" ${UNICORN_VER} UNICORN_PREFIX)
+        endif()
+
+        set(UNICORN_INCLUDE_DIR "${UNICORN_PREFIX}/include" CACHE PATH "Path to Unicorn headers")
+        set(UNICORN_LIBRARY "${UNICORN_PREFIX}/lib/unicorn$<$<CONFIG:Debug>:-d>.lib" CACHE PATH "Path to unicorn library")
+        set(UNICORN_DLL_DIR "${UNICORN_PREFIX}/lib/" CACHE PATH "Path to unicorn dlls")
+    else()
+        ExternalProject_Add(unicorn
+            GIT_REPOSITORY https://github.com/unicorn-engine/unicorn
+            BUILD_COMMAND "UNICORN_ARCHS='arm' ./make.sh"
+        )
     endif()
 endif()
 
