@@ -66,12 +66,38 @@ CodePtr JitX64::Compile(u32 pc, bool TFlag, bool EFlag) {
     return bb;
 }
 
-void JitX64::CompileUpdateCycles() {
+void JitX64::CompileUpdateCycles(bool reset_cycles) {
     // We're just taking one instruction == one cycle.
     if (instructions_compiled) {
         code->SUB(32, MJitStateCycleCount(), Imm32(instructions_compiled));
     }
-    instructions_compiled = 0;
+    if (reset_cycles) {
+        instructions_compiled = 0;
+    }
+}
+
+void JitX64::CompileReturnToDispatch() {
+    if (cond_manager.CurrentCond() == ConditionCode::AL) {
+        reg_alloc.FlushEverything();
+        CompileUpdateCycles();
+        code->JMPptr(MJitStateHostReturnRIP());
+
+        stop_compilation = true;
+        return;
+    }
+
+    reg_alloc.FlushEverything();
+    CompileUpdateCycles(false);
+    code->JMPptr(MJitStateHostReturnRIP());
+
+    cond_manager.Always();
+    CompileUpdateCycles(true);
+    CompileJumpToBB(current.arm_pc);
+    code->MOV(32, MJitStateArmPC(), Imm32(current.arm_pc));
+    code->JMPptr(MJitStateHostReturnRIP());
+
+    stop_compilation = true;
+    return;
 }
 
 void JitX64::CompileJumpToBB(u32 new_pc) {

@@ -65,7 +65,10 @@ private:
     void CompileSingleThumbInstruction();
 
     /// Updates the cycle count in JitState and sets instructions_compiled to zero.
-    void CompileUpdateCycles();
+    void CompileUpdateCycles(bool reset_cycles = true);
+
+    /// Update MJitStateArmPC and current.TFlag before calling this function.
+    void CompileReturnToDispatch();
 
     /// If a basic_block starting at ARM pc is compiled -> these locations need to be patched
     std::unordered_map<LocationDescriptor, std::vector<CodePtr>, LocationDescriptorHash> patch_jmp_locations;
@@ -76,6 +79,7 @@ private:
 
 private:
     /// Convenience functions
+
     Gen::OpArg MJitStateCycleCount();
     Gen::OpArg MJitStateArmPC();
     Gen::OpArg MJitStateHostReturnRIP();
@@ -86,6 +90,25 @@ private:
     Gen::OpArg MJitStateVFlag();
     Gen::OpArg MJitStateExclusiveTag();
     Gen::OpArg MJitStateExclusiveState();
+
+    FORCE_INLINE u32 GetReg15Value() { return (current.arm_pc & ~0x1) + GetInstSize() * 2; }
+
+    FORCE_INLINE void UpdateFlagsZVCN() {
+        code->SETcc(Gen::CC_Z, MJitStateZFlag());
+        code->SETcc(Gen::CC_C, MJitStateCFlag());
+        code->SETcc(Gen::CC_O, MJitStateVFlag());
+        code->SETcc(Gen::CC_S, MJitStateNFlag());
+    }
+
+    FORCE_INLINE void UpdateFlagsZVN() {
+        code->SETcc(Gen::CC_Z, MJitStateZFlag());
+        code->SETcc(Gen::CC_O, MJitStateVFlag());
+        code->SETcc(Gen::CC_S, MJitStateNFlag());
+    }
+
+    FORCE_INLINE void UpdateFlagsC_complement() {
+        code->SETcc(Gen::CC_NC, MJitStateCFlag());
+    }
 
 private:
     struct CondManager {

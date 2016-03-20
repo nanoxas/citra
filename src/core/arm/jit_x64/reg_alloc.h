@@ -68,7 +68,7 @@ public:
     void UnlockArm(ArmReg arm_reg);
     /// Flush all ARM registers.
     void FlushAllArm();
-    /// Marks an ARM register as dirty.
+    /// Marks an ARM register as dirty. If you don't mark something as dirty it won't be flushed.
     void MarkDirty(ArmReg arm_reg);
 
     /// Flush absolutely everything.

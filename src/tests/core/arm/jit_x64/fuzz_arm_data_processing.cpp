@@ -152,7 +152,7 @@ TEST_CASE("Fuzz ARM data processing instructions", "[JitX64]") {
             Memory::Write32(i * 4, inst);
         }
 
-        Memory::Write32(NUM_INST * 4, 0b11100011001000000000111100000000);
+        Memory::Write32(NUM_INST * 4, 0b0011001000001111000000000000);
 
         interp.ExecuteInstructions(NUM_INST);
         jit.ExecuteInstructions(NUM_INST);
