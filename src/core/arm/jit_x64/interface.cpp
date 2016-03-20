@@ -74,7 +74,7 @@ public:
 
 struct BlockOfCode : Gen::XCodeBlock {
     BlockOfCode() {
-        AllocCodeSpace(1024 * 1024 * 1024);
+        AllocCodeSpace(128 * 1024 * 1024);
     }
 };
 
@@ -219,6 +219,12 @@ void ARM_Jit::PrepareReschedule() {
 void ARM_Jit::ClearCache() {
     compiler.ClearCache();
     block_of_code.ClearCodeSpace();
+    state->cpu_state.instruction_cache.clear();
+}
+
+void ARM_Jit::FastClearCache() {
+    compiler.ClearCache();
+    block_of_code.ResetCodePtr();
     state->cpu_state.instruction_cache.clear();
 }
 

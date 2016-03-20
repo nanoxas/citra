@@ -39,6 +39,56 @@ std::pair<u32, u32> FromBitString(const char* str) {
 }
 
 TEST_CASE("Fuzz ARM data processing instructions", "[JitX64]") {
+    const std::array<std::pair<u32, u32>, 48> instructions = {{
+        FromBitString("cccc0010101Snnnnddddrrrrvvvvvvvv"),
+        FromBitString("cccc0000101Snnnnddddvvvvvrr0mmmm"),
+        FromBitString("cccc0000101Snnnnddddssss0rr1mmmm"),
+        FromBitString("cccc0010100Snnnnddddrrrrvvvvvvvv"),
+        FromBitString("cccc0000100Snnnnddddvvvvvrr0mmmm"),
+        FromBitString("cccc0000100Snnnnddddssss0rr1mmmm"),
+        FromBitString("cccc0010000Snnnnddddrrrrvvvvvvvv"),
+        FromBitString("cccc0000000Snnnnddddvvvvvrr0mmmm"),
+        FromBitString("cccc0000000Snnnnddddssss0rr1mmmm"),
+        FromBitString("cccc0011110Snnnnddddrrrrvvvvvvvv"),
+        FromBitString("cccc0001110Snnnnddddvvvvvrr0mmmm"),
+        FromBitString("cccc0001110Snnnnddddssss0rr1mmmm"),
+        FromBitString("cccc00110111nnnn0000rrrrvvvvvvvv"),
+        FromBitString("cccc00010111nnnn0000vvvvvrr0mmmm"),
+        FromBitString("cccc00010111nnnn0000ssss0rr1mmmm"),
+        FromBitString("cccc00110101nnnn0000rrrrvvvvvvvv"),
+        FromBitString("cccc00010101nnnn0000vvvvvrr0mmmm"),
+        FromBitString("cccc00010101nnnn0000ssss0rr1mmmm"),
+        FromBitString("cccc0010001Snnnnddddrrrrvvvvvvvv"),
+        FromBitString("cccc0000001Snnnnddddvvvvvrr0mmmm"),
+        FromBitString("cccc0000001Snnnnddddssss0rr1mmmm"),
+        FromBitString("cccc0011101S0000ddddrrrrvvvvvvvv"),
+        FromBitString("cccc0001101S0000ddddvvvvvrr0mmmm"),
+        FromBitString("cccc0001101S0000ddddssss0rr1mmmm"),
+        FromBitString("cccc0011111S0000ddddrrrrvvvvvvvv"),
+        FromBitString("cccc0001111S0000ddddvvvvvrr0mmmm"),
+        FromBitString("cccc0001111S0000ddddssss0rr1mmmm"),
+        FromBitString("cccc0011100Snnnnddddrrrrvvvvvvvv"),
+        FromBitString("cccc0001100Snnnnddddvvvvvrr0mmmm"),
+        FromBitString("cccc0001100Snnnnddddssss0rr1mmmm"),
+        FromBitString("cccc0010011Snnnnddddrrrrvvvvvvvv"),
+        FromBitString("cccc0000011Snnnnddddvvvvvrr0mmmm"),
+        FromBitString("cccc0000011Snnnnddddssss0rr1mmmm"),
+        FromBitString("cccc0010111Snnnnddddrrrrvvvvvvvv"),
+        FromBitString("cccc0000111Snnnnddddvvvvvrr0mmmm"),
+        FromBitString("cccc0000111Snnnnddddssss0rr1mmmm"),
+        FromBitString("cccc0010110Snnnnddddrrrrvvvvvvvv"),
+        FromBitString("cccc0000110Snnnnddddvvvvvrr0mmmm"),
+        FromBitString("cccc0000110Snnnnddddssss0rr1mmmm"),
+        FromBitString("cccc0010010Snnnnddddrrrrvvvvvvvv"),
+        FromBitString("cccc0000010Snnnnddddvvvvvrr0mmmm"),
+        FromBitString("cccc0000010Snnnnddddssss0rr1mmmm"),
+        FromBitString("cccc00110011nnnn0000rrrrvvvvvvvv"),
+        FromBitString("cccc00010011nnnn0000vvvvvrr0mmmm"),
+        FromBitString("cccc00010011nnnn0000ssss0rr1mmmm"),
+        FromBitString("cccc00110001nnnn0000rrrrvvvvvvvv"),
+        FromBitString("cccc00010001nnnn0000vvvvvrr0mmmm"),
+        FromBitString("cccc00010001nnnn0000ssss0rr1mmmm"),
+    }};
 
     // Init core
     Core::Init();
@@ -62,12 +112,12 @@ TEST_CASE("Fuzz ARM data processing instructions", "[JitX64]") {
     JitX64::ARM_Jit jit(PrivilegeMode::USER32MODE);
     ARM_DynCom interp(PrivilegeMode::USER32MODE);
     SCOPE_EXIT({
-        jit.ClearCache();
+        jit.FastClearCache();
         interp.ClearCache();
     });
 
     for (int run_number = 0; run_number < 10000; run_number++) {
-        jit.ClearCache();
+        jit.FastClearCache();
         interp.ClearCache();
 
         u32 initial_regs[15];
@@ -87,57 +137,6 @@ TEST_CASE("Fuzz ARM data processing instructions", "[JitX64]") {
         constexpr int NUM_INST = 5;
 
         for (int i = 0; i < NUM_INST; i++) {
-            const std::array<std::pair<u32, u32>, 48> instructions = {{
-                FromBitString("cccc0010101Snnnnddddrrrrvvvvvvvv"),
-                FromBitString("cccc0000101Snnnnddddvvvvvrr0mmmm"),
-                FromBitString("cccc0000101Snnnnddddssss0rr1mmmm"),
-                FromBitString("cccc0010100Snnnnddddrrrrvvvvvvvv"),
-                FromBitString("cccc0000100Snnnnddddvvvvvrr0mmmm"),
-                FromBitString("cccc0000100Snnnnddddssss0rr1mmmm"),
-                FromBitString("cccc0010000Snnnnddddrrrrvvvvvvvv"),
-                FromBitString("cccc0000000Snnnnddddvvvvvrr0mmmm"),
-                FromBitString("cccc0000000Snnnnddddssss0rr1mmmm"),
-                FromBitString("cccc0011110Snnnnddddrrrrvvvvvvvv"),
-                FromBitString("cccc0001110Snnnnddddvvvvvrr0mmmm"),
-                FromBitString("cccc0001110Snnnnddddssss0rr1mmmm"),
-                FromBitString("cccc00110111nnnn0000rrrrvvvvvvvv"),
-                FromBitString("cccc00010111nnnn0000vvvvvrr0mmmm"),
-                FromBitString("cccc00010111nnnn0000ssss0rr1mmmm"),
-                FromBitString("cccc00110101nnnn0000rrrrvvvvvvvv"),
-                FromBitString("cccc00010101nnnn0000vvvvvrr0mmmm"),
-                FromBitString("cccc00010101nnnn0000ssss0rr1mmmm"),
-                FromBitString("cccc0010001Snnnnddddrrrrvvvvvvvv"),
-                FromBitString("cccc0000001Snnnnddddvvvvvrr0mmmm"),
-                FromBitString("cccc0000001Snnnnddddssss0rr1mmmm"),
-                FromBitString("cccc0011101S0000ddddrrrrvvvvvvvv"),
-                FromBitString("cccc0001101S0000ddddvvvvvrr0mmmm"),
-                FromBitString("cccc0001101S0000ddddssss0rr1mmmm"),
-                FromBitString("cccc0011111S0000ddddrrrrvvvvvvvv"),
-                FromBitString("cccc0001111S0000ddddvvvvvrr0mmmm"),
-                FromBitString("cccc0001111S0000ddddssss0rr1mmmm"),
-                FromBitString("cccc0011100Snnnnddddrrrrvvvvvvvv"),
-                FromBitString("cccc0001100Snnnnddddvvvvvrr0mmmm"),
-                FromBitString("cccc0001100Snnnnddddssss0rr1mmmm"),
-                FromBitString("cccc0010011Snnnnddddrrrrvvvvvvvv"),
-                FromBitString("cccc0000011Snnnnddddvvvvvrr0mmmm"),
-                FromBitString("cccc0000011Snnnnddddssss0rr1mmmm"),
-                FromBitString("cccc0010111Snnnnddddrrrrvvvvvvvv"),
-                FromBitString("cccc0000111Snnnnddddvvvvvrr0mmmm"),
-                FromBitString("cccc0000111Snnnnddddssss0rr1mmmm"),
-                FromBitString("cccc0010110Snnnnddddrrrrvvvvvvvv"),
-                FromBitString("cccc0000110Snnnnddddvvvvvrr0mmmm"),
-                FromBitString("cccc0000110Snnnnddddssss0rr1mmmm"),
-                FromBitString("cccc0010010Snnnnddddrrrrvvvvvvvv"),
-                FromBitString("cccc0000010Snnnnddddvvvvvrr0mmmm"),
-                FromBitString("cccc0000010Snnnnddddssss0rr1mmmm"),
-                FromBitString("cccc00110011nnnn0000rrrrvvvvvvvv"),
-                FromBitString("cccc00010011nnnn0000vvvvvrr0mmmm"),
-                FromBitString("cccc00010011nnnn0000ssss0rr1mmmm"),
-                FromBitString("cccc00110001nnnn0000rrrrvvvvvvvv"),
-                FromBitString("cccc00010001nnnn0000vvvvvrr0mmmm"),
-                FromBitString("cccc00010001nnnn0000ssss0rr1mmmm"),
-            }};
-
             size_t inst_index = rand_int(0, instructions.size() - 1);
             u32 cond = rand_int(0x0, 0xE);
             u32 Rn = rand_int(0, 15);
@@ -197,5 +196,7 @@ TEST_CASE("Fuzz ARM data processing instructions", "[JitX64]") {
 
             FAIL();
         }
+
+        if (run_number % 100 == 0) printf("%i\r", run_number);
     }
 }

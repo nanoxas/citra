@@ -41,6 +41,7 @@ public:
     void ExecuteInstructions(int num_instructions) override;
 
     void ClearCache() override;
+    void FastClearCache();
 
 private:
     bool reschedule;

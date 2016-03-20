@@ -106,6 +106,11 @@ private:
         code->SETcc(Gen::CC_S, MJitStateNFlag());
     }
 
+    FORCE_INLINE void UpdateFlagsZN() {
+        code->SETcc(Gen::CC_Z, MJitStateZFlag());
+        code->SETcc(Gen::CC_S, MJitStateNFlag());
+    }
+
     FORCE_INLINE void UpdateFlagsC_complement() {
         code->SETcc(Gen::CC_NC, MJitStateCFlag());
     }
@@ -151,6 +156,8 @@ private:
     virtual void STC() override;
 
     // Data processing instructions
+    void CompileDataProcessingHelper(ArmReg Rn_index, ArmReg Rd_index, std::function<void(Gen::X64Reg)> body);
+    void CompileDataProcessingHelper_Reverse(ArmReg Rn_index, ArmReg Rd_index, std::function<void(Gen::X64Reg)> body);
     virtual void ADC_imm(Cond cond, bool S, ArmReg Rn, ArmReg Rd, int rotate, ArmImm8 imm8) override;
     virtual void ADC_reg(Cond cond, bool S, ArmReg Rn, ArmReg Rd, ArmImm5 imm5, ShiftType shift, ArmReg Rm) override;
     virtual void ADC_rsr(Cond cond, bool S, ArmReg Rn, ArmReg Rd, ArmReg Rs, ShiftType shift, ArmReg Rm) override;

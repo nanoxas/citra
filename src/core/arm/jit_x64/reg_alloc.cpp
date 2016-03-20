@@ -71,11 +71,16 @@ void RegAlloc::FlushX64(Gen::X64Reg x64_reg) {
 
     switch (state.state) {
     case X64State::State::Free:
-    case X64State::State::CleanArmReg:
     case X64State::State::MemoryMap:
     case X64State::State::Temp:
         state.state = X64State::State::Free;
         break;
+    case X64State::State::CleanArmReg: {
+        state.state = X64State::State::Free;
+        ArmState& arm_state = arm_gpr[state.arm_reg];
+        arm_state.location = MJitStateCpuReg(state.arm_reg);
+        break;
+    }
     case X64State::State::DirtyArmReg:
         FlushArm(state.arm_reg);
         break;
@@ -92,14 +97,18 @@ void RegAlloc::LockX64(Gen::X64Reg x64_reg) {
     X64State& x64_state = x64_gpr[x64_reg_to_index.at(x64_reg)];
 
     ASSERT(!x64_state.locked);
+    ASSERT(x64_state.state == X64State::State::Free);
     x64_state.locked = true;
+    x64_state.state = X64State::State::UserManuallyLocked;
 }
 
 void RegAlloc::UnlockX64(Gen::X64Reg x64_reg) {
     X64State& x64_state = x64_gpr[x64_reg_to_index.at(x64_reg)];
 
     ASSERT(x64_state.locked);
+    ASSERT(x64_state.state == X64State::State::UserManuallyLocked);
     x64_state.locked = false;
+    x64_state.state = X64State::State::Free;
 }
 
 void RegAlloc::FlushArm(ArmReg arm_reg) {
@@ -298,6 +307,23 @@ void RegAlloc::UnlockMemoryMap(Gen::X64Reg x64_reg) {
     ASSERT(x64_state.state == X64State::State::MemoryMap);
 
     x64_state.locked = false;
+}
+
+void RegAlloc::AssertNoLocked() {
+    for (ArmReg arm_reg = 0; arm_reg < arm_gpr.size(); arm_reg++) {
+        ArmState& arm_state = arm_gpr[arm_reg];
+        ASSERT(!arm_state.locked);
+        if (arm_state.location.IsSimpleReg()) {
+            X64State& x64_state = x64_gpr[x64_reg_to_index.at(arm_state.location.GetSimpleReg())];
+            ASSERT(x64_state.state == X64State::State::CleanArmReg || x64_state.state == X64State::State::DirtyArmReg);
+            ASSERT(x64_state.arm_reg == arm_reg);
+        }
+    }
+
+    for (auto i : x64_reg_to_index) {
+        X64State& x64_state = x64_gpr[i.second];
+        ASSERT(!x64_state.locked);
+    }
 }
 
 Gen::X64Reg RegAlloc::AllocReg() {

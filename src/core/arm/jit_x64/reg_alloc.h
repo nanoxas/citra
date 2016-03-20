@@ -32,7 +32,8 @@ private:
             Temp,
             DirtyArmReg,
             CleanArmReg,
-            MemoryMap
+            MemoryMap,
+            UserManuallyLocked
         };
 
         bool locked;
@@ -91,6 +92,8 @@ public:
 
     /// Returns the register in which the JitState pointer is stored.
     Gen::X64Reg JitStateReg();
+
+    void AssertNoLocked();
 
 private:
     /// INTERNAL: Allocates a register that is free. Flushes registers that are not locked if necessary.

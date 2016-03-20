@@ -24,6 +24,7 @@ void JitX64::CondManager::CompileCond(const ConditionCode new_cond) {
 
     if (current_cond != ConditionCode::AL && current_cond != ConditionCode::NV) {
         jit->reg_alloc.FlushEverything();
+        jit->reg_alloc.AssertNoLocked();
         ASSERT(current_cond_fixup.ptr);
         jit->code->SetJumpTarget(current_cond_fixup);
         current_cond_fixup.ptr = nullptr;
@@ -123,6 +124,7 @@ void JitX64::CondManager::CompileCond(const ConditionCode new_cond) {
         }
 
         jit->reg_alloc.FlushEverything();
+        jit->reg_alloc.AssertNoLocked();
         this->current_cond_fixup = jit->code->J_CC(cc, true);
     }
 
