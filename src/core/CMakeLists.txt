@@ -264,6 +264,18 @@ set(HEADERS
             system.h
             )
 
+if(ARCHITECTURE_x86_64)
+    set(SRCS ${SRCS}
+            arm/jit_x64/reg_alloc.cpp
+            )
+
+    set(HEADERS ${HEADERS}
+            arm/jit_x64/common.h
+            arm/jit_x64/reg_alloc.h
+            )
+endif()
+
+
 create_directory_groups(${SRCS} ${HEADERS})
 
 add_library(core STATIC ${SRCS} ${HEADERS})
