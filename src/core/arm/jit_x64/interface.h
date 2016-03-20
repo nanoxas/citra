@@ -40,7 +40,7 @@ public:
     void PrepareReschedule() override;
     void ExecuteInstructions(int num_instructions) override;
 
-    void ClearCache();
+    void ClearCache() override;
 
 private:
     bool reschedule;

@@ -217,9 +217,9 @@ void ARM_Jit::PrepareReschedule() {
 }
 
 void ARM_Jit::ClearCache() {
-    UNIMPLEMENTED();
-    // compiler.ClearCache();
-    this->state->cpu_state.instruction_cache.clear();
+    compiler.ClearCache();
+    block_of_code.ClearCodeSpace();
+    state->cpu_state.instruction_cache.clear();
 }
 
 }

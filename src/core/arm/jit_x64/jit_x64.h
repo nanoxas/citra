@@ -48,6 +48,8 @@ public:
     JitX64(Gen::XEmitter* code_);
     virtual ~JitX64() override {}
 
+    void ClearCache();
+
     CodePtr GetBB(u32 pc, bool TFlag, bool EFlag);
 
     /// Returns a pointer to the compiled basic block.

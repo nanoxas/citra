@@ -2,6 +2,7 @@
 // Licensed under GPLv2 or any later version
 // Refer to the license.txt file included.
 
+#include "core/arm/dyncom/arm_dyncom_interpreter.h"
 #include "core/arm/jit_x64/jit_x64.h"
 #include "core/memory.h"
 
@@ -10,6 +11,12 @@ namespace JitX64 {
 using namespace Gen;
 
 JitX64::JitX64(XEmitter* code_) : code(code_) {}
+
+void JitX64::ClearCache() {
+    basic_blocks.clear();
+    patch_jmp_locations.clear();
+    InterpreterClearCache();
+}
 
 CodePtr JitX64::GetBB(u32 pc, bool TFlag, bool EFlag) {
     const LocationDescriptor desc = { pc, TFlag, EFlag };
