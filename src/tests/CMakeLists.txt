@@ -5,6 +5,12 @@ set(SRCS
 set(HEADERS
             )
 
+if(ARCHITECTURE_x86_64)
+    set(SRCS ${SRCS}
+            core/arm/jit_x64/fuzz_arm_data_processing.cpp
+            )
+endif()
+
 create_directory_groups(${SRCS} ${HEADERS})
 
 include_directories(../../externals/catch)

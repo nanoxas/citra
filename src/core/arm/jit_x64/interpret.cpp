@@ -24,14 +24,14 @@ static JitState* CallInterpreter(JitState* jit_state, u64 pc, u64 TFlag, u64 EFl
                 (cpu->VFlag << 28) |
                 (cpu->TFlag << 5);
 
-    if (jit_state->cycles_remaining > 0) {
+    if (jit_state->cycles_remaining >= 0) {
 #if 0
-        cpu->NumInstrsToExecute = jit_state->cycles_remaining;
+        cpu->NumInstrsToExecute = jit_state->cycles_remaining + 1;
         if (cpu->NumInstrsToExecute > 100) cpu->NumInstrsToExecute = 100;
-        jit_state->cycles_remaining -= InterpreterMainLoop(cpu);
+        jit_state->cycles_remaining -= InterpreterMainLoop(cpu) - 1;
 #else
         cpu->NumInstrsToExecute = 1;
-        jit_state->cycles_remaining -= InterpreterMainLoop(cpu);
+        jit_state->cycles_remaining -= InterpreterMainLoop(cpu) - 1;
 #endif
     }
 
@@ -67,6 +67,7 @@ void JitX64::CompileInterpretInstruction() {
     // Return to dispatch
     code->JMPptr(MJitStateHostReturnRIP());
 
+    current.arm_pc += GetInstSize();
     stop_compilation = true;
 }
 
