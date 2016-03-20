@@ -288,6 +288,7 @@ if(ARCHITECTURE_x86_64)
             arm/jit_x64/instructions/synchronisation.cpp
             arm/jit_x64/instructions/status_register.cpp
             arm/jit_x64/instructions/thumb.cpp
+            arm/jit_x64/interface.cpp
             arm/jit_x64/interpret.cpp
             arm/jit_x64/jit_x64.cpp
             arm/jit_x64/reg_alloc.cpp
@@ -295,6 +296,7 @@ if(ARCHITECTURE_x86_64)
 
     set(HEADERS ${HEADERS}
             arm/jit_x64/common.h
+            arm/jit_x64/interface.h
             arm/jit_x64/jit_x64.h
             arm/jit_x64/reg_alloc.h
             )
