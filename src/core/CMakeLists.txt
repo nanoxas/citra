@@ -266,11 +266,36 @@ set(HEADERS
 
 if(ARCHITECTURE_x86_64)
     set(SRCS ${SRCS}
+            arm/jit_x64/cond.cpp
+            arm/jit_x64/instructions/barrier.cpp
+            arm/jit_x64/instructions/branch.cpp
+            arm/jit_x64/instructions/coprocessor.cpp
+            arm/jit_x64/instructions/data_processing.cpp
+            arm/jit_x64/instructions/exception_generating.cpp
+            arm/jit_x64/instructions/extension.cpp
+            arm/jit_x64/instructions/hint.cpp
+            arm/jit_x64/instructions/load_store.cpp
+            arm/jit_x64/instructions/misc.cpp
+            arm/jit_x64/instructions/usad.cpp
+            arm/jit_x64/instructions/packing.cpp
+            arm/jit_x64/instructions/reversal.cpp
+            arm/jit_x64/instructions/saturation.cpp
+            arm/jit_x64/instructions/multiply.cpp
+            arm/jit_x64/instructions/parallel_add_subtract_modulo.cpp
+            arm/jit_x64/instructions/parallel_add_subtract_saturating.cpp
+            arm/jit_x64/instructions/parallel_add_subtract_halving.cpp
+            arm/jit_x64/instructions/qadd_qsub.cpp
+            arm/jit_x64/instructions/synchronisation.cpp
+            arm/jit_x64/instructions/status_register.cpp
+            arm/jit_x64/instructions/thumb.cpp
+            arm/jit_x64/interpret.cpp
+            arm/jit_x64/jit_x64.cpp
             arm/jit_x64/reg_alloc.cpp
             )
 
     set(HEADERS ${HEADERS}
             arm/jit_x64/common.h
+            arm/jit_x64/jit_x64.h
             arm/jit_x64/reg_alloc.h
             )
 endif()
