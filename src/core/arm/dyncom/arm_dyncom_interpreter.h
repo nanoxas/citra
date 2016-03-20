@@ -7,3 +7,4 @@
 struct ARMul_State;
 
 unsigned InterpreterMainLoop(ARMul_State* state);
+void InterpreterClearCache();

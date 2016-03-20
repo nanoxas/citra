@@ -1144,6 +1144,10 @@ static inline void *AllocBuffer(unsigned int size) {
     return (void *)&inst_buf[start];
 }
 
+void InterpreterClearCache() {
+    top = 0;
+}
+
 static shtop_fp_t get_shtop(unsigned int inst) {
     if (BIT(inst, 25)) {
         return DPO(Immediate);

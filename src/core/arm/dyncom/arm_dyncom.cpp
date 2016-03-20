@@ -18,6 +18,7 @@
 
 ARM_DynCom::ARM_DynCom(PrivilegeMode initial_mode) {
     state = std::make_unique<ARMul_State>(initial_mode);
+    ClearCache();
 }
 
 ARM_DynCom::~ARM_DynCom() {
@@ -124,4 +125,9 @@ void ARM_DynCom::LoadContext(const Core::ThreadContext& ctx) {
 
 void ARM_DynCom::PrepareReschedule() {
     state->NumInstrsToExecute = 0;
+}
+
+void ARM_DynCom::ClearCache() {
+    state->instruction_cache.clear();
+    InterpreterClearCache();
 }

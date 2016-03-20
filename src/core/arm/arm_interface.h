@@ -148,6 +148,9 @@ public:
 
     s64 down_count = 0; ///< A decreasing counter of remaining cycles before the next event, decreased by the cpu run loop
 
+    /// Clears any cached state. Call when instructions in memory change to avoid executing stale cached instructions (e.g.: CROs).
+    virtual void ClearCache() = 0;
+
 protected:
 
     /**

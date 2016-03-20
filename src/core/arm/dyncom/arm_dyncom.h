@@ -43,6 +43,8 @@ public:
     void PrepareReschedule() override;
     void ExecuteInstructions(int num_instructions) override;
 
+    void ClearCache() override;
+
 private:
     std::unique_ptr<ARMul_State> state;
 };
