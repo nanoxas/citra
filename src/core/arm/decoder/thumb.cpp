@@ -2,10 +2,11 @@
 // Licensed under GPLv2 or any later version
 // Refer to the license.txt file included.
 
-#pragma once
-
 #include <algorithm>
 #include <cstddef>
+#include <cstring>
+
+#include <boost/optional.hpp>
 
 #include "common/assert.h"
 #include "common/common_types.h"
@@ -265,7 +266,7 @@ static const std::array<Instruction, 27> thumb_instruction_table = { {
         }
     })},
     { "STR(B)/LDR(B)_imm",       MakeMatcher("011xxxxxxxxxxxxx", [](Visitor* v, u32 instruction) {
-        bool opc = bits<11, 12>(instruction);
+        u32 opc = bits<11, 12>(instruction);
         Register offset = bits<6, 10>(instruction);
         Register Rn = bits<3, 5>(instruction);
         Register Rd = bits<0, 2>(instruction);
@@ -374,7 +375,7 @@ static const std::array<Instruction, 27> thumb_instruction_table = { {
         v->CPS();
     })},
     { "reverse bytes",           MakeMatcher("10111010ooxxxxxx", [](Visitor* v, u32 instruction) {
-        bool opc = bits<6, 7>(instruction);
+        u32 opc = bits<6, 7>(instruction);
         Register Rn = bits<3, 5>(instruction);
         Register Rd = bits<0, 2>(instruction);
         switch (opc) {
@@ -439,15 +440,17 @@ static const std::array<Instruction, 27> thumb_instruction_table = { {
     })}
 }};
 
-const Instruction& DecodeThumb(u16 i) {
+boost::optional<const Instruction&> DecodeThumb(u16 i) {
     // NOTE: The reverse search direction is important. Searching forwards would result in incorrect behavior.
     //       This is because the entries in thumb_instruction_table have more specific matches coming after less specific ones.
     //       Example:
     //           000ooxxxxxxxxxxx comes before 000110oxxxxxxxxx
     //       with a forward search direction notice how the first one will always be matched and the latter never will be.
-    return *std::find_if(thumb_instruction_table.crbegin(), thumb_instruction_table.crend(), [i](const Instruction& instruction) {
+    auto iterator = std::find_if(thumb_instruction_table.crbegin(), thumb_instruction_table.crend(), [i](const Instruction& instruction) {
         return instruction.Match(i);
     });
+
+    return (iterator != thumb_instruction_table.crend()) ? boost::make_optional<const Instruction&>(*iterator) : boost::none;
 }
 
 };

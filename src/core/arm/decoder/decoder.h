@@ -21,7 +21,7 @@ class Instruction;
 class Visitor;
 
 boost::optional<const Instruction&> DecodeArm(u32 instruction);
-const Instruction& DecodeThumb(u16 instruction);
+boost::optional<const Instruction&> DecodeThumb(u16 instruction);
 
 struct Matcher {
     u32 bit_mask;

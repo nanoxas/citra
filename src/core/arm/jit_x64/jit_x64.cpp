@@ -150,7 +150,13 @@ void JitX64::CompileSingleThumbInstruction() {
     inst_u32 &= 0xFFFFF;
     u16 inst = inst_u32;
 
-    ArmDecoder::DecodeThumb(inst).Visit(this, inst);
+    auto inst_info = ArmDecoder::DecodeThumb(inst);
+    if (!inst_info) {
+        // TODO: Log message
+        CompileInterpretInstruction();
+    } else {
+        inst_info->Visit(this, inst);
+    }
 }
 
 // Convenience functions:
