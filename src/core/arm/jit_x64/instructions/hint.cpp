@@ -6,8 +6,10 @@
 
 namespace JitX64 {
 
-void JitX64::DBG() { CompileInterpretInstruction(); }
+void JitX64::SEV() { CompileInterpretInstruction(); }
 void JitX64::PLD() { CompileInterpretInstruction(); }
-void JitX64::PLI() { CompileInterpretInstruction(); }
+void JitX64::WFI() { CompileInterpretInstruction(); }
+void JitX64::WFE() { CompileInterpretInstruction(); }
+void JitX64::YIELD() { CompileInterpretInstruction(); }
 
 }

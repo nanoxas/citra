@@ -133,7 +133,13 @@ void JitX64::Patch(LocationDescriptor desc, CodePtr bb) {
 void JitX64::CompileSingleArmInstruction() {
     u32 inst = Memory::Read32(current.arm_pc & 0xFFFFFFFC);
 
-    ArmDecoder::DecodeArm(inst).Visit(this, inst);
+    auto inst_info = ArmDecoder::DecodeArm(inst);
+    if (!inst_info) {
+        // TODO: Log message
+        CompileInterpretInstruction();
+    } else {
+        inst_info->Visit(this, inst);
+    }
 }
 
 void JitX64::CompileSingleThumbInstruction() {

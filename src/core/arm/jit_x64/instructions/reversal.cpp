@@ -6,7 +6,6 @@
 
 namespace JitX64 {
 
-void JitX64::RBIT() { CompileInterpretInstruction(); }
 void JitX64::REV() { CompileInterpretInstruction(); }
 void JitX64::REV16() { CompileInterpretInstruction(); }
 void JitX64::REVSH() { CompileInterpretInstruction(); }

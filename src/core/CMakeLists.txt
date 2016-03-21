@@ -267,7 +267,6 @@ set(HEADERS
 if(ARCHITECTURE_x86_64)
     set(SRCS ${SRCS}
             arm/jit_x64/cond.cpp
-            arm/jit_x64/instructions/barrier.cpp
             arm/jit_x64/instructions/branch.cpp
             arm/jit_x64/instructions/coprocessor.cpp
             arm/jit_x64/instructions/data_processing.cpp

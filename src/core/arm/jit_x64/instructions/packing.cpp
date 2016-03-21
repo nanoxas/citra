@@ -6,6 +6,7 @@
 
 namespace JitX64 {
 
-void JitX64::PKH() { CompileInterpretInstruction(); }
+void JitX64::PKHBT(Cond cond, ArmReg Rn, ArmReg Rd, ArmImm5 imm5, ArmReg Rm) { CompileInterpretInstruction(); }
+void JitX64::PKHTB(Cond cond, ArmReg Rn, ArmReg Rd, ArmImm5 imm5, ArmReg Rm) { CompileInterpretInstruction(); }
 
 }

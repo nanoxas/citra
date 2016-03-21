@@ -364,7 +364,7 @@ static const std::array<Instruction, 27> thumb_instruction_table = { {
     })},
     { "SETEND",                  MakeMatcher("101101100101x000", [](Visitor* v, u32 instruction) {
         bool E = bits<3, 3>(instruction);
-        v->SETEND();
+        v->SETEND(E);
     })},
     { "change processor state",  MakeMatcher("10110110011x0xxx", [](Visitor* v, u32 instruction) {
         bool imod = bits<4, 4>(instruction);

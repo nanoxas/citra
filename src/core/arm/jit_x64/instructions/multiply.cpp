@@ -8,7 +8,6 @@ namespace JitX64 {
 
 // Multiply (Normal) instructions
 void JitX64::MLA() { CompileInterpretInstruction(); }
-void JitX64::MLS() { CompileInterpretInstruction(); }
 void JitX64::MUL() { CompileInterpretInstruction(); }
 
 // Multiply (Long) instructions

@@ -10,7 +10,7 @@ void JitX64::CPS() { CompileInterpretInstruction(); }
 void JitX64::MRS() { CompileInterpretInstruction(); }
 void JitX64::MSR() { CompileInterpretInstruction(); }
 void JitX64::RFE() { CompileInterpretInstruction(); }
-void JitX64::SETEND() { CompileInterpretInstruction(); }
+void JitX64::SETEND(bool E) { CompileInterpretInstruction(); }
 void JitX64::SRS() { CompileInterpretInstruction(); }
 
 }

@@ -7,8 +7,6 @@
 namespace JitX64 {
 
 void JitX64::BKPT() { CompileInterpretInstruction(); }
-void JitX64::HVC() { CompileInterpretInstruction(); }
-void JitX64::SMC() { CompileInterpretInstruction(); }
 void JitX64::SVC() { CompileInterpretInstruction(); }
 void JitX64::UDF() { CompileInterpretInstruction(); }
 

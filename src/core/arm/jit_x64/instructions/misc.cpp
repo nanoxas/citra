@@ -7,7 +7,6 @@
 namespace JitX64 {
 
 void JitX64::CLZ() { CompileInterpretInstruction(); }
-void JitX64::ERET() { CompileInterpretInstruction(); }
 void JitX64::NOP() { CompileInterpretInstruction(); }
 void JitX64::SEL() { CompileInterpretInstruction(); }
 

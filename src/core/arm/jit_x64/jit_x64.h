@@ -46,7 +46,7 @@ private:
 public:
     JitX64() = delete;
     JitX64(Gen::XEmitter* code_);
-    virtual ~JitX64() override {}
+    ~JitX64() override {}
 
     void ClearCache();
 
@@ -133,270 +133,263 @@ private:
 private:
     void CompileInterpretInstruction();
 
-    // Barrier instructions
-    virtual void DMB() override;
-    virtual void DSB() override;
-    virtual void ISB() override;
-
     // Branch instructions
-    virtual void B(Cond cond, ArmImm24 imm24) override;
-    virtual void BL(Cond cond, ArmImm24 imm24) override;
-    virtual void BLX_imm(bool H, ArmImm24 imm24) override;
-    virtual void BLX_reg(Cond cond, ArmReg Rm) override;
-    virtual void BX(Cond cond, ArmReg Rm) override;
-    virtual void BXJ(Cond cond, ArmReg Rm) override;
+    void B(Cond cond, ArmImm24 imm24) override;
+    void BL(Cond cond, ArmImm24 imm24) override;
+    void BLX_imm(bool H, ArmImm24 imm24) override;
+    void BLX_reg(Cond cond, ArmReg Rm) override;
+    void BX(Cond cond, ArmReg Rm) override;
+    void BXJ(Cond cond, ArmReg Rm) override;
 
     // Coprocessor instructions
-    virtual void CDP() override;
-    virtual void LDC() override;
-    virtual void MCR() override;
-    virtual void MCRR() override;
-    virtual void MRC() override;
-    virtual void MRRC() override;
-    virtual void STC() override;
+    void CDP() override;
+    void LDC() override;
+    void MCR() override;
+    void MCRR() override;
+    void MRC() override;
+    void MRRC() override;
+    void STC() override;
 
     // Data processing instructions
     void CompileDataProcessingHelper(ArmReg Rn_index, ArmReg Rd_index, std::function<void(Gen::X64Reg)> body);
     void CompileDataProcessingHelper_Reverse(ArmReg Rn_index, ArmReg Rd_index, std::function<void(Gen::X64Reg)> body);
-    virtual void ADC_imm(Cond cond, bool S, ArmReg Rn, ArmReg Rd, int rotate, ArmImm8 imm8) override;
-    virtual void ADC_reg(Cond cond, bool S, ArmReg Rn, ArmReg Rd, ArmImm5 imm5, ShiftType shift, ArmReg Rm) override;
-    virtual void ADC_rsr(Cond cond, bool S, ArmReg Rn, ArmReg Rd, ArmReg Rs, ShiftType shift, ArmReg Rm) override;
-    virtual void ADD_imm(Cond cond, bool S, ArmReg Rn, ArmReg Rd, int rotate, ArmImm8 imm8) override;
-    virtual void ADD_reg(Cond cond, bool S, ArmReg Rn, ArmReg Rd, ArmImm5 imm5, ShiftType shift, ArmReg Rm) override;
-    virtual void ADD_rsr(Cond cond, bool S, ArmReg Rn, ArmReg Rd, ArmReg Rs, ShiftType shift, ArmReg Rm) override;
-    virtual void AND_imm(Cond cond, bool S, ArmReg Rn, ArmReg Rd, int rotate, ArmImm8 imm8) override;
-    virtual void AND_reg(Cond cond, bool S, ArmReg Rn, ArmReg Rd, ArmImm5 imm5, ShiftType shift, ArmReg Rm) override;
-    virtual void AND_rsr(Cond cond, bool S, ArmReg Rn, ArmReg Rd, ArmReg Rs, ShiftType shift, ArmReg Rm) override;
-    virtual void BIC_imm(Cond cond, bool S, ArmReg Rn, ArmReg Rd, int rotate, ArmImm8 imm8) override;
-    virtual void BIC_reg(Cond cond, bool S, ArmReg Rn, ArmReg Rd, ArmImm5 imm5, ShiftType shift, ArmReg Rm) override;
-    virtual void BIC_rsr(Cond cond, bool S, ArmReg Rn, ArmReg Rd, ArmReg Rs, ShiftType shift, ArmReg Rm) override;
-    virtual void CMN_imm(Cond cond,         ArmReg Rn,            int rotate, ArmImm8 imm8) override;
-    virtual void CMN_reg(Cond cond,         ArmReg Rn,            ArmImm5 imm5, ShiftType shift, ArmReg Rm) override;
-    virtual void CMN_rsr(Cond cond,         ArmReg Rn,            ArmReg Rs, ShiftType shift, ArmReg Rm) override;
-    virtual void CMP_imm(Cond cond,         ArmReg Rn,            int rotate, ArmImm8 imm8) override;
-    virtual void CMP_reg(Cond cond,         ArmReg Rn,            ArmImm5 imm5, ShiftType shift, ArmReg Rm) override;
-    virtual void CMP_rsr(Cond cond,         ArmReg Rn,            ArmReg Rs, ShiftType shift, ArmReg Rm) override;
-    virtual void EOR_imm(Cond cond, bool S, ArmReg Rn, ArmReg Rd, int rotate, ArmImm8 imm8) override;
-    virtual void EOR_reg(Cond cond, bool S, ArmReg Rn, ArmReg Rd, ArmImm5 imm5, ShiftType shift, ArmReg Rm) override;
-    virtual void EOR_rsr(Cond cond, bool S, ArmReg Rn, ArmReg Rd, ArmReg Rs, ShiftType shift, ArmReg Rm) override;
-    virtual void MOV_imm(Cond cond, bool S,            ArmReg Rd, int rotate, ArmImm8 imm8) override;
-    virtual void MOV_reg(Cond cond, bool S,            ArmReg Rd, ArmImm5 imm5, ShiftType shift, ArmReg Rm) override;
-    virtual void MOV_rsr(Cond cond, bool S,            ArmReg Rd, ArmReg Rs, ShiftType shift, ArmReg Rm) override;
-    virtual void MVN_imm(Cond cond, bool S,            ArmReg Rd, int rotate, ArmImm8 imm8) override;
-    virtual void MVN_reg(Cond cond, bool S,            ArmReg Rd, ArmImm5 imm5, ShiftType shift, ArmReg Rm) override;
-    virtual void MVN_rsr(Cond cond, bool S,            ArmReg Rd, ArmReg Rs, ShiftType shift, ArmReg Rm) override;
-    virtual void ORR_imm(Cond cond, bool S, ArmReg Rn, ArmReg Rd, int rotate, ArmImm8 imm8) override;
-    virtual void ORR_reg(Cond cond, bool S, ArmReg Rn, ArmReg Rd, ArmImm5 imm5, ShiftType shift, ArmReg Rm) override;
-    virtual void ORR_rsr(Cond cond, bool S, ArmReg Rn, ArmReg Rd, ArmReg Rs, ShiftType shift, ArmReg Rm) override;
-    virtual void RSB_imm(Cond cond, bool S, ArmReg Rn, ArmReg Rd, int rotate, ArmImm8 imm8) override;
-    virtual void RSB_reg(Cond cond, bool S, ArmReg Rn, ArmReg Rd, ArmImm5 imm5, ShiftType shift, ArmReg Rm) override;
-    virtual void RSB_rsr(Cond cond, bool S, ArmReg Rn, ArmReg Rd, ArmReg Rs, ShiftType shift, ArmReg Rm) override;
-    virtual void RSC_imm(Cond cond, bool S, ArmReg Rn, ArmReg Rd, int rotate, ArmImm8 imm8) override;
-    virtual void RSC_reg(Cond cond, bool S, ArmReg Rn, ArmReg Rd, ArmImm5 imm5, ShiftType shift, ArmReg Rm) override;
-    virtual void RSC_rsr(Cond cond, bool S, ArmReg Rn, ArmReg Rd, ArmReg Rs, ShiftType shift, ArmReg Rm) override;
-    virtual void SBC_imm(Cond cond, bool S, ArmReg Rn, ArmReg Rd, int rotate, ArmImm8 imm8) override;
-    virtual void SBC_reg(Cond cond, bool S, ArmReg Rn, ArmReg Rd, ArmImm5 imm5, ShiftType shift, ArmReg Rm) override;
-    virtual void SBC_rsr(Cond cond, bool S, ArmReg Rn, ArmReg Rd, ArmReg Rs, ShiftType shift, ArmReg Rm) override;
-    virtual void SUB_imm(Cond cond, bool S, ArmReg Rn, ArmReg Rd, int rotate, ArmImm8 imm8) override;
-    virtual void SUB_reg(Cond cond, bool S, ArmReg Rn, ArmReg Rd, ArmImm5 imm5, ShiftType shift, ArmReg Rm) override;
-    virtual void SUB_rsr(Cond cond, bool S, ArmReg Rn, ArmReg Rd, ArmReg Rs, ShiftType shift, ArmReg Rm) override;
-    virtual void TEQ_imm(Cond cond,         ArmReg Rn,            int rotate, ArmImm8 imm8) override;
-    virtual void TEQ_reg(Cond cond,         ArmReg Rn,            ArmImm5 imm5, ShiftType shift, ArmReg Rm) override;
-    virtual void TEQ_rsr(Cond cond,         ArmReg Rn,            ArmReg Rs, ShiftType shift, ArmReg Rm) override;
-    virtual void TST_imm(Cond cond,         ArmReg Rn,            int rotate, ArmImm8 imm8) override;
-    virtual void TST_reg(Cond cond,         ArmReg Rn,            ArmImm5 imm5, ShiftType shift, ArmReg Rm) override;
-    virtual void TST_rsr(Cond cond,         ArmReg Rn,            ArmReg Rs, ShiftType shift, ArmReg Rm) override;
+    void ADC_imm(Cond cond, bool S, ArmReg Rn, ArmReg Rd, int rotate, ArmImm8 imm8) override;
+    void ADC_reg(Cond cond, bool S, ArmReg Rn, ArmReg Rd, ArmImm5 imm5, ShiftType shift, ArmReg Rm) override;
+    void ADC_rsr(Cond cond, bool S, ArmReg Rn, ArmReg Rd, ArmReg Rs, ShiftType shift, ArmReg Rm) override;
+    void ADD_imm(Cond cond, bool S, ArmReg Rn, ArmReg Rd, int rotate, ArmImm8 imm8) override;
+    void ADD_reg(Cond cond, bool S, ArmReg Rn, ArmReg Rd, ArmImm5 imm5, ShiftType shift, ArmReg Rm) override;
+    void ADD_rsr(Cond cond, bool S, ArmReg Rn, ArmReg Rd, ArmReg Rs, ShiftType shift, ArmReg Rm) override;
+    void AND_imm(Cond cond, bool S, ArmReg Rn, ArmReg Rd, int rotate, ArmImm8 imm8) override;
+    void AND_reg(Cond cond, bool S, ArmReg Rn, ArmReg Rd, ArmImm5 imm5, ShiftType shift, ArmReg Rm) override;
+    void AND_rsr(Cond cond, bool S, ArmReg Rn, ArmReg Rd, ArmReg Rs, ShiftType shift, ArmReg Rm) override;
+    void BIC_imm(Cond cond, bool S, ArmReg Rn, ArmReg Rd, int rotate, ArmImm8 imm8) override;
+    void BIC_reg(Cond cond, bool S, ArmReg Rn, ArmReg Rd, ArmImm5 imm5, ShiftType shift, ArmReg Rm) override;
+    void BIC_rsr(Cond cond, bool S, ArmReg Rn, ArmReg Rd, ArmReg Rs, ShiftType shift, ArmReg Rm) override;
+    void CMN_imm(Cond cond,         ArmReg Rn,            int rotate, ArmImm8 imm8) override;
+    void CMN_reg(Cond cond,         ArmReg Rn,            ArmImm5 imm5, ShiftType shift, ArmReg Rm) override;
+    void CMN_rsr(Cond cond,         ArmReg Rn,            ArmReg Rs, ShiftType shift, ArmReg Rm) override;
+    void CMP_imm(Cond cond,         ArmReg Rn,            int rotate, ArmImm8 imm8) override;
+    void CMP_reg(Cond cond,         ArmReg Rn,            ArmImm5 imm5, ShiftType shift, ArmReg Rm) override;
+    void CMP_rsr(Cond cond,         ArmReg Rn,            ArmReg Rs, ShiftType shift, ArmReg Rm) override;
+    void EOR_imm(Cond cond, bool S, ArmReg Rn, ArmReg Rd, int rotate, ArmImm8 imm8) override;
+    void EOR_reg(Cond cond, bool S, ArmReg Rn, ArmReg Rd, ArmImm5 imm5, ShiftType shift, ArmReg Rm) override;
+    void EOR_rsr(Cond cond, bool S, ArmReg Rn, ArmReg Rd, ArmReg Rs, ShiftType shift, ArmReg Rm) override;
+    void MOV_imm(Cond cond, bool S,            ArmReg Rd, int rotate, ArmImm8 imm8) override;
+    void MOV_reg(Cond cond, bool S,            ArmReg Rd, ArmImm5 imm5, ShiftType shift, ArmReg Rm) override;
+    void MOV_rsr(Cond cond, bool S,            ArmReg Rd, ArmReg Rs, ShiftType shift, ArmReg Rm) override;
+    void MVN_imm(Cond cond, bool S,            ArmReg Rd, int rotate, ArmImm8 imm8) override;
+    void MVN_reg(Cond cond, bool S,            ArmReg Rd, ArmImm5 imm5, ShiftType shift, ArmReg Rm) override;
+    void MVN_rsr(Cond cond, bool S,            ArmReg Rd, ArmReg Rs, ShiftType shift, ArmReg Rm) override;
+    void ORR_imm(Cond cond, bool S, ArmReg Rn, ArmReg Rd, int rotate, ArmImm8 imm8) override;
+    void ORR_reg(Cond cond, bool S, ArmReg Rn, ArmReg Rd, ArmImm5 imm5, ShiftType shift, ArmReg Rm) override;
+    void ORR_rsr(Cond cond, bool S, ArmReg Rn, ArmReg Rd, ArmReg Rs, ShiftType shift, ArmReg Rm) override;
+    void RSB_imm(Cond cond, bool S, ArmReg Rn, ArmReg Rd, int rotate, ArmImm8 imm8) override;
+    void RSB_reg(Cond cond, bool S, ArmReg Rn, ArmReg Rd, ArmImm5 imm5, ShiftType shift, ArmReg Rm) override;
+    void RSB_rsr(Cond cond, bool S, ArmReg Rn, ArmReg Rd, ArmReg Rs, ShiftType shift, ArmReg Rm) override;
+    void RSC_imm(Cond cond, bool S, ArmReg Rn, ArmReg Rd, int rotate, ArmImm8 imm8) override;
+    void RSC_reg(Cond cond, bool S, ArmReg Rn, ArmReg Rd, ArmImm5 imm5, ShiftType shift, ArmReg Rm) override;
+    void RSC_rsr(Cond cond, bool S, ArmReg Rn, ArmReg Rd, ArmReg Rs, ShiftType shift, ArmReg Rm) override;
+    void SBC_imm(Cond cond, bool S, ArmReg Rn, ArmReg Rd, int rotate, ArmImm8 imm8) override;
+    void SBC_reg(Cond cond, bool S, ArmReg Rn, ArmReg Rd, ArmImm5 imm5, ShiftType shift, ArmReg Rm) override;
+    void SBC_rsr(Cond cond, bool S, ArmReg Rn, ArmReg Rd, ArmReg Rs, ShiftType shift, ArmReg Rm) override;
+    void SUB_imm(Cond cond, bool S, ArmReg Rn, ArmReg Rd, int rotate, ArmImm8 imm8) override;
+    void SUB_reg(Cond cond, bool S, ArmReg Rn, ArmReg Rd, ArmImm5 imm5, ShiftType shift, ArmReg Rm) override;
+    void SUB_rsr(Cond cond, bool S, ArmReg Rn, ArmReg Rd, ArmReg Rs, ShiftType shift, ArmReg Rm) override;
+    void TEQ_imm(Cond cond,         ArmReg Rn,            int rotate, ArmImm8 imm8) override;
+    void TEQ_reg(Cond cond,         ArmReg Rn,            ArmImm5 imm5, ShiftType shift, ArmReg Rm) override;
+    void TEQ_rsr(Cond cond,         ArmReg Rn,            ArmReg Rs, ShiftType shift, ArmReg Rm) override;
+    void TST_imm(Cond cond,         ArmReg Rn,            int rotate, ArmImm8 imm8) override;
+    void TST_reg(Cond cond,         ArmReg Rn,            ArmImm5 imm5, ShiftType shift, ArmReg Rm) override;
+    void TST_rsr(Cond cond,         ArmReg Rn,            ArmReg Rs, ShiftType shift, ArmReg Rm) override;
 
     // Exception generation instructions
-    virtual void BKPT() override;
-    virtual void HVC() override;
-    virtual void SMC() override;
-    virtual void SVC() override;
-    virtual void UDF() override;
+    void BKPT() override;
+    void SVC() override;
+    void UDF() override;
 
     // Extension functions
-    virtual void SXTAB() override;
-    virtual void SXTAB16() override;
-    virtual void SXTAH() override;
-    virtual void SXTB() override;
-    virtual void SXTB16() override;
-    virtual void SXTH() override;
-    virtual void UXTAB() override;
-    virtual void UXTAB16() override;
-    virtual void UXTAH() override;
-    virtual void UXTB() override;
-    virtual void UXTB16() override;
-    virtual void UXTH() override;
+    void SXTAB() override;
+    void SXTAB16() override;
+    void SXTAH() override;
+    void SXTB() override;
+    void SXTB16() override;
+    void SXTH() override;
+    void UXTAB() override;
+    void UXTAB16() override;
+    void UXTAH() override;
+    void UXTB() override;
+    void UXTB16() override;
+    void UXTH() override;
 
     // Hint instructions
-    virtual void DBG() override;
-    virtual void PLD() override;
-    virtual void PLI() override;
+    void PLD() override;
+    void SEV() override;
+    void WFE() override;
+    void WFI() override;
+    void YIELD() override;
 
     // Load/Store instructions
-    virtual void LDR_imm() override;
-    virtual void LDR_reg() override;
-    virtual void LDRB_imm() override;
-    virtual void LDRB_reg() override;
-    virtual void LDRBT() override;
-    virtual void LDRD_imm() override;
-    virtual void LDRD_reg() override;
-    virtual void LDRH_imm() override;
-    virtual void LDRH_reg() override;
-    virtual void LDRHT() override;
-    virtual void LDRSB_imm() override;
-    virtual void LDRSB_reg() override;
-    virtual void LDRSBT() override;
-    virtual void LDRSH_imm() override;
-    virtual void LDRSH_reg() override;
-    virtual void LDRSHT() override;
-    virtual void LDRT() override;
-    virtual void STR_imm() override;
-    virtual void STR_reg() override;
-    virtual void STRB_imm() override;
-    virtual void STRB_reg() override;
-    virtual void STRBT() override;
-    virtual void STRD_imm() override;
-    virtual void STRD_reg() override;
-    virtual void STRH_imm() override;
-    virtual void STRH_reg() override;
-    virtual void STRHT() override;
-    virtual void STRT() override;
+    void LDR_imm() override;
+    void LDR_reg() override;
+    void LDRB_imm() override;
+    void LDRB_reg() override;
+    void LDRBT() override;
+    void LDRD_imm() override;
+    void LDRD_reg() override;
+    void LDRH_imm() override;
+    void LDRH_reg() override;
+    void LDRHT() override;
+    void LDRSB_imm() override;
+    void LDRSB_reg() override;
+    void LDRSBT() override;
+    void LDRSH_imm() override;
+    void LDRSH_reg() override;
+    void LDRSHT() override;
+    void LDRT() override;
+    void STR_imm() override;
+    void STR_reg() override;
+    void STRB_imm() override;
+    void STRB_reg() override;
+    void STRBT() override;
+    void STRD_imm() override;
+    void STRD_reg() override;
+    void STRH_imm() override;
+    void STRH_reg() override;
+    void STRHT() override;
+    void STRT() override;
 
     // Load/Store multiple instructions
-    virtual void LDM() override;
-    virtual void STM() override;
+    void LDM() override;
+    void STM() override;
 
     // Miscellaneous instructions
-    virtual void CLZ() override;
-    virtual void ERET() override;
-    virtual void NOP() override;
-    virtual void SEL() override;
+    void CLZ() override;
+    void NOP() override;
+    void SEL() override;
 
     // Unsigned sum of absolute difference functions
-    virtual void USAD8() override;
-    virtual void USADA8() override;
+    void USAD8() override;
+    void USADA8() override;
 
     // Packing instructions
-    virtual void PKH() override;
+    void PKHBT(Cond cond, ArmReg Rn, ArmReg Rd, ArmImm5 imm5, ArmReg Rm) override;
+    void PKHTB(Cond cond, ArmReg Rn, ArmReg Rd, ArmImm5 imm5, ArmReg Rm) override;
 
     // Reversal instructions
-    virtual void RBIT() override;
-    virtual void REV() override;
-    virtual void REV16() override;
-    virtual void REVSH() override;
+    void REV() override;
+    void REV16() override;
+    void REVSH() override;
 
     // Saturation instructions
-    virtual void SSAT() override;
-    virtual void SSAT16() override;
-    virtual void USAT() override;
-    virtual void USAT16() override;
+    void SSAT() override;
+    void SSAT16() override;
+    void USAT() override;
+    void USAT16() override;
 
     // Multiply (Normal) instructions
-    virtual void MLA() override;
-    virtual void MLS() override;
-    virtual void MUL() override;
+    void MLA() override;
+    void MUL() override;
 
     // Multiply (Long) instructions
-    virtual void SMLAL() override;
-    virtual void SMULL() override;
-    virtual void UMAAL() override;
-    virtual void UMLAL() override;
-    virtual void UMULL() override;
+    void SMLAL() override;
+    void SMULL() override;
+    void UMAAL() override;
+    void UMLAL() override;
+    void UMULL() override;
 
     // Multiply (Halfword) instructions
-    virtual void SMLALxy() override;
-    virtual void SMLAxy() override;
-    virtual void SMULxy() override;
+    void SMLALxy() override;
+    void SMLAxy() override;
+    void SMULxy() override;
 
     // Multiply (word by halfword) instructions
-    virtual void SMLAWy() override;
-    virtual void SMULWy() override;
+    void SMLAWy() override;
+    void SMULWy() override;
 
     // Multiply (Most significant word) instructions
-    virtual void SMMLA() override;
-    virtual void SMMLS() override;
-    virtual void SMMUL() override;
+    void SMMLA() override;
+    void SMMLS() override;
+    void SMMUL() override;
 
     // Multiply (Dual) instructions
-    virtual void SMLAD() override;
-    virtual void SMLALD() override;
-    virtual void SMLSD() override;
-    virtual void SMLSLD() override;
-    virtual void SMUAD() override;
-    virtual void SMUSD() override;
+    void SMLAD() override;
+    void SMLALD() override;
+    void SMLSD() override;
+    void SMLSLD() override;
+    void SMUAD() override;
+    void SMUSD() override;
 
     // Parallel Add/Subtract (Modulo arithmetic) instructions
-    virtual void SADD8() override;
-    virtual void SADD16() override;
-    virtual void SASX() override;
-    virtual void SSAX() override;
-    virtual void SSUB8() override;
-    virtual void SSUB16() override;
-    virtual void UADD8() override;
-    virtual void UADD16() override;
-    virtual void UASX() override;
-    virtual void USAX() override;
-    virtual void USUB8() override;
-    virtual void USUB16() override;
+    void SADD8() override;
+    void SADD16() override;
+    void SASX() override;
+    void SSAX() override;
+    void SSUB8() override;
+    void SSUB16() override;
+    void UADD8() override;
+    void UADD16() override;
+    void UASX() override;
+    void USAX() override;
+    void USUB8() override;
+    void USUB16() override;
 
     // Parallel Add/Subtract (Saturating) instructions
-    virtual void QADD8() override;
-    virtual void QADD16() override;
-    virtual void QASX() override;
-    virtual void QSAX() override;
-    virtual void QSUB8() override;
-    virtual void QSUB16() override;
-    virtual void UQADD8() override;
-    virtual void UQADD16() override;
-    virtual void UQASX() override;
-    virtual void UQSAX() override;
-    virtual void UQSUB8() override;
-    virtual void UQSUB16() override;
+    void QADD8() override;
+    void QADD16() override;
+    void QASX() override;
+    void QSAX() override;
+    void QSUB8() override;
+    void QSUB16() override;
+    void UQADD8() override;
+    void UQADD16() override;
+    void UQASX() override;
+    void UQSAX() override;
+    void UQSUB8() override;
+    void UQSUB16() override;
 
     // Parallel Add/Subtract (Halving) instructions
-    virtual void SHADD8() override;
-    virtual void SHADD16() override;
-    virtual void SHASX() override;
-    virtual void SHSAX() override;
-    virtual void SHSUB8() override;
-    virtual void SHSUB16() override;
-    virtual void UHADD8() override;
-    virtual void UHADD16() override;
-    virtual void UHASX() override;
-    virtual void UHSAX() override;
-    virtual void UHSUB8() override;
-    virtual void UHSUB16() override;
+    void SHADD8() override;
+    void SHADD16() override;
+    void SHASX() override;
+    void SHSAX() override;
+    void SHSUB8() override;
+    void SHSUB16() override;
+    void UHADD8() override;
+    void UHADD16() override;
+    void UHASX() override;
+    void UHSAX() override;
+    void UHSUB8() override;
+    void UHSUB16() override;
 
     // Saturated Add/Subtract instructions
-    virtual void QADD() override;
-    virtual void QSUB() override;
-    virtual void QDADD() override;
-    virtual void QDSUB() override;
+    void QADD() override;
+    void QSUB() override;
+    void QDADD() override;
+    void QDSUB() override;
 
     // Synchronization Primitive instructions
-    virtual void CLREX() override;
-    virtual void LDREX() override;
-    virtual void LDREXB() override;
-    virtual void LDREXD() override;
-    virtual void LDREXH() override;
-    virtual void STREX() override;
-    virtual void STREXB() override;
-    virtual void STREXD() override;
-    virtual void STREXH() override;
-    virtual void SWP() override;
+    void CLREX() override;
+    void LDREX() override;
+    void LDREXB() override;
+    void LDREXD() override;
+    void LDREXH() override;
+    void STREX() override;
+    void STREXB() override;
+    void STREXD() override;
+    void STREXH() override;
+    void SWP() override;
 
     // Status register access instructions
-    virtual void CPS() override;
-    virtual void MRS() override;
-    virtual void MSR() override;
-    virtual void RFE() override;
-    virtual void SETEND() override;
-    virtual void SRS() override;
+    void CPS() override;
+    void MRS() override;
+    void MSR() override;
+    void RFE() override;
+    void SETEND(bool E) override;
+    void SRS() override;
 
     // Thumb specific instructions
-    virtual void thumb_BLX_prefix(ArmImm11 imm11) override;
-    virtual void thumb_BLX_suffix(bool L, ArmImm11 imm11) override;
+    void thumb_BLX_prefix(ArmImm11 imm11) override;
+    void thumb_BLX_suffix(bool L, ArmImm11 imm11) override;
 };
 
 }

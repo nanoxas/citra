@@ -8,6 +8,8 @@
 #include <functional>
 #include <memory>
 
+#include <boost/optional.hpp>
+
 #include "common/common_types.h"
 #include "common/common_funcs.h"
 
@@ -18,7 +20,7 @@ namespace ArmDecoder {
 class Instruction;
 class Visitor;
 
-const Instruction& DecodeArm(u32 instruction);
+boost::optional<const Instruction&> DecodeArm(u32 instruction);
 const Instruction& DecodeThumb(u16 instruction);
 
 struct Matcher {
@@ -59,11 +61,6 @@ using ShiftType = int;
 class Visitor {
 public:
     virtual ~Visitor() = default;
-
-    // Barrier instructions
-    virtual void DMB() = 0;
-    virtual void DSB() = 0;
-    virtual void ISB() = 0;
 
     // Branch instructions
     virtual void B(Cond cond, Imm24 imm24) = 0;
@@ -134,8 +131,6 @@ public:
 
     // Exception generation instructions
     virtual void BKPT() = 0;
-    virtual void HVC() = 0;
-    virtual void SMC() = 0;
     virtual void SVC() = 0;
     virtual void UDF() = 0;
 
@@ -154,9 +149,11 @@ public:
     virtual void UXTH() = 0;
 
     // Hint instructions
-    virtual void DBG() = 0;
     virtual void PLD() = 0;
-    virtual void PLI() = 0;
+    virtual void SEV() = 0;
+    virtual void WFE() = 0;
+    virtual void WFI() = 0;
+    virtual void YIELD() = 0;
 
     // Load/Store instructions
     virtual void LDR_imm() = 0;
@@ -194,7 +191,6 @@ public:
 
     // Miscellaneous instructions
     virtual void CLZ() = 0;
-    virtual void ERET() = 0;
     virtual void NOP() = 0;
     virtual void SEL() = 0;
 
@@ -203,10 +199,10 @@ public:
     virtual void USADA8() = 0;
 
     // Packing instructions
-    virtual void PKH() = 0;
+    virtual void PKHBT(Cond cond, Register Rn, Register Rd, Imm5 imm5, Register Rm) = 0;
+    virtual void PKHTB(Cond cond, Register Rn, Register Rd, Imm5 imm5, Register Rm) = 0;
 
     // Reversal instructions
-    virtual void RBIT() = 0;
     virtual void REV() = 0;
     virtual void REV16() = 0;
     virtual void REVSH() = 0;
@@ -219,7 +215,6 @@ public:
 
     // Multiply (Normal) instructions
     virtual void MLA() = 0;
-    virtual void MLS() = 0;
     virtual void MUL() = 0;
 
     // Multiply (Long) instructions
@@ -316,7 +311,7 @@ public:
     virtual void MRS() = 0;
     virtual void MSR() = 0;
     virtual void RFE() = 0;
-    virtual void SETEND() = 0;
+    virtual void SETEND(bool E) = 0;
     virtual void SRS() = 0;
 
     // Thumb specific instructions
