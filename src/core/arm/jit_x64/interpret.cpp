@@ -51,7 +51,7 @@ void JitX64::CompileInterpretInstruction() {
     code->MOV(64, R(Gen::ABI_PARAM3), Imm64(current.TFlag));
     code->MOV(64, R(Gen::ABI_PARAM4), Imm64(current.EFlag));
 
-    const void *const fn = &CallInterpreter;
+    const void *const fn = reinterpret_cast<const void* const>(&CallInterpreter);
 
     const u64 distance = reinterpret_cast<u64>(fn) - (reinterpret_cast<u64>(code->GetCodePtr()) + 5);
     if (distance >= 0x0000000080000000ULL && distance < 0xFFFFFFFF80000000ULL) {

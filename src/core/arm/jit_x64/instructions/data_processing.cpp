@@ -102,7 +102,7 @@ void JitX64::CompileDataProcessingHelper_Reverse(ArmReg Rn_index, ArmReg Rd_inde
 void JitX64::ADC_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int rotate, ArmImm8 imm8) {
     cond_manager.CompileCond((ConditionCode)cond);
 
-    u32 immediate = _rotr(imm8, rotate * 2);
+    u32 immediate = rotr(imm8, rotate * 2);
 
     CompileDataProcessingHelper(Rn_index, Rd_index, [&](X64Reg Rd) {
         code->BT(32, MJitStateCFlag(), Imm8(0));
@@ -125,7 +125,7 @@ void JitX64::ADC_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int ro
 void JitX64::ADD_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int rotate, ArmImm8 imm8) {
     cond_manager.CompileCond((ConditionCode)cond);
 
-    u32 immediate = _rotr(imm8, rotate * 2);
+    u32 immediate = rotr(imm8, rotate * 2);
 
     CompileDataProcessingHelper(Rn_index, Rd_index, [&](X64Reg Rd) {
         code->ADD(32, R(Rd), Imm32(immediate));
@@ -147,7 +147,7 @@ void JitX64::ADD_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int ro
 void JitX64::AND_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int rotate, ArmImm8 imm8) {
     cond_manager.CompileCond((ConditionCode)cond);
 
-    u32 immediate = _rotr(imm8, rotate * 2);
+    u32 immediate = rotr(imm8, rotate * 2);
 
     CompileDataProcessingHelper(Rn_index, Rd_index, [&](X64Reg Rd) {
         code->AND(32, R(Rd), Imm32(immediate));
@@ -172,7 +172,7 @@ void JitX64::AND_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int ro
 void JitX64::BIC_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int rotate, ArmImm8 imm8) {
     cond_manager.CompileCond((ConditionCode)cond);
 
-    u32 immediate = _rotr(imm8, rotate * 2);
+    u32 immediate = rotr(imm8, rotate * 2);
 
     CompileDataProcessingHelper(Rn_index, Rd_index, [&](X64Reg Rd) {
         code->AND(32, R(Rd), Imm32(~immediate));
@@ -200,7 +200,7 @@ void JitX64::CMP_imm(Cond cond, ArmReg Rn_index, int rotate, ArmImm8 imm8) { Com
 void JitX64::EOR_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int rotate, ArmImm8 imm8) {
     cond_manager.CompileCond((ConditionCode)cond);
 
-    u32 immediate = _rotr(imm8, rotate * 2);
+    u32 immediate = rotr(imm8, rotate * 2);
 
     CompileDataProcessingHelper(Rn_index, Rd_index, [&](X64Reg Rd) {
         code->XOR(32, R(Rd), Imm32(immediate));
@@ -225,7 +225,7 @@ void JitX64::EOR_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int ro
 void JitX64::MOV_imm(Cond cond, bool S, ArmReg Rd_index, int rotate, ArmImm8 imm8) {
     cond_manager.CompileCond((ConditionCode)cond);
 
-    u32 immediate = _rotr(imm8, rotate * 2);
+    u32 immediate = rotr(imm8, rotate * 2);
 
     if (Rd_index != 15) {
         reg_alloc.LockArm(Rd_index);
@@ -257,7 +257,7 @@ void JitX64::MOV_imm(Cond cond, bool S, ArmReg Rd_index, int rotate, ArmImm8 imm
 void JitX64::MVN_imm(Cond cond, bool S, ArmReg Rd_index, int rotate, ArmImm8 imm8) {
     cond_manager.CompileCond((ConditionCode)cond);
 
-    u32 immediate = _rotr(imm8, rotate * 2);
+    u32 immediate = rotr(imm8, rotate * 2);
 
     if (Rd_index != 15) {
         reg_alloc.LockArm(Rd_index);
@@ -289,7 +289,7 @@ void JitX64::MVN_imm(Cond cond, bool S, ArmReg Rd_index, int rotate, ArmImm8 imm
 void JitX64::ORR_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int rotate, ArmImm8 imm8) {
     cond_manager.CompileCond((ConditionCode)cond);
 
-    u32 immediate = _rotr(imm8, rotate * 2);
+    u32 immediate = rotr(imm8, rotate * 2);
 
     CompileDataProcessingHelper(Rn_index, Rd_index, [&](X64Reg Rd) {
         code->OR(32, R(Rd), Imm32(immediate));
@@ -314,7 +314,7 @@ void JitX64::ORR_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int ro
 void JitX64::RSB_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int rotate, ArmImm8 imm8) {
     cond_manager.CompileCond((ConditionCode)cond);
 
-    u32 immediate = _rotr(imm8, rotate * 2);
+    u32 immediate = rotr(imm8, rotate * 2);
 
     CompileDataProcessingHelper_Reverse(Rn_index, Rd_index, [&](X64Reg Rd) {
         code->MOV(32, R(Rd), Imm32(immediate));
@@ -345,7 +345,7 @@ void JitX64::RSB_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int ro
 void JitX64::RSC_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int rotate, ArmImm8 imm8) {
     cond_manager.CompileCond((ConditionCode)cond);
 
-    u32 immediate = _rotr(imm8, rotate * 2);
+    u32 immediate = rotr(imm8, rotate * 2);
 
     CompileDataProcessingHelper_Reverse(Rn_index, Rd_index, [&](X64Reg Rd) {
         code->MOV(32, R(Rd), Imm32(immediate));
@@ -379,7 +379,7 @@ void JitX64::RSC_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int ro
 void JitX64::SBC_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int rotate, ArmImm8 imm8) {
     cond_manager.CompileCond((ConditionCode)cond);
 
-    u32 immediate = _rotr(imm8, rotate * 2);
+    u32 immediate = rotr(imm8, rotate * 2);
 
     CompileDataProcessingHelper(Rn_index, Rd_index, [&](X64Reg Rd) {
         code->BT(32, MJitStateCFlag(), Imm8(0));
@@ -404,7 +404,7 @@ void JitX64::SBC_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int ro
 void JitX64::SUB_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int rotate, ArmImm8 imm8) {
     cond_manager.CompileCond((ConditionCode)cond);
 
-    u32 immediate = _rotr(imm8, rotate * 2);
+    u32 immediate = rotr(imm8, rotate * 2);
 
     CompileDataProcessingHelper(Rn_index, Rd_index, [&](X64Reg Rd) {
         code->SUB(32, R(Rd), Imm32(immediate));
@@ -427,7 +427,7 @@ void JitX64::SUB_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int ro
 void JitX64::TEQ_imm(Cond cond, ArmReg Rn_index, int rotate, ArmImm8 imm8) {
     cond_manager.CompileCond((ConditionCode)cond);
 
-    u32 immediate = _rotr(imm8, rotate * 2);
+    u32 immediate = rotr(imm8, rotate * 2);
 
     X64Reg Rn = reg_alloc.AllocAndLockTemp();
 
@@ -457,7 +457,7 @@ void JitX64::TEQ_imm(Cond cond, ArmReg Rn_index, int rotate, ArmImm8 imm8) {
 void JitX64::TST_imm(Cond cond, ArmReg Rn_index, int rotate, ArmImm8 imm8) {
     cond_manager.CompileCond((ConditionCode)cond);
 
-    u32 immediate = _rotr(imm8, rotate * 2);
+    u32 immediate = rotr(imm8, rotate * 2);
 
     X64Reg Rn;
 

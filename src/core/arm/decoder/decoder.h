@@ -37,7 +37,7 @@ private:
     const std::unique_ptr<Matcher> matcher;
 
 public:
-    Instruction(char* name, std::unique_ptr<Matcher> matcher) : name(name), matcher(std::move(matcher)) {}
+    Instruction(const char* const name, std::unique_ptr<Matcher> matcher) : matcher(std::move(matcher)), name(name) {}
 
     const char* const name;
 

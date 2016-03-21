@@ -4,6 +4,7 @@
 // Refer to the license.txt file included.
 
 #include "common/assert.h"
+#include "common/make_unique.h"
 #include "common/x64/abi.h"
 #include "common/x64/emitter.h"
 
@@ -88,7 +89,7 @@ static JitX64 compiler = { &block_of_code };
 
 ARM_Jit::ARM_Jit(PrivilegeMode initial_mode) {
     ASSERT_MSG(initial_mode == PrivilegeMode::USER32MODE, "Unimplemented");
-    state = std::make_unique<JitState>();
+    state = Common::make_unique<JitState>();
 }
 
 ARM_Jit::~ARM_Jit() {

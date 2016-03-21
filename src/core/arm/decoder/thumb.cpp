@@ -31,8 +31,8 @@ namespace Impl {
 std::unique_ptr<Matcher> MakeMatcher(const char* str, std::function<void(Visitor* v, u32 instruction)> fn) {
     ASSERT(strlen(str) == 16);
 
-    u32 mask;
-    u32 expect;
+    u32 mask = 0;
+    u32 expect = 0;
 
     for (int i = 0; i < 16; i++) {
         mask <<= 1;
@@ -445,7 +445,7 @@ const Instruction& DecodeThumb(u16 i) {
     //       Example:
     //           000ooxxxxxxxxxxx comes before 000110oxxxxxxxxx
     //       with a forward search direction notice how the first one will always be matched and the latter never will be.
-    return *std::find_if(thumb_instruction_table.crbegin(), thumb_instruction_table.crend(), [i](const auto& instruction) {
+    return *std::find_if(thumb_instruction_table.crbegin(), thumb_instruction_table.crend(), [i](const Instruction& instruction) {
         return instruction.Match(i);
     });
 }

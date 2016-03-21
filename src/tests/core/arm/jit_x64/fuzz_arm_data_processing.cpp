@@ -2,6 +2,7 @@
 // Licensed under GPLv2 or any later version
 // Refer to the license.txt file included.
 
+#include <cstdio>
 #include <random>
 
 #include <catch.hpp>
@@ -98,7 +99,7 @@ TEST_CASE("Fuzz ARM data processing instructions", "[JitX64]") {
     std::random_device rd;
     std::mt19937 mt(rd());
     auto rand_int = [&mt](u32 min, u32 max) -> u32 {
-        std::uniform_int<u32> rand(min, max);
+        std::uniform_int_distribution<u32> rand(min, max);
         return rand(mt);
     };
 
@@ -197,6 +198,9 @@ TEST_CASE("Fuzz ARM data processing instructions", "[JitX64]") {
             FAIL();
         }
 
-        if (run_number % 100 == 0) printf("%i\r", run_number);
+        if (run_number % 100 == 0) {
+            printf("%i\r", run_number);
+            fflush(stdout);
+        }
     }
 }
