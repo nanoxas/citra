@@ -67,7 +67,7 @@ void JitX64::CondManager::CompileCond(const ConditionCode new_cond) {
             cc = CC_NE;
             break;
         case ConditionCode::HI: { //c & !z
-            const X64Reg tmp = jit->reg_alloc.AllocAndLockTemp();
+            const X64Reg tmp = jit->reg_alloc.AllocTemp();
             jit->code->MOVZX(64, 8, tmp, jit->MJitStateZFlag());
             jit->code->CMP(8, jit->MJitStateCFlag(), R(tmp));
             cc = CC_BE;
@@ -75,7 +75,7 @@ void JitX64::CondManager::CompileCond(const ConditionCode new_cond) {
             break;
         }
         case ConditionCode::LS: { //!c | z
-            const X64Reg tmp = jit->reg_alloc.AllocAndLockTemp();
+            const X64Reg tmp = jit->reg_alloc.AllocTemp();
             jit->code->MOVZX(64, 8, tmp, jit->MJitStateZFlag());
             jit->code->CMP(8, jit->MJitStateCFlag(), R(tmp));
             cc = CC_A;
@@ -83,7 +83,7 @@ void JitX64::CondManager::CompileCond(const ConditionCode new_cond) {
             break;
         }
         case ConditionCode::GE: { // n == v
-            const X64Reg tmp = jit->reg_alloc.AllocAndLockTemp();
+            const X64Reg tmp = jit->reg_alloc.AllocTemp();
             jit->code->MOVZX(64, 8, tmp, jit->MJitStateVFlag());
             jit->code->CMP(8, jit->MJitStateNFlag(), R(tmp));
             cc = CC_NE;
@@ -91,7 +91,7 @@ void JitX64::CondManager::CompileCond(const ConditionCode new_cond) {
             break;
         }
         case ConditionCode::LT: { // n != v
-            const X64Reg tmp = jit->reg_alloc.AllocAndLockTemp();
+            const X64Reg tmp = jit->reg_alloc.AllocTemp();
             jit->code->MOVZX(64, 8, tmp, jit->MJitStateVFlag());
             jit->code->CMP(8, jit->MJitStateNFlag(), R(tmp));
             cc = CC_E;
@@ -99,7 +99,7 @@ void JitX64::CondManager::CompileCond(const ConditionCode new_cond) {
             break;
         }
         case ConditionCode::GT: { // !z & (n == v)
-            const X64Reg tmp = jit->reg_alloc.AllocAndLockTemp();
+            const X64Reg tmp = jit->reg_alloc.AllocTemp();
             jit->code->MOVZX(64, 8, tmp, jit->MJitStateNFlag());
             jit->code->XOR(8, R(tmp), jit->MJitStateVFlag());
             jit->code->OR(8, R(tmp), jit->MJitStateZFlag());
@@ -109,7 +109,7 @@ void JitX64::CondManager::CompileCond(const ConditionCode new_cond) {
             break;
         }
         case ConditionCode::LE: { // z | (n != v)
-            X64Reg tmp = jit->reg_alloc.AllocAndLockTemp();
+            X64Reg tmp = jit->reg_alloc.AllocTemp();
             jit->code->MOVZX(64, 8, tmp, jit->MJitStateNFlag());
             jit->code->XOR(8, R(tmp), jit->MJitStateVFlag());
             jit->code->OR(8, R(tmp), jit->MJitStateZFlag());

@@ -11,91 +11,50 @@ namespace JitX64 {
 using namespace Gen;
 
 void JitX64::CompileDataProcessingHelper(ArmReg Rn_index, ArmReg Rd_index, std::function<void(X64Reg)> body) {
-    // The major consideration is if Rn and/or Rd == R15.
-
-    if (Rd_index == 15) {
-        X64Reg Rd = reg_alloc.AllocAndLockTemp();
-        reg_alloc.LockArm(Rn_index);
-
-        if (Rn_index == 15) {
-            // TODO: In this case we can actually calculat the final result.
-            //       We can also use CompileJumpToBB instead of having to use CompileReturnToDispatch.
-            code->MOV(32, R(Rd), Imm32(GetReg15Value()));
-        } else {
-            code->MOV(32, R(Rd), reg_alloc.ArmR(Rn_index));
-        }
-
-        body(Rd);
-
-        reg_alloc.UnlockArm(Rn_index);
-
-        code->MOV(32, MJitStateArmPC(), R(Rd));
-        reg_alloc.UnlockTemp(Rd);
-    } else if (Rn_index == 15) {
-        X64Reg Rd = reg_alloc.BindNoLoadAndLockArm(Rd_index);
-        reg_alloc.MarkDirty(Rd_index);
-
+    if (Rn_index == 15) {
+        X64Reg Rd = reg_alloc.WriteOnlyLockArm(Rd_index);
         code->MOV(32, R(Rd), Imm32(GetReg15Value()));
 
         body(Rd);
 
         reg_alloc.UnlockArm(Rd_index);
-    } else if (Rn_index == Rd_index) {
-        X64Reg Rd = reg_alloc.BindAndLockArm(Rd_index);
+    } else if (Rn_index == Rd_index) { // Note: Rd_index cannot possibly be 15 in this case.
+        X64Reg Rd = reg_alloc.LoadAndLockArm(Rd_index);
         reg_alloc.MarkDirty(Rd_index);
 
         body(Rd);
 
         reg_alloc.UnlockArm(Rd_index);
     } else {
-        X64Reg Rd = reg_alloc.BindNoLoadAndLockArm(Rd_index);
-        reg_alloc.MarkDirty(Rd_index);
+        X64Reg Rd = reg_alloc.WriteOnlyLockArm(Rd_index);
         reg_alloc.LockArm(Rn_index);
-
         code->MOV(32, R(Rd), reg_alloc.ArmR(Rn_index));
 
         body(Rd);
 
-        reg_alloc.UnlockArm(Rd_index);
         reg_alloc.UnlockArm(Rn_index);
+        reg_alloc.UnlockArm(Rd_index);
     }
 }
 
 void JitX64::CompileDataProcessingHelper_Reverse(ArmReg Rn_index, ArmReg Rd_index, std::function<void(X64Reg)> body) {
-    // The major consideration is if Rn and/or Rd == R15.
-
     if (Rd_index != Rn_index) {
-
-        X64Reg Rd = INVALID_REG;
-
-        if (Rd_index == 15) {
-            Rd = reg_alloc.AllocAndLockTemp();
-        } else {
-            Rd = reg_alloc.BindNoLoadAndLockArm(Rd_index);
-            reg_alloc.MarkDirty(Rd_index);
-        }
+        X64Reg Rd = reg_alloc.WriteOnlyLockArm(Rd_index);
 
         body(Rd);
 
-        if (Rd_index == 15) {
-            code->MOV(32, MJitStateArmPC(), R(Rd));
-            reg_alloc.UnlockTemp(Rd);
-        } else {
-            reg_alloc.UnlockArm(Rd_index);
-        }
-
+        reg_alloc.UnlockArm(Rd_index);
     } else {
-
-        X64Reg tmp = reg_alloc.AllocAndLockTemp();
+        X64Reg tmp = reg_alloc.AllocTemp();
 
         body(tmp);
 
         // TODO: Efficiency: Could implement this as a register rebind instead of needing to MOV.
-        reg_alloc.LockArm(Rd_index);
+        reg_alloc.LockAndDirtyArm(Rd_index);
         code->MOV(32, reg_alloc.ArmR(Rd_index), R(tmp));
         reg_alloc.UnlockArm(Rd_index);
-        reg_alloc.UnlockTemp(tmp);
 
+        reg_alloc.UnlockTemp(tmp);
     }
 }
 
@@ -228,7 +187,7 @@ void JitX64::MOV_imm(Cond cond, bool S, ArmReg Rd_index, int rotate, ArmImm8 imm
     u32 immediate = rotr(imm8, rotate * 2);
 
     if (Rd_index != 15) {
-        reg_alloc.LockArm(Rd_index);
+        reg_alloc.LockAndDirtyArm(Rd_index);
         code->MOV(32, reg_alloc.ArmR(Rd_index), Imm32(immediate));
         reg_alloc.UnlockArm(Rd_index);
     } else {
@@ -260,7 +219,7 @@ void JitX64::MVN_imm(Cond cond, bool S, ArmReg Rd_index, int rotate, ArmImm8 imm
     u32 immediate = rotr(imm8, rotate * 2);
 
     if (Rd_index != 15) {
-        reg_alloc.LockArm(Rd_index);
+        reg_alloc.LockAndDirtyArm(Rd_index);
         code->MOV(32, reg_alloc.ArmR(Rd_index), Imm32(~immediate));
         reg_alloc.UnlockArm(Rd_index);
     } else {
@@ -429,7 +388,7 @@ void JitX64::TEQ_imm(Cond cond, ArmReg Rn_index, int rotate, ArmImm8 imm8) {
 
     u32 immediate = rotr(imm8, rotate * 2);
 
-    X64Reg Rn = reg_alloc.AllocAndLockTemp();
+    X64Reg Rn = reg_alloc.AllocTemp();
 
     if (Rn_index == 15) {
         code->MOV(32, R(Rn), Imm32(GetReg15Value()));
@@ -462,10 +421,10 @@ void JitX64::TST_imm(Cond cond, ArmReg Rn_index, int rotate, ArmImm8 imm8) {
     X64Reg Rn;
 
     if (Rn_index == 15) {
-        Rn = reg_alloc.AllocAndLockTemp();
+        Rn = reg_alloc.AllocTemp();
         code->MOV(32, R(Rn), Imm32(GetReg15Value()));
     } else {
-        Rn = reg_alloc.BindAndLockArm(Rn_index);
+        Rn = reg_alloc.LoadAndLockArm(Rn_index);
     }
 
     code->TEST(32, R(Rn), Imm32(immediate));

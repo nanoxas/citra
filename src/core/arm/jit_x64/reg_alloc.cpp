@@ -40,7 +40,7 @@ static Gen::OpArg MJitStateCpuReg(ArmReg arm_reg) {
     static_assert(std::is_same<decltype(JitState::cpu_state), ARMul_State>::value, "JitState::cpu_state must be ARMul_State");
     static_assert(std::is_same<decltype(ARMul_State::Reg), std::array<u32, 16>>::value, "ARMul_State::Reg must be std::array<u32, 16>");
 
-    ASSERT(arm_reg >= 0 && arm_reg <= 14);
+    ASSERT(arm_reg >= 0 && arm_reg <= 15);
 
     return Gen::MDisp(jit_state_reg, offsetof(JitState, cpu_state) + offsetof(ARMul_State, Reg) + (arm_reg) * sizeof(u32));
 }
@@ -112,6 +112,8 @@ void RegAlloc::UnlockX64(Gen::X64Reg x64_reg) {
 }
 
 void RegAlloc::FlushArm(ArmReg arm_reg) {
+    ASSERT(arm_reg >= 0 && arm_reg <= 15);
+
     ArmState& arm_state = arm_gpr[arm_reg];
     Gen::X64Reg x64_reg = GetX64For(arm_reg);
     X64State& x64_state = x64_gpr[x64_reg_to_index.at(x64_reg)];
@@ -129,6 +131,8 @@ void RegAlloc::FlushArm(ArmReg arm_reg) {
 }
 
 void RegAlloc::LockArm(ArmReg arm_reg) {
+    ASSERT(arm_reg >= 0 && arm_reg <= 14); // Not valid for R15 (cannot read from it)
+
     ArmState& arm_state = arm_gpr[arm_reg];
 
     ASSERT(!arm_state.locked);
@@ -145,7 +149,18 @@ void RegAlloc::LockArm(ArmReg arm_reg) {
     }
 }
 
-Gen::X64Reg RegAlloc::BindMaybeLoadAndLockArm(ArmReg arm_reg, bool load) {
+void RegAlloc::LockAndDirtyArm(ArmReg arm_reg) {
+    ASSERT(arm_reg >= 0 && arm_reg <= 14); // Not valid for R15 (cannot read from it)
+
+    ArmState& arm_state = arm_gpr[arm_reg];
+
+    LockArm(arm_reg);
+    if (arm_state.location.IsSimpleReg()) {
+        MarkDirty(arm_reg);
+    }
+}
+
+Gen::X64Reg RegAlloc::BindArmToX64(ArmReg arm_reg, bool load) {
     ArmState& arm_state = arm_gpr[arm_reg];
 
     ASSERT(!arm_state.locked);
@@ -176,15 +191,27 @@ Gen::X64Reg RegAlloc::BindMaybeLoadAndLockArm(ArmReg arm_reg, bool load) {
     return x64_reg;
 }
 
-Gen::X64Reg RegAlloc::BindAndLockArm(ArmReg arm_reg) {
-    return BindMaybeLoadAndLockArm(arm_reg, true);
+Gen::X64Reg RegAlloc::LoadAndLockArm(ArmReg arm_reg) {
+    ASSERT(arm_reg >= 0 && arm_reg <= 14); // Not valid for R15 (cannot read from it)
+
+    const Gen::X64Reg x64_reg = BindArmToX64(arm_reg, true);
+
+    return x64_reg;
 }
 
-Gen::X64Reg RegAlloc::BindNoLoadAndLockArm(ArmReg arm_reg) {
-    return BindMaybeLoadAndLockArm(arm_reg, false);
+Gen::X64Reg RegAlloc::WriteOnlyLockArm(ArmReg arm_reg) {
+    ASSERT(arm_reg >= 0 && arm_reg <= 15); // Valid for R15 (we're not reading from it)
+
+    const Gen::X64Reg x64_reg = BindArmToX64(arm_reg, false);
+
+    MarkDirty(arm_reg);
+
+    return x64_reg;
 }
 
 void RegAlloc::UnlockArm(ArmReg arm_reg) {
+    ASSERT(arm_reg >= 0 && arm_reg <= 15);
+
     ArmState& arm_state = arm_gpr[arm_reg];
 
     ASSERT(arm_state.locked);
@@ -258,7 +285,7 @@ Gen::OpArg RegAlloc::ArmR(ArmReg arm_reg) {
     return arm_state.location;
 }
 
-Gen::X64Reg RegAlloc::AllocAndLockTemp() {
+Gen::X64Reg RegAlloc::AllocTemp() {
     const Gen::X64Reg x64_reg = AllocReg();
     X64State& x64_state = x64_gpr[x64_reg_to_index.at(x64_reg)];
     x64_state.locked = true;
@@ -277,7 +304,7 @@ void RegAlloc::UnlockTemp(Gen::X64Reg x64_reg) {
     x64_state.state = X64State::State::Free;
 }
 
-Gen::X64Reg RegAlloc::BindAndLockMemoryMap() {
+Gen::X64Reg RegAlloc::LoadMemoryMap() {
     // First check to see if it exists.
     for (auto i : x64_reg_to_index) {
         X64State& x64_state = x64_gpr[i.second];
@@ -327,7 +354,7 @@ void RegAlloc::AssertNoLocked() {
 }
 
 Gen::X64Reg RegAlloc::AllocReg() {
-    // TODO: This is terrible.
+    // TODO: Improve with an actual register allocator as this is terrible.
 
     // First check to see if there anything free.
     for (auto i : x64_reg_to_index) {
