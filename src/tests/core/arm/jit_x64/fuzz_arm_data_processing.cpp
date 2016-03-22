@@ -39,6 +39,113 @@ std::pair<u32, u32> FromBitString(const char* str) {
     return { bits, mask };
 }
 
+u32 RandInt(u32 min, u32 max) {
+    static std::random_device rd;
+    static std::mt19937 mt(rd());
+    std::uniform_int_distribution<u32> rand(min, max);
+    return rand(mt);
+}
+
+void FuzzJit(const int instruction_count, const int run_count, const std::function<u32()> instruction_generator) {
+    // Init core
+    Core::Init();
+    SCOPE_EXIT({ Core::Shutdown(); });
+
+    // Prepare memory
+    constexpr size_t MEMORY_SIZE = 4096 * 2;
+    std::array<u8, MEMORY_SIZE> test_mem;
+    std::memset(test_mem.data(), 0, MEMORY_SIZE);
+    Memory::MapMemoryRegion(0, MEMORY_SIZE, test_mem.data());
+    SCOPE_EXIT({ Memory::UnmapRegion(0, MEMORY_SIZE); });
+
+    // Prepare test subjects
+    JitX64::ARM_Jit jit(PrivilegeMode::USER32MODE);
+    ARM_DynCom interp(PrivilegeMode::USER32MODE);
+    SCOPE_EXIT({
+        jit.FastClearCache();
+        interp.ClearCache();
+    });
+
+    for (int run_number = 0; run_number < run_count; run_number++) {
+        jit.FastClearCache();
+        interp.ClearCache();
+
+        u32 initial_regs[15];
+        for (int i = 0; i < 15; i++) {
+            u32 val = RandInt(0, 0xFFFFFFFF);
+            interp.SetReg(i, val);
+            jit.SetReg(i, val);
+            initial_regs[i] = val;
+        }
+
+        interp.SetCPSR(0x000001d0);
+        jit.SetCPSR(0x000001d0);
+
+        interp.SetPC(0);
+        jit.SetPC(0);
+
+        for (int i = 0; i < instruction_count; i++) {
+            u32 inst = instruction_generator();
+
+            Memory::Write32(i * 4, inst);
+        }
+
+        Memory::Write32(instruction_count * 4, 0b0011001000001111000000000000);
+
+        interp.ExecuteInstructions(instruction_count);
+        jit.ExecuteInstructions(instruction_count);
+
+        bool pass = true;
+
+        if (interp.GetCPSR() != jit.GetCPSR()) pass = false;
+        for (int i = 0; i <= 15; i++) {
+            if (interp.GetReg(i) != jit.GetReg(i)) pass = false;
+        }
+
+        if (!pass) {
+            printf("Failed at execution number %i\n", run_number);
+
+            printf("\nInstruction Listing: \n");
+            for (int i = 0; i < instruction_count; i++) {
+                printf("%s\n", ARM_Disasm::Disassemble(i * 4, Memory::Read32(i * 4)).c_str());
+            }
+
+            printf("\nFinal Register Listing: \n");
+            for (int i = 0; i <= 15; i++) {
+                printf("%4i: %08x %08x %s\n", i, interp.GetReg(i), jit.GetReg(i), interp.GetReg(i) != jit.GetReg(i) ? "*" : "");
+            }
+            printf("CPSR: %08x %08x %s\n", interp.GetCPSR(), jit.GetCPSR(), interp.GetCPSR() != jit.GetCPSR() ? "*" : "");
+
+            printf("\nInterpreter walkthrough:\n");
+            interp.ClearCache();
+            interp.SetPC(0);
+            interp.SetCPSR(0x000001d0);
+            for (int i = 0; i < 15; i++) {
+                interp.SetReg(i, initial_regs[i]);
+                printf("%4i: %08x\n", i, interp.GetReg(i));
+            }
+            for (int inst = 0; inst < instruction_count; inst++) {
+                printf("%s\n", ARM_Disasm::Disassemble(inst * 4, Memory::Read32(inst * 4)).c_str());
+                interp.Step();
+                for (int i = 0; i <= 15; i++) {
+                    printf("%4i: %08x\n", i, interp.GetReg(i));
+                }
+                printf("CPSR: %08x\n", interp.GetCPSR());
+            }
+
+#ifdef _MSC_VER
+            DebugBreak();
+#endif
+            FAIL();
+        }
+
+        printf("%i\r", run_number);
+        if (run_number % 50 == 0) {
+            fflush(stdout);
+        }
+    }
+}
+
 TEST_CASE("Fuzz ARM data processing instructions", "[JitX64]") {
     const std::array<std::pair<u32, u32>, 48> instructions = {{
         FromBitString("cccc0010101Snnnnddddrrrrvvvvvvvv"),
@@ -91,116 +198,25 @@ TEST_CASE("Fuzz ARM data processing instructions", "[JitX64]") {
         FromBitString("cccc00010001nnnn0000ssss0rr1mmmm"),
     }};
 
-    // Init core
-    Core::Init();
-    SCOPE_EXIT({ Core::Shutdown(); });
+    auto instruction_select_without_R15 = [&]() -> u32 {
+        size_t inst_index = RandInt(0, instructions.size() - 1);
 
-    // Prepare random numbers
-    std::random_device rd;
-    std::mt19937 mt(rd());
-    auto rand_int = [&mt](u32 min, u32 max) -> u32 {
-        std::uniform_int_distribution<u32> rand(min, max);
-        return rand(mt);
+        u32 cond = 0xE;
+        // Have a one-in-twenty-five chance of actually having a cond.
+        if (RandInt(1, 25) == 1) {
+            cond = RandInt(0x0, 0xD);
+        }
+
+        u32 Rn = RandInt(0, 15);
+        u32 Rd = RandInt(0, 14);
+        u32 S = RandInt(0, 1);
+        u32 shifter_operand = RandInt(0, 0xFFF);
+
+        u32 assemble_randoms = (shifter_operand << 0) | (Rd << 12) | (Rn << 16) | (S << 20) | (cond << 28);
+
+        return instructions[inst_index].first | (assemble_randoms & (~instructions[inst_index].second));
     };
 
-    // Prepare memory
-    u8* test_mem = new u8[4096 * 2];
-    std::memset(test_mem, 0, 4096 * 2);
-    Memory::MapMemoryRegion(0, 4096 * 2, test_mem);
-    SCOPE_EXIT({ Memory::UnmapRegion(0, 4096 * 2); });
-
-    // Prepare test subjects
-    JitX64::ARM_Jit jit(PrivilegeMode::USER32MODE);
-    ARM_DynCom interp(PrivilegeMode::USER32MODE);
-    SCOPE_EXIT({
-        jit.FastClearCache();
-        interp.ClearCache();
-    });
-
-    for (int run_number = 0; run_number < 10000; run_number++) {
-        jit.FastClearCache();
-        interp.ClearCache();
-
-        u32 initial_regs[15];
-        for (int i = 0; i < 15; i++) {
-            u32 val = rand_int(0, 0xFFFFFFFF);
-            interp.SetReg(i, val);
-            jit.SetReg(i, val);
-            initial_regs[i] = val;
-        }
-
-        interp.SetCPSR(0x000001d0);
-        jit.SetCPSR(0x000001d0);
-
-        interp.SetPC(0);
-        jit.SetPC(0);
-
-        constexpr int NUM_INST = 5;
-
-        for (int i = 0; i < NUM_INST; i++) {
-            size_t inst_index = rand_int(0, instructions.size() - 1);
-            u32 cond = rand_int(0x0, 0xE);
-            u32 Rn = rand_int(0, 15);
-            u32 Rd = rand_int(0, 14);
-            u32 S = rand_int(0, 1);
-            u32 shifter_operand = rand_int(0, 0xFFF);
-
-            u32 assemble_randoms = (shifter_operand << 0) | (Rd << 12) | (Rn << 16) | (S << 20) | (cond << 28);
-
-            u32 inst = instructions[inst_index].first | (assemble_randoms & (~instructions[inst_index].second));
-
-            Memory::Write32(i * 4, inst);
-        }
-
-        Memory::Write32(NUM_INST * 4, 0b0011001000001111000000000000);
-
-        interp.ExecuteInstructions(NUM_INST);
-        jit.ExecuteInstructions(NUM_INST);
-
-        bool pass = true;
-
-        if (interp.GetCPSR() != jit.GetCPSR()) pass = false;
-        for (int i = 0; i <= 15; i++) {
-            if (interp.GetReg(i) != jit.GetReg(i)) pass = false;
-        }
-
-        if (!pass) {
-            printf("Failed at execution number %i\n", run_number);
-
-            printf("\nInstruction Listing: \n");
-            for (int i = 0; i < NUM_INST; i++) {
-                printf("%s\n", ARM_Disasm::Disassemble(i * 4, Memory::Read32(i * 4)).c_str());
-            }
-
-            printf("\nFinal Register Listing: \n");
-            for (int i = 0; i <= 15; i++) {
-                printf("%4i: %08x %08x %s\n", i, interp.GetReg(i), jit.GetReg(i), interp.GetReg(i) != jit.GetReg(i) ? "*" : "");
-            }
-            printf("CPSR: %08x %08x %s\n", interp.GetCPSR(), jit.GetCPSR(), interp.GetCPSR() != jit.GetCPSR() ? "*" : "");
-
-            printf("\nInterpreter walkthrough:\n");
-            interp.ClearCache();
-            interp.SetPC(0);
-            interp.SetCPSR(0x000001d0);
-            for (int i = 0; i < 15; i++) {
-                interp.SetReg(i, initial_regs[i]);
-                printf("%4i: %08x\n", i, interp.GetReg(i));
-            }
-            for (int inst = 0; inst < NUM_INST; inst++) {
-                printf("%s\n", ARM_Disasm::Disassemble(inst * 4, Memory::Read32(inst * 4)).c_str());
-                interp.Step();
-                for (int i = 0; i <= 15; i++) {
-                    printf("%4i: %08x\n", i, interp.GetReg(i));
-                }
-                printf("CPSR: %08x\n", interp.GetCPSR());
-            }
-
-            FAIL();
-        }
-
-        if (run_number % 100 == 0) {
-            printf("%i\r", run_number);
-            fflush(stdout);
-        }
-    }
+    FuzzJit(5, 10000, instruction_select_without_R15);
+    FuzzJit(1024, 500, instruction_select_without_R15);
 }
