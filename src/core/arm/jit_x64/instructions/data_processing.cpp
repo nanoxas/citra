@@ -72,11 +72,8 @@ void JitX64::ADC_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int ro
     });
 
     if (S) {
-        cond_manager.FlagsDirty();
         UpdateFlagsZVCN();
     }
-
-    reg_alloc.AssertNoLocked();
 
     current.arm_pc += GetInstSize();
     if (Rd_index == 15) {
@@ -94,11 +91,8 @@ void JitX64::ADD_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int ro
     });
 
     if (S) {
-        cond_manager.FlagsDirty();
         UpdateFlagsZVCN();
     }
-
-    reg_alloc.AssertNoLocked();
 
     current.arm_pc += GetInstSize();
     if (Rd_index == 15) {
@@ -116,14 +110,11 @@ void JitX64::AND_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int ro
     });
 
     if (S) {
-        cond_manager.FlagsDirty();
         UpdateFlagsZN();
         if (rotate != 0) {
             code->MOV(32, MJitStateCFlag(), Imm32(immediate & 0x80000000 ? 1 : 0));
         }
     }
-
-    reg_alloc.AssertNoLocked();
 
     current.arm_pc += GetInstSize();
     if (Rd_index == 15) {
@@ -141,14 +132,11 @@ void JitX64::BIC_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int ro
     });
 
     if (S) {
-        cond_manager.FlagsDirty();
         UpdateFlagsZN();
         if (rotate != 0) {
             code->MOV(32, MJitStateCFlag(), Imm32(immediate & 0x80000000 ? 1 : 0));
         }
     }
-
-    reg_alloc.AssertNoLocked();
 
     current.arm_pc += GetInstSize();
     if (Rd_index == 15) {
@@ -169,14 +157,11 @@ void JitX64::EOR_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int ro
     });
 
     if (S) {
-        cond_manager.FlagsDirty();
         UpdateFlagsZN();
         if (rotate != 0) {
             code->MOV(32, MJitStateCFlag(), Imm32(immediate & 0x80000000 ? 1 : 0));
         }
     }
-
-    reg_alloc.AssertNoLocked();
 
     current.arm_pc += GetInstSize();
     if (Rd_index == 15) {
@@ -194,7 +179,6 @@ void JitX64::MOV_imm(Cond cond, bool S, ArmReg Rd_index, int rotate, ArmImm8 imm
     reg_alloc.UnlockArm(Rd_index);
 
     if (S) {
-        cond_manager.FlagsDirty();
         Gen::OpArg Rd = reg_alloc.LockArmForRead(Rd_index);
         code->CMP(32, Rd, Imm32(0));
         reg_alloc.UnlockArm(Rd_index);
@@ -203,8 +187,6 @@ void JitX64::MOV_imm(Cond cond, bool S, ArmReg Rd_index, int rotate, ArmImm8 imm
             code->MOV(32, MJitStateCFlag(), Imm32(immediate & 0x80000000 ? 1 : 0));
         }
     }
-
-    reg_alloc.AssertNoLocked();
 
     current.arm_pc += GetInstSize();
     if (Rd_index == 15) {
@@ -222,7 +204,6 @@ void JitX64::MVN_imm(Cond cond, bool S, ArmReg Rd_index, int rotate, ArmImm8 imm
     reg_alloc.UnlockArm(Rd_index);
 
     if (S) {
-        cond_manager.FlagsDirty();
         Gen::OpArg Rd = reg_alloc.LockArmForRead(Rd_index);
         code->CMP(32, Rd, Imm32(0));
         reg_alloc.UnlockArm(Rd_index);
@@ -231,8 +212,6 @@ void JitX64::MVN_imm(Cond cond, bool S, ArmReg Rd_index, int rotate, ArmImm8 imm
             code->MOV(32, MJitStateCFlag(), Imm32(immediate & 0x80000000 ? 1 : 0));
         }
     }
-
-    reg_alloc.AssertNoLocked();
 
     current.arm_pc += GetInstSize();
     if (Rd_index == 15) {
@@ -250,14 +229,11 @@ void JitX64::ORR_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int ro
     });
 
     if (S) {
-        cond_manager.FlagsDirty();
         UpdateFlagsZN();
         if (rotate != 0) {
             code->MOV(32, MJitStateCFlag(), Imm32(immediate & 0x80000000 ? 1 : 0));
         }
     }
-
-    reg_alloc.AssertNoLocked();
 
     current.arm_pc += GetInstSize();
     if (Rd_index == 15) {
@@ -283,12 +259,9 @@ void JitX64::RSB_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int ro
     });
 
     if (S) {
-        cond_manager.FlagsDirty();
         UpdateFlagsZVN();
         UpdateFlagsC_complement();
     }
-
-    reg_alloc.AssertNoLocked();
 
     current.arm_pc += GetInstSize();
     if (Rd_index == 15) {
@@ -317,12 +290,9 @@ void JitX64::RSC_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int ro
     });
 
     if (S) {
-        cond_manager.FlagsDirty();
         UpdateFlagsZVN();
         UpdateFlagsC_complement();
     }
-
-    reg_alloc.AssertNoLocked();
 
     current.arm_pc += GetInstSize();
     if (Rd_index == 15) {
@@ -342,12 +312,9 @@ void JitX64::SBC_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int ro
     });
 
     if (S) {
-        cond_manager.FlagsDirty();
         UpdateFlagsZVN();
         UpdateFlagsC_complement();
     }
-
-    reg_alloc.AssertNoLocked();
 
     current.arm_pc += GetInstSize();
     if (Rd_index == 15) {
@@ -365,12 +332,9 @@ void JitX64::SUB_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int ro
     });
 
     if (S) {
-        cond_manager.FlagsDirty();
         UpdateFlagsZVN();
         UpdateFlagsC_complement();
     }
-
-    reg_alloc.AssertNoLocked();
 
     current.arm_pc += GetInstSize();
     if (Rd_index == 15) {
@@ -397,13 +361,10 @@ void JitX64::TEQ_imm(Cond cond, ArmReg Rn_index, int rotate, ArmImm8 imm8) {
 
     reg_alloc.UnlockTemp(Rn_tmp);
 
-    cond_manager.FlagsDirty();
     UpdateFlagsZN();
     if (rotate != 0) {
         code->MOV(32, MJitStateCFlag(), Imm32(immediate & 0x80000000 ? 1 : 0));
     }
-
-    reg_alloc.AssertNoLocked();
 
     current.arm_pc += GetInstSize();
 }
@@ -430,13 +391,10 @@ void JitX64::TST_imm(Cond cond, ArmReg Rn_index, int rotate, ArmImm8 imm8) {
         reg_alloc.UnlockArm(Rn_index);
     }
 
-    cond_manager.FlagsDirty();
     UpdateFlagsZN();
     if (rotate != 0) {
         code->MOV(32, MJitStateCFlag(), Imm32(immediate & 0x80000000 ? 1 : 0));
     }
-
-    reg_alloc.AssertNoLocked();
 
     current.arm_pc += GetInstSize();
 }

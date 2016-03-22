@@ -10,7 +10,7 @@ namespace JitX64 {
 
 using namespace Gen;
 
-JitX64::JitX64(XEmitter* code_) : code(code_) {}
+JitX64::JitX64(XEmitter* code_) : code(code_), current(0, false, false) {}
 
 void JitX64::ClearCache() {
     basic_blocks.clear();
@@ -49,6 +49,8 @@ CodePtr JitX64::Compile(u32 pc, bool TFlag, bool EFlag) {
         } else {
             CompileSingleArmInstruction();
         }
+
+        reg_alloc.AssertNoLocked();
     } while (!stop_compilation && ((current.arm_pc & 0xFFF) != 0));
 
     if (!stop_compilation) {

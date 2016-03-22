@@ -51,7 +51,6 @@ public:
         cpu->VFlag = (cpu->Cpsr >> 28) & 1;
         cpu->TFlag = (cpu->Cpsr >> 5) & 1;
 
-        jit_state->bb = bb;
         jit_state->cycles_remaining = cycles_to_run;
         jit_state->return_RIP = (u64)CallCodeReturnAddress();
 
@@ -87,7 +86,7 @@ namespace JitX64 {
 
 static Gen::RunJittedCode run_jit = {};
 static Gen::BlockOfCode block_of_code = {};
-static JitX64 compiler = { &block_of_code };
+static JitX64 compiler { &block_of_code };
 
 ARM_Jit::ARM_Jit(PrivilegeMode initial_mode) {
     ASSERT_MSG(initial_mode == PrivilegeMode::USER32MODE, "Unimplemented");

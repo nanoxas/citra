@@ -19,6 +19,8 @@ namespace JitX64 {
 using CodePtr = u8*;
 
 struct LocationDescriptor {
+    LocationDescriptor() = delete;
+    LocationDescriptor(u32 arm_pc, bool TFlag, bool EFlag) : arm_pc(arm_pc), TFlag(TFlag), EFlag(EFlag) {}
     u32 arm_pc;
     bool TFlag; ///< Thumb / ARM
     bool EFlag; ///< Big / Little Endian
@@ -36,7 +38,7 @@ struct LocationDescriptorHash {
 
 class JitX64 final : private ArmDecoder::Visitor {
 private:
-    Gen::XEmitter* code;
+    Gen::XEmitter* code = nullptr;
 
     RegAlloc reg_alloc;
 
@@ -45,7 +47,7 @@ private:
 
 public:
     JitX64() = delete;
-    JitX64(Gen::XEmitter* code_);
+    explicit JitX64(Gen::XEmitter* code_);
     ~JitX64() override {}
 
     void ClearCache();
@@ -60,7 +62,7 @@ private:
     unsigned instructions_compiled;
     bool stop_compilation;
 
-    size_t GetInstSize() { return current.TFlag ? 2 : 4; }
+    size_t GetInstSize() const { return current.TFlag ? 2 : 4; }
     void CompileSingleArmInstruction();
     void CompileSingleThumbInstruction();
 
@@ -91,27 +93,31 @@ private:
     Gen::OpArg MJitStateExclusiveTag();
     Gen::OpArg MJitStateExclusiveState();
 
-    FORCE_INLINE u32 GetReg15Value() { return (current.arm_pc & ~0x1) + GetInstSize() * 2; }
+    u32 GetReg15Value() const { return (current.arm_pc & ~0x1) + GetInstSize() * 2; }
 
-    FORCE_INLINE void UpdateFlagsZVCN() {
+    void UpdateFlagsZVCN() {
+        cond_manager.FlagsDirty();
         code->SETcc(Gen::CC_Z, MJitStateZFlag());
         code->SETcc(Gen::CC_C, MJitStateCFlag());
         code->SETcc(Gen::CC_O, MJitStateVFlag());
         code->SETcc(Gen::CC_S, MJitStateNFlag());
     }
 
-    FORCE_INLINE void UpdateFlagsZVN() {
+    void UpdateFlagsZVN() {
+        cond_manager.FlagsDirty();
         code->SETcc(Gen::CC_Z, MJitStateZFlag());
         code->SETcc(Gen::CC_O, MJitStateVFlag());
         code->SETcc(Gen::CC_S, MJitStateNFlag());
     }
 
-    FORCE_INLINE void UpdateFlagsZN() {
+    void UpdateFlagsZN() {
+        cond_manager.FlagsDirty();
         code->SETcc(Gen::CC_Z, MJitStateZFlag());
         code->SETcc(Gen::CC_S, MJitStateNFlag());
     }
 
-    FORCE_INLINE void UpdateFlagsC_complement() {
+    void UpdateFlagsC_complement() {
+        cond_manager.FlagsDirty();
         code->SETcc(Gen::CC_NC, MJitStateCFlag());
     }
 

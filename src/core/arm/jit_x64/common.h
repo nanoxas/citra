@@ -27,8 +27,6 @@ struct JitState {
 
     ARMul_State cpu_state;
 
-    void* bb;
-
     u64 save_host_RSP;
     u64 return_RIP;
 
