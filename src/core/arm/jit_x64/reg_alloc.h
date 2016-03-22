@@ -23,8 +23,7 @@ class RegAlloc final {
 private:
     struct ArmState {
         /**
-         * Where is the current value of this register?
-         * There are two options:
+         * Where is the current value of this register? There are two cases:
          * - In an x64 register, in which case location.IsSimpleReg() == true.
          * - In memory in ARMul_State, in which case location == MJitStateCpuReg(arm_reg).
          */
@@ -36,15 +35,15 @@ private:
      * Possible states of X64State:
      *
      * Free (locked must be false):    This x64 reg is free to be allocated for any purpose.
-     * Temp (locked must be true):     This x64 reg is being used as a temporary for a calculation.
-     * DirtyArmReg (arm_reg is valid): This x64 reg holds the value of an ARM reg.
-     *                                 It's value has been changed since being loaded from memory.
-     *                                 This value must be flushed back to memory.
-     * CleanArmReg (arm_reg is valid): This x64 reg holds the value of an ARM reg.
-     *                                 It's value has not been changed from when it's been loaded from memory.
-     *                                 This value may be discarded.
-     * MemoryMap:                      This value holds a pointer to the ARM page table (current unimplemented).
-     * UserManuallyLocked:             User has called LockX64 on this register. Must call UnlockX64 to unlock.
+     * Temp (locked must be true):     This x64 reg is being used as a temporary in a calculation.
+     * DirtyArmReg (arm_reg is valid): This x64 reg is bound to an ARM reg.
+     *                                 It is marked as dirty (value has changed).
+     *                                 This value MUST be flushed back to memory.
+     * CleanArmReg (arm_reg is valid): This x64 reg is bound to an ARM reg.
+     *                                 It hasn't been written to (i.e.: value is still the same as the in-memory version).
+     *                                 This value WILL NOT be flushed back to memory.
+     * MemoryMap:                      This value holds a pointer to the ARM page table (currently unimplemented).
+     * UserManuallyLocked:             User has called LockX64 on this register. User must call UnlockX64 to unlock.
      */
     struct X64State {
         enum class State {
@@ -69,7 +68,7 @@ private:
 public:
     RegAlloc() { Init(nullptr); }
 
-    /// Initialise register allocator (call compiling a basic block as it resets internal state)
+    /// Initialise register allocator (call before compiling a basic block as it resets internal state)
     void Init(Gen::XEmitter* emitter);
 
     // Manually load and unlock x64 registers:
@@ -86,65 +85,55 @@ public:
     // Working with ARM registers:
 
     /**
-     * Locks an ARM register so it doesn't move.
-     * ARM reg may either be in a x64 reg or in memory.
-     * We're going to read from it only. (Use ArmR to do so.)
+     * Locks an ARM register so it doesn't move; ARM reg may either be in a x64 reg or in memory.
+     * We're going to read from it only.
      * Call UnlockArm when done.
      */
-    void LockArm(ArmReg arm_reg);
+    Gen::OpArg LockArmForRead(ArmReg arm_reg);
     /**
-     * Locks an ARM register so it doesn't move.
-     * ARM reg may either be in a x64 reg or in memory.
-     * We're going to read and/or write to it. (Use ArmR to do so.)
+     * Locks an ARM register so it doesn't move; ARM reg may either be in a x64 reg or in memory.
+     * We're going to read and/or write to it.
      * Call UnlockArm when done.
      */
-    void LockAndDirtyArm(ArmReg arm_reg);
-    /// Gets the current location of this ARM register. (ASSERTS IF NOT LOCKED!)
-    Gen::OpArg ArmR(ArmReg arm_reg);
+    Gen::OpArg LockArmForReadWrite(ArmReg arm_reg) {
+        Gen::OpArg ret = LockArmForRead(arm_reg);
+        if (IsBoundToX64(arm_reg)) {
+            MarkDirty(arm_reg);
+        }
+        return ret;
+    }
+    /**
+     * Locks an ARM register so it doesn't move; ARM reg may either be in a x64 reg or in memory.
+     * We're going to write to it only.
+     * Call UnlockArm when done.
+     */
+    Gen::OpArg LockArmForWrite(ArmReg arm_reg);
 
     /**
-     * Allocates a x64 register for an ARM register and ensure it's value is loaded into it.
-     * ARM reg is in an x64 reg.
-     * We're going to read from it only. (Call MarkDirty if you want to write to it.)
+     * Binds an ARM register to a x64 register.
+     * We're going to read from it only.
      * Call UnlockArm when done.
      */
-    Gen::X64Reg LoadAndLockArm(ArmReg arm_reg);
+    Gen::X64Reg BindArmForRead(ArmReg arm_reg);
     /**
-     * Allocates a x64 register for an ARM register and doesn't bother loading it's value to it.
-     * ARM reg is in an x64 reg.
-     * We're going to write to it only. (DO NOT READ, WRITE-ONLY. Also MarkDirty has been called for you.)
+     * Binds an ARM register to a x64 register.
+     * We're going to read and/or write to it.
      * Call UnlockArm when done.
      */
-    Gen::X64Reg WriteOnlyLockArm(ArmReg arm_reg);
+    Gen::X64Reg BindArmForReadWrite(ArmReg arm_reg) {
+        Gen::X64Reg ret = BindArmForRead(arm_reg);
+        MarkDirty(arm_reg);
+        return ret;
+    }
+    /**
+     * Binds an ARM register to a x64 register.
+     * We're going to write to it only.
+     * Call UnlockArm when done.
+     */
+    Gen::X64Reg BindArmForWrite(ArmReg arm_reg);
 
-    /**
-     * Marks an ARM register as dirty.
-     * If you don't mark something as dirty it won't be flushed back to memory.
-     * May only be called while an ARM register is locked.
-     */
-    void MarkDirty(ArmReg arm_reg);
     /// Unlock ARM register.
     void UnlockArm(ArmReg arm_reg);
-
-    /// Ensures that this ARM register is not in an x64 register.
-    void FlushArm(ArmReg arm_reg);
-
-    /// Flush all ARM registers.
-    void FlushAllArm();
-
-    /**
-     * Flush absolutely everything.
-     * You MUST always flush everything:
-     * - just before a branch occurs
-     * - just before calling into the interpreter
-     * - just before calling a host function
-     * - just before returning to the dispatcher
-     * - just before jumping to a new BB
-     */
-    void FlushEverything();
-
-    /// Gets the x64 register which corresponds to that ARM register. (ASSERTS IF NOT IN A x64 REG OR NOT LOCKED!)
-    Gen::X64Reg GetX64For(ArmReg arm_reg);
 
     // Temporaries:
 
@@ -165,11 +154,33 @@ public:
     /// Returns the register in which the JitState pointer is stored.
     Gen::X64Reg JitStateReg();
 
+    // Flush:
+
+    /**
+     * Flush absolutely everything.
+     * You MUST always flush everything:
+     * - just before a branch occurs
+     * - just before calling into the interpreter
+     * - just before calling a host function
+     * - just before returning to the dispatcher
+     * - just before jumping to a new BB
+     * If unsure, flush. (Only cost is performance.)
+     */
+    void FlushEverything();
+
     // Debug:
 
     void AssertNoLocked();
 
 private:
+    /// INTERNAL: Gets the x64 register this ArmReg is currently bound to.
+    Gen::X64Reg GetX64For(ArmReg arm_reg);
+    /// INTERNAL: Ensures that this ARM register is not in an x64 register.
+    void FlushArm(ArmReg arm_reg);
+    /// INTERNAL: Is this ARM register currently in an x64 register?
+    bool IsBoundToX64(ArmReg arm_reg);
+    /// INTERNAL: Marks register as dirty. Ensures that it is written back to memory if it's in a x64 register.
+    void MarkDirty(ArmReg arm_reg);
     /// INTERNAL: Allocates a register that is free. Flushes registers that are not locked if necessary.
     Gen::X64Reg AllocReg();
     /// INTERNAL: Binds an ARM register to an X64 register. Retrieves binding if already bound.

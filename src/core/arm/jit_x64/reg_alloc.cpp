@@ -130,7 +130,7 @@ void RegAlloc::FlushArm(ArmReg arm_reg) {
     arm_state.location = MJitStateCpuReg(arm_reg);
 }
 
-void RegAlloc::LockArm(ArmReg arm_reg) {
+Gen::OpArg RegAlloc::LockArmForRead(ArmReg arm_reg) {
     ASSERT(arm_reg >= 0 && arm_reg <= 14); // Not valid for R15 (cannot read from it)
 
     ArmState& arm_state = arm_gpr[arm_reg];
@@ -147,17 +147,30 @@ void RegAlloc::LockArm(ArmReg arm_reg) {
 
         x64_state.locked = true;
     }
+
+    return arm_state.location;
 }
 
-void RegAlloc::LockAndDirtyArm(ArmReg arm_reg) {
-    ASSERT(arm_reg >= 0 && arm_reg <= 14); // Not valid for R15 (cannot read from it)
+Gen::OpArg RegAlloc::LockArmForWrite(ArmReg arm_reg) {
+    ASSERT(arm_reg >= 0 && arm_reg <= 15); // Valid for R15 (write-only)
 
     ArmState& arm_state = arm_gpr[arm_reg];
 
-    LockArm(arm_reg);
+    ASSERT(!arm_state.locked);
+    arm_state.locked = true;
+
     if (arm_state.location.IsSimpleReg()) {
-        MarkDirty(arm_reg);
+        Gen::X64Reg x64_reg = arm_state.location.GetSimpleReg();
+        X64State& x64_state = x64_gpr[x64_reg_to_index.at(x64_reg)];
+        ASSERT(!x64_state.locked);
+        ASSERT(x64_state.state == X64State::State::CleanArmReg || x64_state.state == X64State::State::DirtyArmReg);
+        ASSERT(x64_state.arm_reg == arm_reg);
+
+        x64_state.locked = true;
+        x64_state.state = X64State::State::DirtyArmReg;
     }
+
+    return arm_state.location;
 }
 
 Gen::X64Reg RegAlloc::BindArmToX64(ArmReg arm_reg, bool load) {
@@ -191,7 +204,7 @@ Gen::X64Reg RegAlloc::BindArmToX64(ArmReg arm_reg, bool load) {
     return x64_reg;
 }
 
-Gen::X64Reg RegAlloc::LoadAndLockArm(ArmReg arm_reg) {
+Gen::X64Reg RegAlloc::BindArmForRead(ArmReg arm_reg) {
     ASSERT(arm_reg >= 0 && arm_reg <= 14); // Not valid for R15 (cannot read from it)
 
     const Gen::X64Reg x64_reg = BindArmToX64(arm_reg, true);
@@ -199,7 +212,7 @@ Gen::X64Reg RegAlloc::LoadAndLockArm(ArmReg arm_reg) {
     return x64_reg;
 }
 
-Gen::X64Reg RegAlloc::WriteOnlyLockArm(ArmReg arm_reg) {
+Gen::X64Reg RegAlloc::BindArmForWrite(ArmReg arm_reg) {
     ASSERT(arm_reg >= 0 && arm_reg <= 15); // Valid for R15 (we're not reading from it)
 
     const Gen::X64Reg x64_reg = BindArmToX64(arm_reg, false);
@@ -225,16 +238,6 @@ void RegAlloc::UnlockArm(ArmReg arm_reg) {
         ASSERT(x64_state.arm_reg == arm_reg);
 
         x64_state.locked = false;
-    }
-}
-
-void RegAlloc::FlushAllArm() {
-    for (ArmReg arm_reg = 0; arm_reg < arm_gpr.size(); arm_reg++) {
-        ArmState& arm_state = arm_gpr[arm_reg];
-        ASSERT(!arm_state.locked);
-        if (arm_state.location.IsSimpleReg()) {
-            FlushArm(arm_reg);
-        }
     }
 }
 
@@ -277,12 +280,10 @@ Gen::X64Reg RegAlloc::GetX64For(ArmReg arm_reg) {
     return x64_reg;
 }
 
-Gen::OpArg RegAlloc::ArmR(ArmReg arm_reg) {
+bool RegAlloc::IsBoundToX64(ArmReg arm_reg) {
     const ArmState& arm_state = arm_gpr[arm_reg];
 
-    ASSERT(arm_state.locked);
-
-    return arm_state.location;
+    return arm_state.location.IsSimpleReg();
 }
 
 Gen::X64Reg RegAlloc::AllocTemp() {

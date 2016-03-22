@@ -91,7 +91,7 @@ void FuzzJit(const int instruction_count, const int run_count, const std::functi
             Memory::Write32(i * 4, inst);
         }
 
-        Memory::Write32(instruction_count * 4, 0b0011001000001111000000000000);
+        Memory::Write32(instruction_count * 4, 0xEAFFFFFE); // b +#0 // busy wait loop
 
         interp.ExecuteInstructions(instruction_count);
         jit.ExecuteInstructions(instruction_count);
@@ -223,7 +223,7 @@ TEST_CASE("Fuzz ARM data processing instructions", "[JitX64]") {
     }
 
     SECTION("long blocks") {
-        FuzzJit(1024, 200, instruction_select_without_R15);
+        FuzzJit(1024, 50, instruction_select_without_R15);
     }
 
     auto instruction_select_only_R15 = [&]() -> u32 {
