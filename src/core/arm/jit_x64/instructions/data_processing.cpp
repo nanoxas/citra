@@ -49,10 +49,14 @@ void JitX64::CompileDataProcessingHelper_Reverse(ArmReg Rn_index, ArmReg Rd_inde
 
         body(tmp);
 
-        // TODO: Efficiency: Could implement this as a register rebind instead of needing to MOV.
-        reg_alloc.LockAndDirtyArm(Rd_index);
-        code->MOV(32, reg_alloc.ArmR(Rd_index), R(tmp));
-        reg_alloc.UnlockArm(Rd_index);
+        if (Rd_index != 15) {
+            // TODO: Efficiency: Could implement this as a register rebind instead of needing to MOV.
+            reg_alloc.LockAndDirtyArm(Rd_index);
+            code->MOV(32, reg_alloc.ArmR(Rd_index), R(tmp));
+            reg_alloc.UnlockArm(Rd_index);
+        } else {
+            code->MOV(32, MJitStateArmPC(), R(tmp));
+        }
 
         reg_alloc.UnlockTemp(tmp);
     }

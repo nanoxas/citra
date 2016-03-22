@@ -61,7 +61,7 @@ private:
         ArmReg arm_reg = -1; ///< Only holds a valid value when state == DirtyArmReg / CleanArmReg
     };
 
-    std::array<ArmState, 15> arm_gpr;
+    std::array<ArmState, 16> arm_gpr;
     std::array<X64State, 16> x64_gpr;
 
     Gen::XEmitter* code = nullptr;

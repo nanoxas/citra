@@ -3888,6 +3888,8 @@ unsigned InterpreterMainLoop(ARMul_State* cpu) {
     LOAD_NZCVT;
     DISPATCH:
     {
+        if (num_instrs >= cpu->NumInstrsToExecute) goto END;
+
         if (!cpu->NirqSig) {
             if (!(cpu->Cpsr & 0x80)) {
                 goto END;

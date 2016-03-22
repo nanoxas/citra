@@ -3,6 +3,7 @@
 // Refer to the license.txt file included.
 
 #include <cstdio>
+#include <cstring>
 #include <random>
 
 #include <catch.hpp>
@@ -217,6 +218,34 @@ TEST_CASE("Fuzz ARM data processing instructions", "[JitX64]") {
         return instructions[inst_index].first | (assemble_randoms & (~instructions[inst_index].second));
     };
 
-    FuzzJit(5, 10000, instruction_select_without_R15);
-    FuzzJit(1024, 500, instruction_select_without_R15);
+    SECTION("short blocks") {
+        FuzzJit(5, 5000, instruction_select_without_R15);
+    }
+
+    SECTION("long blocks") {
+        FuzzJit(1024, 200, instruction_select_without_R15);
+    }
+
+    auto instruction_select_only_R15 = [&]() -> u32 {
+        size_t inst_index = RandInt(0, instructions.size() - 1);
+
+        u32 cond = 0xE;
+        // Have a one-in-twenty-five chance of actually having a cond.
+        if (RandInt(1, 25) == 1) {
+            cond = RandInt(0x0, 0xD);
+        }
+
+        u32 Rn = RandInt(0, 15);
+        u32 Rd = 15;
+        u32 S = 0;
+        u32 shifter_operand = RandInt(0, 0xFFF);
+
+        u32 assemble_randoms = (shifter_operand << 0) | (Rd << 12) | (Rn << 16) | (S << 20) | (cond << 28);
+
+        return instructions[inst_index].first | (assemble_randoms & (~instructions[inst_index].second));
+    };
+
+    SECTION("R15") {
+        FuzzJit(1, 10000, instruction_select_only_R15);
+    }
 }
