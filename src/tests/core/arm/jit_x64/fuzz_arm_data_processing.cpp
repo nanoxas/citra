@@ -4,7 +4,6 @@
 
 #include <cstdio>
 #include <cstring>
-#include <random>
 
 #include <catch.hpp>
 
@@ -16,6 +15,8 @@
 #include "core/arm/jit_x64/interface.h"
 #include "core/core.h"
 #include "core/memory_setup.h"
+
+#include "tests/core/arm/jit_x64/rand_int.h"
 
 std::pair<u32, u32> FromBitString(const char* str) {
     REQUIRE(strlen(str) == 32);
@@ -40,13 +41,6 @@ std::pair<u32, u32> FromBitString(const char* str) {
     return { bits, mask };
 }
 
-u32 RandInt(u32 min, u32 max) {
-    static std::random_device rd;
-    static std::mt19937 mt(rd());
-    std::uniform_int_distribution<u32> rand(min, max);
-    return rand(mt);
-}
-
 void FuzzJit(const int instruction_count, const int run_count, const std::function<u32()> instruction_generator) {
     // Init core
     Core::Init();
@@ -54,8 +48,7 @@ void FuzzJit(const int instruction_count, const int run_count, const std::functi
 
     // Prepare memory
     constexpr size_t MEMORY_SIZE = 4096 * 2;
-    std::array<u8, MEMORY_SIZE> test_mem;
-    std::memset(test_mem.data(), 0, MEMORY_SIZE);
+    std::array<u8, MEMORY_SIZE> test_mem{};
     Memory::MapMemoryRegion(0, MEMORY_SIZE, test_mem.data());
     SCOPE_EXIT({ Memory::UnmapRegion(0, MEMORY_SIZE); });
 
@@ -73,7 +66,7 @@ void FuzzJit(const int instruction_count, const int run_count, const std::functi
 
         u32 initial_regs[15];
         for (int i = 0; i < 15; i++) {
-            u32 val = RandInt(0, 0xFFFFFFFF);
+            u32 val = RandInt<u32>(0, 0xFFFFFFFF);
             interp.SetReg(i, val);
             jit.SetReg(i, val);
             initial_regs[i] = val;
@@ -200,18 +193,18 @@ TEST_CASE("Fuzz ARM data processing instructions", "[JitX64]") {
     }};
 
     auto instruction_select_without_R15 = [&]() -> u32 {
-        size_t inst_index = RandInt(0, instructions.size() - 1);
+        size_t inst_index = RandInt<size_t>(0, instructions.size() - 1);
 
         u32 cond = 0xE;
         // Have a one-in-twenty-five chance of actually having a cond.
         if (RandInt(1, 25) == 1) {
-            cond = RandInt(0x0, 0xD);
+            cond = RandInt<u32>(0x0, 0xD);
         }
 
-        u32 Rn = RandInt(0, 15);
-        u32 Rd = RandInt(0, 14);
-        u32 S = RandInt(0, 1);
-        u32 shifter_operand = RandInt(0, 0xFFF);
+        u32 Rn = RandInt<u32>(0, 15);
+        u32 Rd = RandInt<u32>(0, 14);
+        u32 S = RandInt<u32>(0, 1);
+        u32 shifter_operand = RandInt<u32>(0, 0xFFF);
 
         u32 assemble_randoms = (shifter_operand << 0) | (Rd << 12) | (Rn << 16) | (S << 20) | (cond << 28);
 
@@ -223,22 +216,22 @@ TEST_CASE("Fuzz ARM data processing instructions", "[JitX64]") {
     }
 
     SECTION("long blocks") {
-        FuzzJit(1024, 50, instruction_select_without_R15);
+        FuzzJit(1024, 15, instruction_select_without_R15);
     }
 
     auto instruction_select_only_R15 = [&]() -> u32 {
-        size_t inst_index = RandInt(0, instructions.size() - 1);
+        size_t inst_index = RandInt<size_t>(0, instructions.size() - 1);
 
         u32 cond = 0xE;
         // Have a one-in-twenty-five chance of actually having a cond.
         if (RandInt(1, 25) == 1) {
-            cond = RandInt(0x0, 0xD);
+            cond = RandInt<u32>(0x0, 0xD);
         }
 
-        u32 Rn = RandInt(0, 15);
+        u32 Rn = RandInt<u32>(0, 15);
         u32 Rd = 15;
         u32 S = 0;
-        u32 shifter_operand = RandInt(0, 0xFFF);
+        u32 shifter_operand = RandInt<u32>(0, 0xFFF);
 
         u32 assemble_randoms = (shifter_operand << 0) | (Rd << 12) | (Rn << 16) | (S << 20) | (cond << 28);
 

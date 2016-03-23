@@ -7,6 +7,7 @@ set(HEADERS
 
 if(ARCHITECTURE_x86_64)
     set(SRCS ${SRCS}
+            core/arm/jit_x64/rand_int.h
             core/arm/jit_x64/fuzz_arm_data_processing.cpp
             )
 endif()
