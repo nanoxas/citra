@@ -3,7 +3,9 @@
 #include <string>
 #include <unordered_set>
 
+#include "common/assert.h"
 #include "common/common_types.h"
+#include "common/math_util.h"
 #include "common/string_util.h"
 
 #include "core/arm/disassembler/arm_disasm.h"
@@ -252,8 +254,7 @@ std::string ARM_Disasm::Disassemble(u32 addr, u32 insn)
         case OP_BKPT:
             return DisassembleBKPT(insn);
         case OP_BLX:
-            // not supported yet
-            break;
+            return DisassembleBLX(insn);
         case OP_BX:
             return DisassembleBX(insn);
         case OP_CDP:
@@ -511,6 +512,21 @@ std::string ARM_Disasm::DisassembleBX(u32 insn)
     u8 cond = (insn >> 28) & 0xf;
     u8 rn = insn & 0xf;
     return Common::StringFromFormat("bx%s\tr%d", cond_to_str(cond), rn);
+}
+
+std::string ARM_Disasm::DisassembleBLX(u32 insn)
+{
+    if ((insn & 0xFE000000) == 0xFA000000) {
+        u32 imm24 = insn & 0xFFFFFF;
+        u32 H = (insn >> 24) & 1;
+        s32 offset = MathUtil::SignExtend<26, s32>(imm24 << 2 + H << 1) + 8;
+        return Common::StringFromFormat("blx\t#+%d", offset);
+    } else if ((insn & 0x0FFFFFF0) == 0x012FFF30) {
+        u8 cond = (insn >> 28) & 0xf;
+        u8 rn = insn & 0xf;
+        return Common::StringFromFormat("blx%s\tr%d", cond_to_str(cond), rn);
+    }
+    UNREACHABLE();
 }
 
 std::string ARM_Disasm::DisassembleBKPT(u32 insn)
@@ -1061,6 +1077,10 @@ Opcode ARM_Disasm::Decode00(u32 insn) {
         if ((insn & 0x0ffffff0) == 0x012fff10) {
             // Bx instruction
             return OP_BX;
+        }
+        if ((insn & 0x0ffffff0) == 0x012fff30) {
+            // Blx instruction
+            return OP_BLX;
         }
         if ((insn & 0x0ff000f0) == 0x01600010) {
             // Clz instruction

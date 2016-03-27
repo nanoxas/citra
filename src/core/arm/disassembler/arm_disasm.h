@@ -213,6 +213,7 @@ class ARM_Disasm {
   static std::string DisassembleALU(Opcode opcode, u32 insn);
   static std::string DisassembleBranch(u32 addr, Opcode opcode, u32 insn);
   static std::string DisassembleBX(u32 insn);
+  static std::string DisassembleBLX(u32 insn);
   static std::string DisassembleBKPT(u32 insn);
   static std::string DisassembleCLZ(u32 insn);
   static std::string DisassembleMediaMulDiv(Opcode opcode, u32 insn);
