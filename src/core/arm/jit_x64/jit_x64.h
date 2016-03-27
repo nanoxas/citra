@@ -84,6 +84,7 @@ private:
 
     Gen::OpArg MJitStateCycleCount();
     Gen::OpArg MJitStateArmPC();
+    Gen::OpArg MJitStateTFlag();
     Gen::OpArg MJitStateHostReturnRIP();
     Gen::OpArg MJitStateHostReturnRSP();
     Gen::OpArg MJitStateZFlag();
@@ -394,6 +395,8 @@ private:
     void SRS() override;
 
     // Thumb specific instructions
+    void thumb_B(Cond cond, ArmImm8 imm8) override;
+    void thumb_B(ArmImm11 imm11) override;
     void thumb_BLX_prefix(ArmImm11 imm11) override;
     void thumb_BLX_suffix(bool L, ArmImm11 imm11) override;
 };

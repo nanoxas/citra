@@ -414,7 +414,7 @@ static const std::array<Instruction, 27> thumb_instruction_table = { {
         // B<cond> <PC + #offset*2>
         Cond cond = bits<8, 11>(instruction);
         s32 offset = bits<0, 7>(instruction);
-        v->B(cond, sign_extend<8>(offset));
+        v->thumb_B(cond, offset);
     })},
     { "SWI",                     MakeMatcher("11011111xxxxxxxx", [](Visitor* v, u32 instruction) {
         // SWI #imm8
@@ -424,7 +424,7 @@ static const std::array<Instruction, 27> thumb_instruction_table = { {
     { "B",                       MakeMatcher("11100xxxxxxxxxxx", [](Visitor* v, u32 instruction) {
         // B <PC + #offset*2>
         Imm11 imm11 = bits<0, 10>(instruction);
-        v->B(0xE, sign_extend<11>(imm11));
+        v->thumb_B(imm11);
     })},
     { "BLX (suffix)",            MakeMatcher("11101xxxxxxxxxx0", [](Visitor* v, u32 instruction) {
         Imm11 imm11 = bits<0, 10>(instruction);

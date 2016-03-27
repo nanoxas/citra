@@ -40,7 +40,7 @@ std::pair<u16, u16> FromBitString16(const char* str) {
     return{ bits, mask };
 }
 
-void FuzzJitThumb(const int instruction_count, const int run_count, const std::function<u16(int)> instruction_generator) {
+void FuzzJitThumb(const int instruction_count, const int run_count, const std::function<u16(int)> instruction_generator, bool run_plus_1 = true) {
     // Init core
     Core::Init();
     SCOPE_EXIT({ Core::Shutdown(); });
@@ -87,8 +87,8 @@ void FuzzJitThumb(const int instruction_count, const int run_count, const std::f
 
         Memory::Write16(4 + instruction_count * 2, 0xE7FE); // b +#0 // busy wait loop
 
-        interp.ExecuteInstructions(instruction_count + 1);
-        jit.ExecuteInstructions(instruction_count + 1);
+        interp.ExecuteInstructions(run_plus_1 ? instruction_count + 2 : instruction_count + 1);
+        jit.ExecuteInstructions(run_plus_1 ? instruction_count + 2 : instruction_count + 1);
 
         bool pass = true;
 
@@ -208,7 +208,7 @@ TEST_CASE("Fuzz Thumb instructions set 2 (affects PC)", "[JitX64][Thumb]") {
         return instructions[inst_index].first | (random &~ instructions[inst_index].second);
     };
 
-    FuzzJitThumb(1, 10000, instruction_select);
+    FuzzJitThumb(1, 10000, instruction_select, false);
 }
 
 TEST_CASE("Fuzz Thumb instructions set 3 (32-bit BL/BLX)", "[JitX64][Thumb]") {
@@ -227,5 +227,5 @@ TEST_CASE("Fuzz Thumb instructions set 3 (32-bit BL/BLX)", "[JitX64][Thumb]") {
         return inst_info.first | (random &~ inst_info.second);
     };
 
-    FuzzJitThumb(1, 1000, instruction_select);
+    FuzzJitThumb(1, 1000, instruction_select, false);
 }

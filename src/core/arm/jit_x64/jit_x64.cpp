@@ -103,8 +103,6 @@ void JitX64::CompileReturnToDispatch() {
 }
 
 void JitX64::CompileJumpToBB(u32 new_pc) {
-    ASSERT(instructions_compiled == 0);
-
     reg_alloc.FlushEverything();
     code->CMP(32, MJitStateCycleCount(), Imm8(0));
 
@@ -146,7 +144,7 @@ void JitX64::CompileSingleArmInstruction() {
 
 void JitX64::CompileSingleThumbInstruction() {
     u32 inst_u32 = Memory::Read32(current.arm_pc & 0xFFFFFFFC);
-    if ((current.arm_pc & 0x3) != 0) {
+    if ((current.arm_pc & 0x2) != 0) {
         inst_u32 >>= 16;
     }
     inst_u32 &= 0xFFFFF;
@@ -176,6 +174,13 @@ Gen::OpArg JitX64::MJitStateArmPC() {
     static_assert(std::is_same<decltype(ARMul_State::Reg), std::array<u32, 16>>::value, "ARMul_State::Reg must be std::array<u32, 16>");
 
     return Gen::MDisp(reg_alloc.JitStateReg(), offsetof(JitState, cpu_state) + offsetof(ARMul_State, Reg) + 15 * sizeof(u32));
+}
+
+Gen::OpArg JitX64::MJitStateTFlag() {
+    static_assert(std::is_same<decltype(JitState::cpu_state), ARMul_State>::value, "JitState::cpu_state must be ARMul_State");
+    static_assert(std::is_same<decltype(ARMul_State::TFlag), u32>::value, "TFlag must be u32");
+
+    return Gen::MDisp(reg_alloc.JitStateReg(), offsetof(JitState, cpu_state) + offsetof(ARMul_State, TFlag));
 }
 
 Gen::OpArg JitX64::MJitStateHostReturnRIP() {

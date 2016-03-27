@@ -315,6 +315,8 @@ public:
     virtual void SRS() = 0;
 
     // Thumb specific instructions
+    virtual void thumb_B(Cond cond, Imm8 imm8) = 0;
+    virtual void thumb_B(Imm11 imm11) = 0;
     virtual void thumb_BLX_prefix(Imm11 imm11) = 0;
     virtual void thumb_BLX_suffix(bool L, Imm11 imm11) = 0;
 };
