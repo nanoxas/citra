@@ -40,7 +40,7 @@ std::pair<u16, u16> FromBitString16(const char* str) {
     return{ bits, mask };
 }
 
-void FuzzJitThumb(const int instruction_count, const int run_count, const std::function<u16(int)> instruction_generator, bool run_plus_1 = true) {
+void FuzzJitThumb(const int instruction_count, const int instructions_to_execute_count, const int run_count, const std::function<u16(int)> instruction_generator) {
     // Init core
     Core::Init();
     SCOPE_EXIT({ Core::Shutdown(); });
@@ -87,8 +87,8 @@ void FuzzJitThumb(const int instruction_count, const int run_count, const std::f
 
         Memory::Write16(4 + instruction_count * 2, 0xE7FE); // b +#0 // busy wait loop
 
-        interp.ExecuteInstructions(run_plus_1 ? instruction_count + 2 : instruction_count + 1);
-        jit.ExecuteInstructions(run_plus_1 ? instruction_count + 2 : instruction_count + 1);
+        interp.ExecuteInstructions(instructions_to_execute_count);
+        jit.ExecuteInstructions(instructions_to_execute_count);
 
         bool pass = true;
 
@@ -183,11 +183,11 @@ TEST_CASE("Fuzz Thumb instructions set 1 (pure computation)", "[JitX64][Thumb]")
     };
 
     SECTION("short blocks") {
-        FuzzJitThumb(5, 10000, instruction_select);
+        FuzzJitThumb(5, 6, 10000, instruction_select);
     }
 
     SECTION("long blocks") {
-        FuzzJitThumb(1024, 15, instruction_select);
+        FuzzJitThumb(1024, 1025, 15, instruction_select);
     }
 }
 
@@ -208,7 +208,7 @@ TEST_CASE("Fuzz Thumb instructions set 2 (affects PC)", "[JitX64][Thumb]") {
         return instructions[inst_index].first | (random &~ instructions[inst_index].second);
     };
 
-    FuzzJitThumb(1, 10000, instruction_select, false);
+    FuzzJitThumb(1, 1, 10000, instruction_select);
 }
 
 TEST_CASE("Fuzz Thumb instructions set 3 (32-bit BL/BLX)", "[JitX64][Thumb]") {
@@ -227,5 +227,5 @@ TEST_CASE("Fuzz Thumb instructions set 3 (32-bit BL/BLX)", "[JitX64][Thumb]") {
         return inst_info.first | (random &~ inst_info.second);
     };
 
-    FuzzJitThumb(1, 1000, instruction_select, false);
+    FuzzJitThumb(2, 1, 1000, instruction_select);
 }

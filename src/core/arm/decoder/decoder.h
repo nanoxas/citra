@@ -318,7 +318,7 @@ public:
     virtual void thumb_B(Cond cond, Imm8 imm8) = 0;
     virtual void thumb_B(Imm11 imm11) = 0;
     virtual void thumb_BLX_prefix(Imm11 imm11) = 0;
-    virtual void thumb_BLX_suffix(bool L, Imm11 imm11) = 0;
+    virtual void thumb_BLX_suffix(bool X, Imm11 imm11) = 0;
 };
 
 };

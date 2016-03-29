@@ -63,11 +63,6 @@ static constexpr T bits(T s){
     return ((s << ((sizeof(s) * 8 - 1) - b)) >> (sizeof(s) * 8 - b + a - 1));
 }
 
-template <size_t num_bits>
-s32 sign_extend(s32 x) {
-    return x << (32 - num_bits) >> (32 - num_bits);
-}
-
 static const std::array<Instruction, 27> thumb_instruction_table = { {
     { "LSL/LSR/ASR",             MakeMatcher("000ooxxxxxxxxxxx", [](Visitor* v, u32 instruction) {
         u32 opcode = bits<11, 12>(instruction);
@@ -428,7 +423,7 @@ static const std::array<Instruction, 27> thumb_instruction_table = { {
     })},
     { "BLX (suffix)",            MakeMatcher("11101xxxxxxxxxx0", [](Visitor* v, u32 instruction) {
         Imm11 imm11 = bits<0, 10>(instruction);
-        v->thumb_BLX_suffix(/*L=*/true, imm11);
+        v->thumb_BLX_suffix(/*X=*/true, imm11);
     })},
     { "BL/BLX (prefix)",         MakeMatcher("11110xxxxxxxxxxx", [](Visitor* v, u32 instruction) {
         Imm11 imm11 = bits<0, 10>(instruction);
@@ -436,7 +431,7 @@ static const std::array<Instruction, 27> thumb_instruction_table = { {
     })},
     { "BL (suffix)",             MakeMatcher("11111xxxxxxxxxxx", [](Visitor* v, u32 instruction) {
         Imm11 imm11 = bits<0, 10>(instruction);
-        v->thumb_BLX_suffix(/*L=*/false, imm11);
+        v->thumb_BLX_suffix(/*X=*/false, imm11);
     })}
 }};
 
