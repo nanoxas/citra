@@ -148,13 +148,13 @@ static const std::array<Instruction, 27> thumb_instruction_table = { {
             v->EOR_reg(0xE, /*S=*/true, Rd_Rn, Rd_Rn, 0, 0, Rm_Rs);
             break;
         case 2: // LSL Rd, Rs
-            v->MOV_rsr(0xE, /*S=*/true, Rd_Rn, Rm_Rs, 0b0001, Rd_Rn);
+            v->MOV_rsr(0xE, /*S=*/true, Rd_Rn, Rm_Rs, 0b00, Rd_Rn);
             break;
         case 3: // LSR Rd, Rs
-            v->MOV_rsr(0xE, /*S=*/true, Rd_Rn, Rm_Rs, 0b0011, Rd_Rn);
+            v->MOV_rsr(0xE, /*S=*/true, Rd_Rn, Rm_Rs, 0b01, Rd_Rn);
             break;
         case 4: // ASR Rd, Rs
-            v->MOV_rsr(0xE, /*S=*/true, Rd_Rn, Rm_Rs, 0b0101, Rd_Rn);
+            v->MOV_rsr(0xE, /*S=*/true, Rd_Rn, Rm_Rs, 0b10, Rd_Rn);
             break;
         case 5: // ADC Rd, Rm
             v->ADC_reg(0xE, /*S=*/true, Rd_Rn, Rd_Rn, 0, 0, Rm_Rs);
@@ -163,7 +163,7 @@ static const std::array<Instruction, 27> thumb_instruction_table = { {
             v->SBC_reg(0xE, /*S=*/true, Rd_Rn, Rd_Rn, 0, 0, Rm_Rs);
             break;
         case 7: // ROR Rd, Rs
-            v->MOV_rsr(0xE, /*S=*/true, Rd_Rn, Rm_Rs, 0b0111, Rd_Rn);
+            v->MOV_rsr(0xE, /*S=*/true, Rd_Rn, Rm_Rs, 0b11, Rd_Rn);
             break;
         case 8: // TST Rm, Rn
             v->TST_reg(0xE, Rd_Rn, 0, 0, Rm_Rs);

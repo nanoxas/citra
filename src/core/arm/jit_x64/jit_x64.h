@@ -161,7 +161,7 @@ private:
     void CompileDataProcessingHelper(ArmReg Rn_index, ArmReg Rd_index, std::function<void(Gen::X64Reg)> body);
     void CompileDataProcessingHelper_Reverse(ArmReg Rn_index, ArmReg Rd_index, std::function<void(Gen::X64Reg)> body);
     Gen::X64Reg CompileDataProcessingHelper_reg(ArmImm5 imm5, ShiftType shift, ArmReg Rm, bool do_shifter_carry_out);
-    Gen::X64Reg CompileDataProcessingHelper_rsr(ArmReg Rs, ShiftType shift, ArmReg Rm);
+    Gen::X64Reg CompileDataProcessingHelper_rsr(ArmReg Rs, ShiftType shift, ArmReg Rm, bool do_shifter_carry_out);
     void ADC_imm(Cond cond, bool S, ArmReg Rn, ArmReg Rd, int rotate, ArmImm8 imm8) override;
     void ADC_reg(Cond cond, bool S, ArmReg Rn, ArmReg Rd, ArmImm5 imm5, ShiftType shift, ArmReg Rm) override;
     void ADC_rsr(Cond cond, bool S, ArmReg Rn, ArmReg Rd, ArmReg Rs, ShiftType shift, ArmReg Rm) override;
