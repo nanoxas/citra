@@ -87,7 +87,7 @@ TEST_CASE("Fuzz ARM data processing instructions", "[JitX64]") {
     }
 
     SECTION("long blocks") {
-        FuzzJit(1024, 1025, 15, instruction_select_without_R15);
+        FuzzJit(1024, 1025, 50, instruction_select_without_R15);
     }
 
     auto instruction_select_only_R15 = [&]() -> u32 {

@@ -71,13 +71,13 @@ static const std::array<Instruction, 27> thumb_instruction_table = { {
         Register Rd = bits<0, 2>(instruction);
         switch (opcode) {
         case 0: // LSL <Rd>, <Rm>, #<imm5>
-            v->MOV_reg(0xE, /*S=*/true, Rd, imm5, 0b000, Rm);
+            v->MOV_reg(0xE, /*S=*/true, Rd, imm5, 0b00, Rm);
             break;
         case 1: // LSR <Rd>, <Rm>, #<imm5>
-            v->MOV_reg(0xE, /*S=*/true, Rd, imm5, 0b010, Rm);
+            v->MOV_reg(0xE, /*S=*/true, Rd, imm5, 0b01, Rm);
             break;
         case 2: // ASR <Rd>, <Rm>, #<imm5>
-            v->MOV_reg(0xE, /*S=*/true, Rd, imm5, 0b100, Rm);
+            v->MOV_reg(0xE, /*S=*/true, Rd, imm5, 0b10, Rm);
             break;
         default:
             UNREACHABLE();
