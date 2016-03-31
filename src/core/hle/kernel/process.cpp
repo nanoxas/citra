@@ -14,6 +14,11 @@
 #include "core/hle/kernel/vm_manager.h"
 #include "core/memory.h"
 
+#ifdef USE_UNICORN
+#include "core/arm/unicorn/unicorn_dynload.h"
+#include "core/arm/unicorn/interface.h"
+#endif
+
 namespace Kernel {
 
 SharedPtr<CodeSet> CodeSet::Create(std::string name, u64 program_id) {
@@ -21,7 +26,6 @@ SharedPtr<CodeSet> CodeSet::Create(std::string name, u64 program_id) {
 
     codeset->name = std::move(name);
     codeset->program_id = program_id;
-
     return codeset;
 }
 

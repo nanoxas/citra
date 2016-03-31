@@ -37,7 +37,10 @@ static const std::array<Values, NUM_INPUTS> All = {{
     CUP, CDOWN, CLEFT, CRIGHT
 }};
 }
-
+enum CpuBackend {
+    SKYEYE,
+    UNICORN
+};
 
 struct Values {
     // Controls
@@ -45,6 +48,7 @@ struct Values {
 
     // Core
     int frame_skip;
+    CpuBackend cpu_backend;
 
     // Data Storage
     bool use_virtual_sd;

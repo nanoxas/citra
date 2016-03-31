@@ -14,7 +14,6 @@ set(HEADERS
 create_directory_groups(${SRCS} ${HEADERS})
 
 include_directories(${SDL2_INCLUDE_DIR})
-
 add_executable(citra ${SRCS} ${HEADERS})
 target_link_libraries(citra core video_core audio_core common)
 target_link_libraries(citra ${SDL2_LIBRARY} ${OPENGL_gl_LIBRARY} inih glad)
@@ -24,12 +23,13 @@ endif()
 target_link_libraries(citra ${PLATFORM_LIBRARIES})
 if(ENABLE_UNICORN)
     if (MSVC)
+        include(WindowsCopyFiles)
         target_link_libraries(citra ${UNICORN_LIBRARY})
         set(DLL_DEST "${CMAKE_BINARY_DIR}/bin/$<CONFIG>/")
         windows_copy_files(citra ${UNICORN_DLL_DIR} ${DLL_DEST}
             unicorn$<$<CONFIG:Debug>:-d>.dll
-            deps/*
         )
+        windows_copy_files(citra ${UNICORN_DLL_DIR}/deps ${DLL_DEST} *.*)
         unset(DLL_DEST)
     else()
         target_link_libraries(citra unicorn)

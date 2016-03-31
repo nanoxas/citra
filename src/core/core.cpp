@@ -9,9 +9,11 @@
 
 #include "core/core.h"
 #include "core/core_timing.h"
+#include "core/settings.h"
 
 #include "core/arm/arm_interface.h"
 #include "core/arm/dyncom/arm_dyncom.h"
+#include "core/arm/unicorn/interface.h"
 #include "core/hle/hle.h"
 #include "core/hle/kernel/thread.h"
 #include "core/hw/hw.h"
@@ -74,8 +76,19 @@ void Stop() {
 
 /// Initialize the core
 void Init() {
-    g_sys_core = Common::make_unique<ARM_DynCom>(USER32MODE);
-    g_app_core = Common::make_unique<ARM_DynCom>(USER32MODE);
+    switch (Settings::values.cpu_backend) {
+    case Settings::CpuBackend::SKYEYE:
+        g_sys_core = Common::make_unique<ARM_DynCom>(USER32MODE);
+        g_app_core = Common::make_unique<ARM_DynCom>(USER32MODE);
+        break;
+    case Settings::CpuBackend::UNICORN:
+        g_sys_core = Common::make_unique<ARM_Unicorn>(USER32MODE);
+        g_app_core = Common::make_unique<ARM_Unicorn>(USER32MODE);
+        break;
+    default:
+        LOG_CRITICAL(Core, "No Cpu Backend selected");
+        break;
+    }
 
     LOG_DEBUG(Core, "Initialized OK");
 }

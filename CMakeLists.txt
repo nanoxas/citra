@@ -163,7 +163,7 @@ if (ENABLE_UNICORN)
     if (CITRA_USE_BUNDLED_UNICORN)
         # Detect toolchain and platform
         if (MSVC14 AND ARCHITECTURE_x86_64)
-            set(UNICORN_VER "unicorn-mar-17-0af4baa")
+            set(UNICORN_VER "unicorn-mar-31-ba2023e")
         else()
             message(FATAL_ERROR "No bundled Unicorn binaries for your toolchain. Disable CITRA_USE_BUNDLED_UNICORN and provide your own.")
         endif()
@@ -178,7 +178,7 @@ if (ENABLE_UNICORN)
     else()
         ExternalProject_Add(unicorn
             GIT_REPOSITORY https://github.com/unicorn-engine/unicorn
-            BUILD_COMMAND "UNICORN_ARCHS='arm' ./make.sh"
+            BUILD_COMMAND "UNICORN_ARCHS='arm' $<$<CONFIG:Release>:UNICORN_DEBUG=no>./make.sh"
         )
     endif()
 endif()

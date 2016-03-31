@@ -198,7 +198,7 @@ u32 vfp_single_normaliseround(ARMul_State* state, int sd, struct vfp_single *vs,
             vs->exponent = 253;
             vs->significand = 0x7fffffff;
         } else {
-            vs->exponent = 255;		/* infinity */
+            vs->exponent = 255;     /* infinity */
             vs->significand = 0;
         }
     } else {
@@ -412,10 +412,10 @@ sqrt_invalid:
 }
 
 /*
- * Equal	:= ZC
- * Less than	:= N
- * Greater than	:= C
- * Unordered	:= CV
+ * Equal    := ZC
+ * Less than    := N
+ * Greater than := C
+ * Unordered    := CV
  */
 static u32 vfp_compare(ARMul_State* state, int sd, int signal_on_qnan, s32 m, u32 fpscr)
 {
@@ -914,8 +914,8 @@ vfp_single_multiply(struct vfp_single *vsd, struct vfp_single *vsn, struct vfp_s
     return 0;
 }
 
-#define NEG_MULTIPLY	(1 << 0)
-#define NEG_SUBTRACT	(1 << 1)
+#define NEG_MULTIPLY    (1 << 0)
+#define NEG_SUBTRACT    (1 << 1)
 
 static u32
 vfp_single_multiply_accumulate(ARMul_State* state, int sd, int sn, s32 m, u32 fpscr, u32 negate, const char *func)
@@ -1192,19 +1192,19 @@ invalid:
 }
 
 static struct op fops[] = {
-	{ vfp_single_fmac,  0 },
-	{ vfp_single_fmsc,  0 },
-	{ vfp_single_fmul,  0 },
-	{ vfp_single_fadd,  0 },
-	{ vfp_single_fnmac, 0 },
-	{ vfp_single_fnmsc, 0 },
-	{ vfp_single_fnmul, 0 },
-	{ vfp_single_fsub,  0 },
-	{ vfp_single_fdiv,  0 },
+    { vfp_single_fmac,  0 },
+    { vfp_single_fmsc,  0 },
+    { vfp_single_fmul,  0 },
+    { vfp_single_fadd,  0 },
+    { vfp_single_fnmac, 0 },
+    { vfp_single_fnmsc, 0 },
+    { vfp_single_fnmul, 0 },
+    { vfp_single_fsub,  0 },
+    { vfp_single_fdiv,  0 },
 };
 
-#define FREG_BANK(x)	((x) & 0x18)
-#define FREG_IDX(x)	((x) & 7)
+#define FREG_BANK(x)    ((x) & 0x18)
+#define FREG_IDX(x) ((x) & 7)
 
 u32 vfp_single_cpdo(ARMul_State* state, u32 inst, u32 fpscr)
 {

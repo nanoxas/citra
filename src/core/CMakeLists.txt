@@ -259,6 +259,18 @@ set(HEADERS
             system.h
             )
 
+if(ENABLE_UNICORN)
+    LIST(APPEND SRCS
+        arm/unicorn/interface.cpp
+        arm/unicorn/unicorn_dynload.cpp
+    )
+    LIST(APPEND HEADERS
+        arm/unicorn/interface.h
+        arm/unicorn/unicorn_dynload.h
+    )
+    include_directories(${UNICORN_INCLUDE_DIR})
+    add_definitions(-DUSE_UNICORN)
+endif()
 create_directory_groups(${SRCS} ${HEADERS})
 
 add_library(core STATIC ${SRCS} ${HEADERS})

@@ -84,12 +84,13 @@ target_link_libraries(citra-qt ${OPENGL_gl_LIBRARY} ${CITRA_QT_LIBS})
 target_link_libraries(citra-qt ${PLATFORM_LIBRARIES})
 if(ENABLE_UNICORN)
     if (MSVC)
+        include(WindowsCopyFiles)
         target_link_libraries(citra-qt ${UNICORN_LIBRARY})
         set(DLL_DEST "${CMAKE_BINARY_DIR}/bin/$<CONFIG>/")
         windows_copy_files(citra-qt ${UNICORN_DLL_DIR} ${DLL_DEST}
             unicorn$<$<CONFIG:Debug>:-d>.dll
-            deps/*
         )
+        windows_copy_files(citra-qt ${UNICORN_DLL_DIR}/deps ${DLL_DEST} *.*)
         unset(DLL_DEST)
     else()
         target_link_libraries(citra unicorn)

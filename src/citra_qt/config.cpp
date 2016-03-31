@@ -40,6 +40,7 @@ void Config::ReadValues() {
 
     qt_config->beginGroup("Core");
     Settings::values.frame_skip = qt_config->value("frame_skip", 0).toInt();
+    Settings::values.cpu_backend = (Settings::CpuBackend) qt_config->value("cpu_backend", Settings::CpuBackend::SKYEYE).toInt();
     qt_config->endGroup();
 
     qt_config->beginGroup("Renderer");
@@ -79,6 +80,7 @@ void Config::SaveValues() {
 
     qt_config->beginGroup("Core");
     qt_config->setValue("frame_skip", Settings::values.frame_skip);
+    qt_config->setValue("cpu_backend", Settings::values.cpu_backend);
     qt_config->endGroup();
 
     qt_config->beginGroup("Renderer");

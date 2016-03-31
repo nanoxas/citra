@@ -213,9 +213,9 @@ inline u64 vfp_estimate_div128to64(u64 nh, u64 nl, u64 m)
 
 // Single-precision
 struct vfp_single {
-    s16	exponent;
-    u16	sign;
-    u32	significand;
+    s16 exponent;
+    u16 sign;
+    u32 significand;
 };
 
 // VFP_SINGLE_MANTISSA_BITS - number of bits in the mantissa
@@ -228,7 +228,7 @@ struct vfp_single {
 #define VFP_SINGLE_LOW_BITS_MASK ((1 << VFP_SINGLE_LOW_BITS) - 1)
 
 // The bit in an unpacked float which indicates that it is a quiet NaN
-#define VFP_SINGLE_SIGNIFICAND_QNAN	(1 << (VFP_SINGLE_MANTISSA_BITS - 1 + VFP_SINGLE_LOW_BITS))
+#define VFP_SINGLE_SIGNIFICAND_QNAN (1 << (VFP_SINGLE_MANTISSA_BITS - 1 + VFP_SINGLE_LOW_BITS))
 
 // Operations on packed single-precision numbers
 #define vfp_single_packed_sign(v)     ((v) & 0x80000000)
@@ -306,9 +306,9 @@ u32 vfp_single_normaliseround(ARMul_State* state, int sd, vfp_single* vs, u32 fp
 
 // Double-precision
 struct vfp_double {
-    s16	exponent;
-    u16	sign;
-    u64	significand;
+    s16 exponent;
+    u16 sign;
+    u64 significand;
 };
 
 // VFP_REG_ZERO is a special register number for vfp_get_double

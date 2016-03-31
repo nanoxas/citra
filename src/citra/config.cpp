@@ -60,6 +60,7 @@ void Config::ReadValues() {
 
     // Core
     Settings::values.frame_skip = sdl2_config->GetInteger("Core", "frame_skip", 0);
+    Settings::values.cpu_backend = (Settings::CpuBackend) sdl2_config->GetInteger("Core", "cpu_backend", Settings::CpuBackend::SKYEYE);
 
     // Renderer
     Settings::values.use_hw_renderer = sdl2_config->GetBoolean("Renderer", "use_hw_renderer", false);

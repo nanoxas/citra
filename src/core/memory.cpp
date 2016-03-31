@@ -15,6 +15,20 @@
 #include "core/memory_setup.h"
 #include "core/mmio.h"
 
+#ifdef USE_UNICORN
+#ifdef _MSC_VER
+#include "core/arm/unicorn/unicorn_dynload.h"
+#else
+#include <unistd.h>
+#include <inttypes.h>
+#include <unicorn/unicorn.h>
+#endif
+#include "core/settings.h"
+#include "core/arm/arm_interface.h"
+#include "core/arm/unicorn/interface.h"
+#include "core/core.h"
+#endif
+
 namespace Memory {
 
 enum class PageType {
@@ -68,7 +82,16 @@ static void MapPages(u32 base, u32 size, u8* memory, PageType type) {
     LOG_DEBUG(HW_Memory, "Mapping %p onto %08X-%08X", memory, base * PAGE_SIZE, (base + size) * PAGE_SIZE);
 
     u32 end = base + size;
-
+    if (Settings::values.cpu_backend == Settings::CpuBackend::UNICORN) {
+        ARM_Unicorn* interface = dynamic_cast<ARM_Unicorn*>(Core::g_app_core.get());
+        if (!interface) {
+            LOG_ERROR(Core, "Could not cast the cpu backend to Unicorn despite the engine settings saying unicorn is in use");
+        }
+        uc_err err = uc_mem_map_ptr(interface->engine, base * PAGE_SIZE, size * PAGE_SIZE, UC_PROT_ALL, memory);
+        if (err) {
+            LOG_ERROR(Core, "Could not expose mapped memory to Unicorn. Error: %d", err);
+        }
+    }
     while (base != end) {
         ASSERT_MSG(base < PageTable::NUM_ENTRIES, "out of range mapping at %08X", base);
 

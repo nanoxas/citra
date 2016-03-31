@@ -192,7 +192,7 @@ u32 vfp_double_normaliseround(ARMul_State* state, int dd, struct vfp_double *vd,
             vd->exponent = 2045;
             vd->significand = 0x7fffffffffffffffULL;
         } else {
-            vd->exponent = 2047;		/* infinity */
+            vd->exponent = 2047;        /* infinity */
             vd->significand = 0;
         }
     } else {
@@ -373,10 +373,10 @@ sqrt_invalid:
 }
 
 /*
- * Equal	:= ZC
- * Less than	:= N
- * Greater than	:= C
- * Unordered	:= CV
+ * Equal    := ZC
+ * Less than    := N
+ * Greater than := C
+ * Unordered    := CV
  */
 static u32 vfp_compare(ARMul_State* state, int dd, int signal_on_qnan, int dm, u32 fpscr)
 {
@@ -645,7 +645,7 @@ static u32 vfp_double_ftosi(ARMul_State* state, int sd, int unused, int dm, u32 
             d = ~d;
         exceptions |= FPSCR_IOC;
     } else if (vdm.exponent >= 1023 - 1) {
-        int shift = 1023 + 63 - vdm.exponent;	/* 58 */
+        int shift = 1023 + 63 - vdm.exponent;   /* 58 */
         u64 rem, incr = 0;
 
         d = (u32)((vdm.significand << 1) >> shift);
@@ -885,8 +885,8 @@ vfp_double_multiply(struct vfp_double *vdd, struct vfp_double *vdn,
     return 0;
 }
 
-#define NEG_MULTIPLY	(1 << 0)
-#define NEG_SUBTRACT	(1 << 1)
+#define NEG_MULTIPLY    (1 << 0)
+#define NEG_SUBTRACT    (1 << 1)
 
 static u32
 vfp_double_multiply_accumulate(ARMul_State* state, int dd, int dn, int dm, u32 fpscr, u32 negate, const char *func)
@@ -1172,8 +1172,8 @@ static struct op fops[] = {
     { vfp_double_fdiv,  0 },
 };
 
-#define FREG_BANK(x)	((x) & 0x0c)
-#define FREG_IDX(x)	((x) & 3)
+#define FREG_BANK(x)    ((x) & 0x0c)
+#define FREG_IDX(x) ((x) & 3)
 
 u32 vfp_double_cpdo(ARMul_State* state, u32 inst, u32 fpscr)
 {
