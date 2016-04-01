@@ -262,12 +262,18 @@ set(HEADERS
 if(ENABLE_UNICORN)
     LIST(APPEND SRCS
         arm/unicorn/interface.cpp
-        arm/unicorn/unicorn_dynload.cpp
     )
     LIST(APPEND HEADERS
         arm/unicorn/interface.h
-        arm/unicorn/unicorn_dynload.h
     )
+    if(MSVC)
+        LIST(APPEND SRCS
+            arm/unicorn/unicorn_dynload.cpp
+        )
+        LIST(APPEND HEADERS
+            arm/unicorn/unicorn_dynload.h
+        )
+    endif()
     include_directories(${UNICORN_INCLUDE_DIR})
     add_definitions(-DUSE_UNICORN)
 endif()

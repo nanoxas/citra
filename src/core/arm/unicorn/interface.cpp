@@ -10,23 +10,16 @@
 #include "core/arm/unicorn/interface.h"
 #include "core/core.h"
 #include "core/core_timing.h"
-
-#ifdef _MSC_VER
-#include "core/arm/unicorn/unicorn_dynload.h"
-#else
-#include <unistd.h>
-#include <inttypes.h>
-#include <unicorn/unicorn.h>
-#endif
 #include "core/hle/svc.h"
+#include "core/memory.h"
 
 static void service_handler(uc_engine *uc, u32 intno, void *user_data) {
-    LOG_DEBUG(Core, "Calling service: %d", intno);
+    LOG_INFO(Core, "Calling service: %d", intno);
     SVC::CallSVC(intno & 0xFFFF);
 }
 
 ARM_Unicorn::ARM_Unicorn(PrivilegeMode initial_mode) {
-#ifdef _MSC_VER
+#ifdef _WIN32
 #ifdef _DEBUG
     bool dll_loaded = uc_dyn_load("unicorn-d.dll", 0);
 #else
@@ -45,7 +38,7 @@ ARM_Unicorn::ARM_Unicorn(PrivilegeMode initial_mode) {
     SetReg(13, 0x10000000);
     SetReg(15, 0);
 
-    err = uc_hook_add(engine, &service, UC_HOOK_INSN, service_handler, nullptr, 0, 0);
+    err = uc_hook_add(engine, &service, UC_HOOK_INTR, reinterpret_cast<void*>(service_handler), nullptr, 0, 0);
     if (err) {
         LOG_CRITICAL(Core, "Failed to set hook. Error message: %s", uc_strerror(err));
     }
@@ -232,11 +225,13 @@ void ARM_Unicorn::AddTicks(u64 ticks) {
 void ARM_Unicorn::ExecuteInstructions(int num_instructions) {
     //this->NumInstrsToExecute = num_instructions;
     u32 start_address = GetPC();
+    //num_instructions = 1;
+//    LOG_INFO(Core, "Execute code at 0x%08x", start_address, Memory::Read32());
+    LOG_INFO(Core, "CPSR: %d", GetCPSR());
     uc_err err = uc_emu_start(engine, start_address, 0, 0, num_instructions);
     if (err) {
-        LOG_ERROR(Core, "Failed to execute code at 0x%08x. Error code: %d", start_address, err);
-    } else {
-        LOG_DEBUG(Core, "Executed instruction at 0x%08x.", start_address);
+        LOG_INFO(Core, "CPSR: %d", GetCPSR());
+        LOG_ERROR(Core, "Failed to execute code at 0x%08x. Error code: %d Memory at 0x00100004 0x%08x", start_address, err, Memory::Read32(0x100004));
     }
     AddTicks(num_instructions);
 }

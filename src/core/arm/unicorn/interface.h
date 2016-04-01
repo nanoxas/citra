@@ -9,8 +9,13 @@
 #include "common/common_types.h"
 
 #include "core/arm/arm_interface.h"
-#include "core/arm/unicorn/unicorn_dynload.h"
 #include "core/arm/skyeye_common/armstate.h"
+
+#ifdef _WIN32
+#include "core/arm/unicorn/unicorn_dynload.h"
+#else
+#include <unicorn/unicorn.h>
+#endif
 
 namespace Core {
 struct ThreadContext;

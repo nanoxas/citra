@@ -176,10 +176,27 @@ if (ENABLE_UNICORN)
         set(UNICORN_LIBRARY "${UNICORN_PREFIX}/lib/unicorn$<$<CONFIG:Debug>:-d>.lib" CACHE PATH "Path to unicorn library")
         set(UNICORN_DLL_DIR "${UNICORN_PREFIX}/lib/" CACHE PATH "Path to unicorn dlls")
     else()
-        ExternalProject_Add(unicorn
-            GIT_REPOSITORY https://github.com/unicorn-engine/unicorn
-            BUILD_COMMAND "UNICORN_ARCHS='arm' $<$<CONFIG:Release>:UNICORN_DEBUG=no>./make.sh"
+        set(UNICORN_PREFIX ${CMAKE_SOURCE_DIR}/externals/unicorn)
+        set(UNICORN_LIBRARY ${UNICORN_PREFIX}/libunicorn.a)
+        set(UNICORN_INCLUDE_DIR "${UNICORN_PREFIX}/include" CACHE PATH "Path to Unicorn headers")
+        add_custom_command(
+            OUTPUT ${UNICORN_LIBRARY}
+            WORKING_DIRECTORY ${UNICORN_PREFIX}
+            COMMAND UNICORN_ARCHS="arm" $<$<CONFIG:Release>:UNICORN_DEBUG="no">./make.sh
         )
+        add_custom_target(unicorn_target DEPENDS ${UNICORN_LIBRARY})
+        include_directories(${UNICORN_PREFIX}/include)
+        add_library(unicorn STATIC IMPORTED GLOBAL)
+        add_dependencies(unicorn unicorn_target libiconv)
+        set_target_properties(unicorn
+            PROPERTIES
+            IMPORTED_LOCATION ${UNICORN_LIBRARY}
+            INTERFACE_INCLUDE_DIRECTORIES ${UNICORN_INCLUDE_DIR})
+        if(APPLE)
+            find_package(PkgConfig)
+            pkg_check_modules(GLIB2 REQUIRED glib-2.0>=2.10)
+            message(STATUS "${GLIB2_LDFLAGS}")
+        endif()
     endif()
 endif()
 

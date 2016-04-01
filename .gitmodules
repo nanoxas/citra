@@ -7,3 +7,9 @@
 [submodule "nihstro"]
 	path = externals/nihstro
 	url = https://github.com/neobrain/nihstro.git
+[submodule "unicorn"]
+	path = unicorn
+	url = https://github.com/unicorn-engine/unicorn.git
+[submodule "externals/unicorn"]
+	path = externals/unicorn
+	url = https://github.com/unicorn-engine/unicorn.git
