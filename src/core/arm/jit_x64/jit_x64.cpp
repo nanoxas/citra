@@ -241,6 +241,13 @@ Gen::OpArg JitX64::MJitStateVFlag() {
     return Gen::MDisp(reg_alloc.JitStateReg(), offsetof(JitState, cpu_state) + offsetof(ARMul_State, VFlag));
 }
 
+Gen::OpArg JitX64::MJitStateCpsr() {
+    static_assert(std::is_same<decltype(JitState::cpu_state), ARMul_State>::value, "JitState::cpu_state must be ARMul_State");
+    static_assert(std::is_same<decltype(ARMul_State::Cpsr), u32>::value, "Cpsr must be u32");
+
+    return Gen::MDisp(reg_alloc.JitStateReg(), offsetof(JitState, cpu_state) + offsetof(ARMul_State, Cpsr));
+}
+
 Gen::OpArg JitX64::MJitStateExclusiveTag() {
     static_assert(std::is_same<decltype(JitState::cpu_state), ARMul_State>::value, "JitState::cpu_state must be ARMul_State");
     static_assert(std::is_same<decltype(ARMul_State::exclusive_tag), u32>::value, "exclusive_tag must be u32");

@@ -91,6 +91,7 @@ private:
     Gen::OpArg MJitStateCFlag();
     Gen::OpArg MJitStateNFlag();
     Gen::OpArg MJitStateVFlag();
+    Gen::OpArg MJitStateCpsr();
     Gen::OpArg MJitStateExclusiveTag();
     Gen::OpArg MJitStateExclusiveState();
 

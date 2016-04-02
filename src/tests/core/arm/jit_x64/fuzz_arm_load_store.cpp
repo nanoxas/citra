@@ -12,7 +12,7 @@
 #include "tests/core/arm/jit_x64/fuzz_arm_common.h"
 
 TEST_CASE("Fuzz ARM load/store instructions (byte, half-word, word)", "[JitX64]") {
-    const std::array<std::pair<u32, u32>, 16> instructions = {{
+    const std::array<std::pair<u32, u32>, 17> instructions = {{
         FromBitString32("cccc010pu0w1nnnnddddvvvvvvvvvvvv"), // LDR_imm
         FromBitString32("cccc011pu0w1nnnnddddvvvvvrr0mmmm"), // LDR_reg
         FromBitString32("cccc010pu1w1nnnnddddvvvvvvvvvvvv"), // LDRB_imm
@@ -29,6 +29,7 @@ TEST_CASE("Fuzz ARM load/store instructions (byte, half-word, word)", "[JitX64]"
         FromBitString32("cccc000pu0w1nnnndddd00001111mmmm"), // LDRSH_reg
         FromBitString32("cccc000pu1w0nnnnddddvvvv1011vvvv"), // STRH_imm
         FromBitString32("cccc000pu0w0nnnndddd00001011mmmm"), // STRH_reg
+        FromBitString32("1111000100000001000000e000000000"), // SETEND
     }};
 
     auto instruction_select = [&]() -> u32 {
@@ -46,7 +47,7 @@ TEST_CASE("Fuzz ARM load/store instructions (byte, half-word, word)", "[JitX64]"
         u32 P = RandInt<u32>(0, 1);
         if (P) W = RandInt<u32>(0, 1);
         u32 U = RandInt<u32>(0, 1);
-        u32 rand = RandInt<u32>(0, 0xF);
+        u32 rand = RandInt<u32>(0, 0xFF);
         u32 Rm = RandInt<u32>(0, 14);
 
         u32 assemble_randoms = (Rm << 0) | (rand << 4) | (Rd << 12) | (Rn << 16) | (W << 21) | (U << 23) | (P << 24) | (cond << 28);
@@ -55,7 +56,7 @@ TEST_CASE("Fuzz ARM load/store instructions (byte, half-word, word)", "[JitX64]"
     };
 
     SECTION("short blocks") {
-        FuzzJit(1, 2, 5000, instruction_select);
+        FuzzJit(5, 6, 5000, instruction_select);
     }
 }
 

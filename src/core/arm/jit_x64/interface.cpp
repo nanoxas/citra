@@ -162,6 +162,7 @@ void ARM_Jit::ExecuteInstructions(int num_instructions) {
     do {
         //state->page_table = reinterpret_cast<void*>(Memory::current_page_table->pointers.data());
 
+        bool EFlag = (state->cpu_state.Cpsr >> 9) & 1;
         state->cpu_state.TFlag = (state->cpu_state.Cpsr >> 5) & 1;
 
         if (!state->cpu_state.NirqSig) {
@@ -173,7 +174,7 @@ void ARM_Jit::ExecuteInstructions(int num_instructions) {
         else
             state->cpu_state.Reg[15] &= 0xfffffffc;
 
-        u8 *ptr = compiler.GetBB(state->cpu_state.Reg[15], state->cpu_state.TFlag, false);
+        u8 *ptr = compiler.GetBB(state->cpu_state.Reg[15], state->cpu_state.TFlag, EFlag);
 
         unsigned ticks_executed = run_jit.CallCode(state.get(), ptr, num_instructions, state->cpu_state.Reg[15]);
         num_instructions -= ticks_executed;
