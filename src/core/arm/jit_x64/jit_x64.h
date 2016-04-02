@@ -285,8 +285,11 @@ private:
     void STRT() override;
 
     // Load/Store multiple instructions
-    void LDM() override;
-    void STM() override;
+    void LDM(Cond cond, bool P, bool U, bool W, ArmReg Rn, ArmRegList list) override;
+    void LDM_usr() override;
+    void LDM_eret() override;
+    void STM(Cond cond, bool P, bool U, bool W, ArmReg Rn, ArmRegList list) override;
+    void STM_usr() override;
 
     // Miscellaneous instructions
     void CLZ() override;

@@ -160,7 +160,7 @@ void FuzzJit(const int instruction_count, const int instructions_to_execute_coun
             if (interp_mem_recording != jit_mem_recording) {
                 printf("memory write recording mismatch *\n");
                 size_t i = 0;
-                while (i < interp_mem_recording.size() && i < jit_mem_recording.size()) {
+                while (i < interp_mem_recording.size() || i < jit_mem_recording.size()) {
                     if (i < interp_mem_recording.size())
                         printf("interp: %i %08x %08x\n", interp_mem_recording[i].size, interp_mem_recording[i].addr, interp_mem_recording[i].data);
                     if (i < jit_mem_recording.size())

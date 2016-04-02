@@ -94,3 +94,39 @@ TEST_CASE("Fuzz ARM load/store instructions (double-word)", "[JitX64]") {
         FuzzJit(1, 2, 5000, instruction_select);
     }
 }
+
+TEST_CASE("Fuzz ARM load/store multiple instructions", "[JitX64]") {
+    const std::array<std::pair<u32, u32>, 2> instructions = {{
+        FromBitString32("cccc100pu0w1nnnnxxxxxxxxxxxxxxxx"), // LDM
+        FromBitString32("cccc100pu0w0nnnnxxxxxxxxxxxxxxxx"), // STM
+    }};
+
+    auto instruction_select = [&]() -> u32 {
+        size_t inst_index = RandInt<size_t>(0, instructions.size() - 1);
+
+        u32 cond = 0xE;
+        // Have a one-in-twenty-five chance of actually having a cond.
+        if (RandInt(1, 25) == 1) {
+            cond = RandInt<u32>(0x0, 0xD);
+        }
+
+        u32 reg_list = RandInt<u32>(1, 0xFFFF);
+        u32 Rn = RandInt<u32>(0, 14);
+        u32 flags = RandInt<u32>(0, 0xF);
+
+        if (inst_index == 1 && (flags & 2)) {
+            if (reg_list & (1 << Rn))
+                reg_list &= ~((1 << Rn) - 1);
+        } else if (inst_index == 1 && (flags & 2)) {
+            reg_list &= ~(1 << Rn);
+        }
+
+        u32 assemble_randoms = (reg_list << 0) | (Rn << 16) | (flags << 24) | (cond << 28);
+
+        return instructions[inst_index].first | (assemble_randoms & (~instructions[inst_index].second));
+    };
+
+    SECTION("short blocks") {
+        FuzzJit(1, 1, 5000, instruction_select);
+    }
+}

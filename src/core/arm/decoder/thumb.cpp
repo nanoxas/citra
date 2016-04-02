@@ -352,10 +352,12 @@ static const std::array<Instruction, 27> thumb_instruction_table = { {
         u32 reglist = bits<0, 7>(instruction);
         if (!L) { // PUSH {reglist, <R>=LR}
             reglist |= R << 14;
-            v->STM();
+            // Equivalent to STMDB SP!, {reglist}
+            v->STM(0xE, /*P=*/1, /*U=*/0, /*W=*/1, 13, reglist);
         } else { // POP {reglist, <R>=PC}
             reglist |= R << 15;
-            v->LDM();
+            // Equivalent to LDMIA SP!, {reglist}
+            v->LDM(0xE, /*P=*/0, /*U=*/1, /*W=*/1, 13, reglist);
         }
     })},
     { "SETEND",                  MakeMatcher("101101100101x000", [](Visitor* v, u32 instruction) {
@@ -400,9 +402,10 @@ static const std::array<Instruction, 27> thumb_instruction_table = { {
         Register Rn = bits<8, 10>(instruction);
         u32 reglist = bits<0, 7>(instruction);
         if (!L) { // STMIA Rn!, { reglist }
-            v->STM();
+            v->STM(0xE, /*P=*/0, /*U=*/1, /*W=*/1, Rn, reglist);
         } else { // LDMIA Rn!, { reglist }
-            v->LDM();
+            bool w = reglist & (1 << Rn);
+            v->LDM(0xE, /*P=*/0, /*U=*/1, /*W=*/w, Rn, reglist);
         }
     })},
     { "B<cond>",                 MakeMatcher("1101xxxxxxxxxxxx", [](Visitor* v, u32 instruction) {

@@ -2,6 +2,7 @@
 // Licensed under GPLv2 or any later version
 // Refer to the license.txt file included.
 
+#include "common/bit_set.h"
 #include "common/swap.h"
 #include "common/x64/abi.h"
 
@@ -800,7 +801,218 @@ void JitX64::STRHT() { CompileInterpretInstruction(); }
 void JitX64::STRT() { CompileInterpretInstruction(); }
 
 // Load/Store multiple instructions
-void JitX64::LDM() { CompileInterpretInstruction(); }
-void JitX64::STM() { CompileInterpretInstruction(); }
+
+static void LoadAndStoreMultiple_IncrementAfter(XEmitter* code, RegAlloc& reg_alloc, bool W, ArmReg Rn_index, ArmRegList list, std::function<void()> call) {
+    if (W) {
+        X64Reg Rn = reg_alloc.BindArmForReadWrite(Rn_index);
+        code->MOV(32, R(ABI_PARAM1), R(Rn));
+        reg_alloc.UnlockArm(Rn_index);
+
+        call();
+
+        Rn = reg_alloc.BindArmForReadWrite(Rn_index);
+        code->ADD(32, R(Rn), Imm8(4 * Common::CountSetBits(list)));
+        reg_alloc.UnlockArm(Rn_index);
+    } else {
+        OpArg Rn = reg_alloc.LockArmForReadWrite(Rn_index);
+        code->MOV(32, R(ABI_PARAM1), Rn);
+        reg_alloc.UnlockArm(Rn_index);
+        call();
+    }
+}
+
+static void LoadAndStoreMultiple_IncrementBefore(XEmitter* code, RegAlloc& reg_alloc, bool W, ArmReg Rn_index, ArmRegList list, std::function<void()> call) {
+    if (W) {
+        X64Reg Rn = reg_alloc.BindArmForReadWrite(Rn_index);
+        code->MOV(32, R(ABI_PARAM1), R(Rn));
+        code->ADD(32, R(ABI_PARAM1), Imm8(4));
+        reg_alloc.UnlockArm(Rn_index);
+
+        call();
+
+        Rn = reg_alloc.BindArmForReadWrite(Rn_index);
+        code->ADD(32, R(Rn), Imm8(4 * Common::CountSetBits(list)));
+        reg_alloc.UnlockArm(Rn_index);
+    } else {
+        OpArg Rn = reg_alloc.LockArmForReadWrite(Rn_index);
+        code->MOV(32, R(ABI_PARAM1), Rn);
+        code->ADD(32, R(ABI_PARAM1), Imm8(4));
+        reg_alloc.UnlockArm(Rn_index);
+        call();
+    }
+}
+
+static void LoadAndStoreMultiple_DecrementAfter(XEmitter* code, RegAlloc& reg_alloc, bool W, ArmReg Rn_index, ArmRegList list, std::function<void()> call) {
+    if (W) {
+        X64Reg Rn = reg_alloc.BindArmForReadWrite(Rn_index);
+        code->MOV(32, R(ABI_PARAM1), R(Rn));
+        code->SUB(32, R(ABI_PARAM1), Imm32(4 * Common::CountSetBits(list) - 4));
+        reg_alloc.UnlockArm(Rn_index);
+
+        call();
+
+        Rn = reg_alloc.BindArmForReadWrite(Rn_index);
+        code->SUB(32, R(Rn), Imm32(4 * Common::CountSetBits(list)));
+        reg_alloc.UnlockArm(Rn_index);
+    } else {
+        OpArg Rn = reg_alloc.LockArmForReadWrite(Rn_index);
+        code->MOV(32, R(ABI_PARAM1), Rn);
+        code->SUB(32, R(ABI_PARAM1), Imm32(4 * Common::CountSetBits(list) - 4));
+        reg_alloc.UnlockArm(Rn_index);
+        call();
+    }
+}
+
+static void LoadAndStoreMultiple_DecrementBefore(XEmitter* code, RegAlloc& reg_alloc, bool W, ArmReg Rn_index, ArmRegList list, std::function<void()> call) {
+    if (W && (list & (1 << Rn_index))) {
+        X64Reg Rn = reg_alloc.BindArmForReadWrite(Rn_index);
+        code->SUB(32, R(Rn), Imm32(4 * Common::CountSetBits(list)));
+        code->MOV(32, R(ABI_PARAM1), R(Rn));
+        reg_alloc.UnlockArm(Rn_index);
+        call();
+    } else if (W && (list & (1 << Rn_index))) {
+        X64Reg Rn = reg_alloc.BindArmForReadWrite(Rn_index);
+        code->MOV(32, R(ABI_PARAM1), R(Rn));
+        code->SUB(32, R(ABI_PARAM1), Imm32(4 * Common::CountSetBits(list)));
+        reg_alloc.UnlockArm(Rn_index);
+
+        call();
+
+        Rn = reg_alloc.BindArmForReadWrite(Rn_index);
+        code->SUB(32, R(Rn), Imm32(4 * Common::CountSetBits(list)));
+        reg_alloc.UnlockArm(Rn_index);
+    } else {
+        OpArg Rn = reg_alloc.LockArmForReadWrite(Rn_index);
+        code->MOV(32, R(ABI_PARAM1), Rn);
+        code->SUB(32, R(ABI_PARAM1), Imm32(4 * Common::CountSetBits(list)));
+        reg_alloc.UnlockArm(Rn_index);
+        call();
+    }
+}
+
+static void LoadAndStoreMultiple_Helper(XEmitter* code, RegAlloc& reg_alloc, bool P, bool U, bool W, ArmReg Rn_index, ArmRegList list, std::function<void()> call) {
+    reg_alloc.FlushX64(ABI_PARAM1);
+    reg_alloc.LockX64(ABI_PARAM1);
+    reg_alloc.FlushX64(ABI_PARAM2);
+    reg_alloc.LockX64(ABI_PARAM2);
+    reg_alloc.FlushX64(ABI_PARAM3);
+    reg_alloc.LockX64(ABI_PARAM3);
+
+    code->MOV(32, R(ABI_PARAM2), Imm32(list));
+    code->MOV(64, R(ABI_PARAM3), R(reg_alloc.JitStateReg()));
+
+    if (!P && !U) {
+        LoadAndStoreMultiple_DecrementAfter(code, reg_alloc, W, Rn_index, list, call);
+    } else if (!P && U) {
+        LoadAndStoreMultiple_IncrementAfter(code, reg_alloc, W, Rn_index, list, call);
+    } else if (P && !U) {
+        LoadAndStoreMultiple_DecrementBefore(code, reg_alloc, W, Rn_index, list, call);
+    } else if (P && U) {
+        LoadAndStoreMultiple_IncrementBefore(code, reg_alloc, W, Rn_index, list, call);
+    } else {
+        UNREACHABLE();
+    }
+
+    reg_alloc.UnlockX64(ABI_PARAM1);
+    reg_alloc.UnlockX64(ABI_PARAM2);
+    reg_alloc.UnlockX64(ABI_PARAM3);
+}
+
+static void ExecuteLDMLE(u32 start_address, u16 reg_list, JitState* jit_state) {
+    for (int i = 0; i < 16; i++) {
+        const u16 bit = 1 << i;
+        if (reg_list & bit) {
+            jit_state->cpu_state.Reg[i] = Memory::Read32(start_address);
+            start_address += 4;
+        }
+    }
+}
+
+static void ExecuteLDMBE(u32 start_address, u16 reg_list, JitState* jit_state) {
+    for (int i = 0; i < 16; i++) {
+        const u16 bit = 1 << i;
+        if (reg_list & bit) {
+            jit_state->cpu_state.Reg[i] = Common::swap32(Memory::Read32(start_address));
+            start_address += 4;
+        }
+    }
+}
+
+void JitX64::LDM(Cond cond, bool P, bool U, bool W, ArmReg Rn_index, ArmRegList list) {
+    cond_manager.CompileCond((ConditionCode)cond);
+
+    ASSERT_MSG(Rn_index != 15, "UNPREDICTABLE");
+    ASSERT_MSG(list != 0, "UNPREDICTABLE");
+    if (W && (list & (1 << Rn_index)))
+        ASSERT_MSG(false, "UNPREDICTABLE");
+
+    // TODO: Optimize
+
+    LoadAndStoreMultiple_Helper(code, reg_alloc, P, U, W, Rn_index, list,
+        [this](){ CompileCallHost(!current.EFlag ? &ExecuteLDMLE : &ExecuteLDMBE); });
+
+    current.arm_pc += GetInstSize();
+    if (list & (1 << 15)) {
+        code->BT(32, MJitStateArmPC(), Imm8(0));
+        code->SETcc(CC_C, MJitStateTFlag());
+        code->AND(32, MJitStateArmPC(), Imm32(0xFFFFFFFE));
+        CompileReturnToDispatch();
+    }
+}
+
+static void ExecuteSTMLE(u32 start_address, u16 reg_list, JitState* jit_state) {
+    for (int i = 0; i < 15; i++) {
+        const u16 bit = 1 << i;
+        if (reg_list & bit) {
+            Memory::Write32(start_address, jit_state->cpu_state.Reg[i]);
+            start_address += 4;
+        }
+    }
+    // Reading R15 here is IMPLEMENTATION DEFINED
+    if (reg_list & (1 << 15)) {
+        if (!jit_state->cpu_state.TFlag) {
+            Memory::Write32(start_address, jit_state->cpu_state.Reg[15] + 8);
+        } else {
+            Memory::Write32(start_address, jit_state->cpu_state.Reg[15] + 4);
+        }
+    }
+}
+
+static void ExecuteSTMBE(u32 start_address, u16 reg_list, JitState* jit_state) {
+    for (int i = 0; i < 16; i++) {
+        const u16 bit = 1 << i;
+        if (reg_list & bit) {
+            Memory::Write32(start_address, Common::swap32(jit_state->cpu_state.Reg[i]));
+            start_address += 4;
+        }
+    }
+    // Reading R15 here is IMPLEMENTATION DEFINED
+    if (reg_list & (1 << 15)) {
+        if (!jit_state->cpu_state.TFlag) {
+            Memory::Write32(start_address, Common::swap32(jit_state->cpu_state.Reg[15] + 8));
+        } else {
+            Memory::Write32(start_address, Common::swap32(jit_state->cpu_state.Reg[15] + 4));
+        }
+    }
+}
+
+void JitX64::STM(Cond cond, bool P, bool U, bool W, ArmReg Rn_index, ArmRegList list) {
+    cond_manager.CompileCond((ConditionCode)cond);
+
+    ASSERT(list != 0, "UNPREDICTABLE");
+    if (W && (list & (1 << Rn_index)))
+        ASSERT_MSG((list & ((1 << Rn_index) - 1)) == 0, "UNPREDICTABLE");
+
+    // TODO: Optimize
+
+    LoadAndStoreMultiple_Helper(code, reg_alloc, P, U, W, Rn_index, list,
+        [this](){ CompileCallHost(!current.EFlag ? &ExecuteSTMLE : &ExecuteSTMBE); });
+
+    current.arm_pc += GetInstSize();
+}
+
+void JitX64::LDM_usr() { CompileInterpretInstruction(); }
+void JitX64::LDM_eret() { CompileInterpretInstruction(); }
+void JitX64::STM_usr() { CompileInterpretInstruction(); }
 
 }

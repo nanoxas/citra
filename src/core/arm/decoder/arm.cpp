@@ -114,7 +114,7 @@ static std::unique_ptr<Matcher> MakeMatcher(const char format[32], Function fn) 
     return std::unique_ptr<Matcher>(std::move(ret));
 }
 
-static const std::array<Instruction, 230> arm_instruction_table = {{
+static const std::array<Instruction, 220> arm_instruction_table = {{
     // Branch instructions
     { "BLX (immediate)",     MakeMatcher<2>("1111101hvvvvvvvvvvvvvvvvvvvvvvvv", &Visitor::BLX_imm)   }, // ARMv5
     { "BLX (register)",      MakeMatcher<2>("cccc000100101111111111110011mmmm", &Visitor::BLX_reg)   }, // ARMv5
@@ -266,21 +266,11 @@ static const std::array<Instruction, 230> arm_instruction_table = {{
     { "STRT (A2)",           MakeMatcher<0>("----0110-010---------------0----", &Visitor::STRT)      },
 
     // Load/Store Multiple instructions
-    { "LDMIA/LDMFD",         MakeMatcher<0>("----100010-1--------------------", &Visitor::LDM)       }, // all
-    { "LDMDA/LDMFA",         MakeMatcher<0>("----100000-1--------------------", &Visitor::LDM)       }, // all
-    { "LDMDB/LDMEA",         MakeMatcher<0>("----100100-1--------------------", &Visitor::LDM)       }, // all
-    { "LDMIB/LDMED",         MakeMatcher<0>("----100110-1--------------------", &Visitor::LDM)       }, // all
-    { "LDM (exc ret)",       MakeMatcher<0>("----100--1-1----1---------------", &Visitor::LDM)       }, // all
-    { "LDM (usr reg)",       MakeMatcher<0>("----100--1-1----0---------------", &Visitor::LDM)       }, // all
-    { "POP",                 MakeMatcher<0>("----100010111101----------------", &Visitor::LDM)       }, // all
-    { "POP",                 MakeMatcher<0>("----010010011101----000000000100", &Visitor::LDM)       }, // all
-    { "PUSH",                MakeMatcher<0>("----100100101101----------------", &Visitor::STM)       }, // all
-    { "PUSH",                MakeMatcher<0>("----010100101101----000000000100", &Visitor::STM)       }, // all
-    { "STMIA/STMEA",         MakeMatcher<0>("----100010-0--------------------", &Visitor::STM)       }, // all
-    { "STMDA/STMED",         MakeMatcher<0>("----100000-0--------------------", &Visitor::STM)       }, // all
-    { "STMDB/STMFD",         MakeMatcher<0>("----100100-0--------------------", &Visitor::STM)       }, // all
-    { "STMIB/STMFA",         MakeMatcher<0>("----100110-0--------------------", &Visitor::STM)       }, // all
-    { "STMIB (usr reg)",     MakeMatcher<0>("----100--100--------------------", &Visitor::STM)       }, // all
+    { "LDM",                 MakeMatcher<6>("cccc100pu0w1nnnnxxxxxxxxxxxxxxxx", &Visitor::LDM)       }, // all
+    { "LDM (usr reg)",       MakeMatcher<0>("----100--101--------------------", &Visitor::LDM_usr)   }, // all
+    { "LDM (exce ret)",      MakeMatcher<0>("----100--1-1----1---------------", &Visitor::LDM_eret)  }, // all
+    { "STM",                 MakeMatcher<6>("cccc100pu0w0nnnnxxxxxxxxxxxxxxxx", &Visitor::STM)       }, // all
+    { "STM (usr reg)",       MakeMatcher<0>("----100--100--------------------", &Visitor::STM_usr)   }, // all
 
     // Miscellaneous instructions
     { "CLZ",                 MakeMatcher<0>("----000101101111----11110001----", &Visitor::CLZ)       }, // ARMv5

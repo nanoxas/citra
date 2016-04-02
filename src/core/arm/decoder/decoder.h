@@ -58,6 +58,7 @@ using Imm11 = u32;
 using Imm12 = u32;
 using Imm24 = u32;
 using Register = int;
+using RegisterList = u16;
 using ShiftType = int;
 
 class Visitor {
@@ -188,8 +189,11 @@ public:
     virtual void STRT() = 0;
 
     // Load/Store multiple instructions
-    virtual void LDM() = 0;
-    virtual void STM() = 0;
+    virtual void LDM(Cond cond, bool P, bool U, bool W, Register Rn, RegisterList list) = 0;
+    virtual void LDM_usr() = 0;
+    virtual void LDM_eret() = 0;
+    virtual void STM(Cond cond, bool P, bool U, bool W, Register Rn, RegisterList list) = 0;
+    virtual void STM_usr() = 0;
 
     // Miscellaneous instructions
     virtual void CLZ() = 0;
