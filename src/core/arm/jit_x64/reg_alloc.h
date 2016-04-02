@@ -168,6 +168,13 @@ public:
      */
     void FlushEverything();
 
+    /**
+     * Flush only those registers that are caller-saved in the ABI.
+     * All registers must be unlocked except those locked by LockX64.
+     * (We assume you know what you're doing if you've manually locked registers.)
+     */
+    void FlushABICallerSaved();
+
     // Debug:
 
     void AssertNoLocked();

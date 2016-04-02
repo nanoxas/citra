@@ -10,6 +10,7 @@ if(ARCHITECTURE_x86_64)
             core/arm/jit_x64/fuzz_arm_branch.cpp
             core/arm/jit_x64/fuzz_arm_common.cpp
             core/arm/jit_x64/fuzz_arm_data_processing.cpp
+            core/arm/jit_x64/fuzz_arm_load_store.cpp
             core/arm/jit_x64/fuzz_thumb.cpp
             )
 

@@ -94,7 +94,12 @@ private:
     Gen::OpArg MJitStateExclusiveTag();
     Gen::OpArg MJitStateExclusiveState();
 
-    u32 GetReg15Value() const { return static_cast<u32>((current.arm_pc & ~0x1) + GetInstSize() * 2); }
+    u32 GetReg15Value() const {
+        return (current.arm_pc & ~0x1) + static_cast<u32>(GetInstSize() * 2);
+    }
+    u32 GetReg15Value_WordAligned() const {
+        return (current.arm_pc & ~0x3) + static_cast<u32>(GetInstSize() * 2);
+    }
 
     void UpdateFlagsZVCN() {
         cond_manager.FlagsDirty();
@@ -139,6 +144,9 @@ private:
 
 private:
     void CompileInterpretInstruction();
+    void CompileCallHost(const void* const fn);
+    /// dest must be a temporary that contains a copy of the value of Rm
+    void CompileShifter_imm(Gen::X64Reg dest, ArmImm5 imm5, ShiftType shift, bool do_shifter_carry_out);
 
     // Branch instructions
     void B(Cond cond, ArmImm24 imm24) override;
@@ -158,8 +166,8 @@ private:
     void STC() override;
 
     // Data processing instructions
-    void CompileDataProcessingHelper(ArmReg Rn_index, ArmReg Rd_index, std::function<void(Gen::X64Reg)> body);
-    void CompileDataProcessingHelper_Reverse(ArmReg Rn_index, ArmReg Rd_index, std::function<void(Gen::X64Reg)> body);
+    void CompileDataProcessingHelper(ArmReg Rn, ArmReg Rd, std::function<void(Gen::X64Reg)> body);
+    void CompileDataProcessingHelper_Reverse(ArmReg Rn, ArmReg Rd, std::function<void(Gen::X64Reg)> body);
     Gen::X64Reg CompileDataProcessingHelper_reg(ArmImm5 imm5, ShiftType shift, ArmReg Rm, bool do_shifter_carry_out);
     Gen::X64Reg CompileDataProcessingHelper_rsr(ArmReg Rs, ShiftType shift, ArmReg Rm, bool do_shifter_carry_out);
     void ADC_imm(Cond cond, bool S, ArmReg Rn, ArmReg Rd, int rotate, ArmImm8 imm8) override;
@@ -238,32 +246,41 @@ private:
     void YIELD() override;
 
     // Load/Store instructions
-    void LDR_imm() override;
-    void LDR_reg() override;
-    void LDRB_imm() override;
-    void LDRB_reg() override;
+    void LoadAndStoreWordOrUnsignedByte_Immediate_Helper(Gen::X64Reg dest, bool U, ArmReg Rn, ArmImm12 imm12);
+    void LoadAndStoreWordOrUnsignedByte_Register_Helper(Gen::X64Reg dest, bool U, ArmReg Rn, ArmReg Rm);
+    void LoadAndStoreWordOrUnsignedByte_ScaledRegister_Helper(Gen::X64Reg dest, bool U, ArmReg Rn, ArmImm5 imm5, ShiftType shift, ArmReg Rm);
+    void LoadAndStoreWordOrUnsignedByte_ImmediateOffset(Gen::X64Reg dest, bool U, ArmReg Rn, ArmImm12 imm12);
+    void LoadAndStoreWordOrUnsignedByte_ImmediatePreIndexed(Gen::X64Reg dest, bool U, ArmReg Rn_index, ArmImm12 imm12);
+    void LoadAndStoreWordOrUnsignedByte_ImmediatePostIndexed(Gen::X64Reg dest, bool U, ArmReg Rn_index, ArmImm12 imm12);
+    void LoadAndStoreWordOrUnsignedByte_ScaledRegisterOffset(Gen::X64Reg dest, bool U, ArmReg Rn, ArmImm5 imm5, ShiftType shift, ArmReg Rm);
+    void LoadAndStoreWordOrUnsignedByte_ScaledRegisterPreIndexed(Gen::X64Reg dest, bool U, ArmReg Rn, ArmImm5 imm5, ShiftType shift, ArmReg Rm);
+    void LoadAndStoreWordOrUnsignedByte_ScaledRegisterPostIndexed(Gen::X64Reg dest, bool U, ArmReg Rn, ArmImm5 imm5, ShiftType shift, ArmReg Rm);
+    void LDR_imm(Cond cond, bool P, bool U, bool W, ArmReg Rn, ArmReg Rd, ArmImm11 imm11) override;
+    void LDR_reg(Cond cond, bool P, bool U, bool W, ArmReg Rn, ArmReg Rd, ArmImm5 imm5, ShiftType shift, ArmReg Rm) override;
+    void LDRB_imm(Cond cond, bool P, bool U, bool W, ArmReg Rn, ArmReg Rd, ArmImm11 imm11) override;
+    void LDRB_reg(Cond cond, bool P, bool U, bool W, ArmReg Rn, ArmReg Rd, ArmImm5 imm5, ShiftType shift, ArmReg Rm) override;
     void LDRBT() override;
-    void LDRD_imm() override;
-    void LDRD_reg() override;
-    void LDRH_imm() override;
-    void LDRH_reg() override;
+    void LDRD_imm(Cond cond, bool P, bool U, bool W, ArmReg Rn, ArmReg Rd, ArmImm4 imm8a, ArmImm4 imm8b) override;
+    void LDRD_reg(Cond cond, bool P, bool U, bool W, ArmReg Rn, ArmReg Rd, ArmReg Rm) override;
+    void LDRH_imm(Cond cond, bool P, bool U, bool W, ArmReg Rn, ArmReg Rd, ArmImm4 imm8a, ArmImm4 imm8b) override;
+    void LDRH_reg(Cond cond, bool P, bool U, bool W, ArmReg Rn, ArmReg Rd, ArmReg Rm) override;
     void LDRHT() override;
-    void LDRSB_imm() override;
-    void LDRSB_reg() override;
+    void LDRSB_imm(Cond cond, bool P, bool U, bool W, ArmReg Rn, ArmReg Rd, ArmImm4 imm8a, ArmImm4 imm8b) override;
+    void LDRSB_reg(Cond cond, bool P, bool U, bool W, ArmReg Rn, ArmReg Rd, ArmReg Rm) override;
     void LDRSBT() override;
-    void LDRSH_imm() override;
-    void LDRSH_reg() override;
+    void LDRSH_imm(Cond cond, bool P, bool U, bool W, ArmReg Rn, ArmReg Rd, ArmImm4 imm8a, ArmImm4 imm8b) override;
+    void LDRSH_reg(Cond cond, bool P, bool U, bool W, ArmReg Rn, ArmReg Rd, ArmReg Rm) override;
     void LDRSHT() override;
     void LDRT() override;
-    void STR_imm() override;
-    void STR_reg() override;
-    void STRB_imm() override;
-    void STRB_reg() override;
+    void STR_imm(Cond cond, bool P, bool U, bool W, ArmReg Rn, ArmReg Rd, ArmImm11 imm11) override;
+    void STR_reg(Cond cond, bool P, bool U, bool W, ArmReg Rn, ArmReg Rd, ArmImm5 imm5, ShiftType shift, ArmReg Rm) override;
+    void STRB_imm(Cond cond, bool P, bool U, bool W, ArmReg Rn, ArmReg Rd, ArmImm11 imm11) override;
+    void STRB_reg(Cond cond, bool P, bool U, bool W, ArmReg Rn, ArmReg Rd, ArmImm5 imm5, ShiftType shift, ArmReg Rm) override;
     void STRBT() override;
-    void STRD_imm() override;
-    void STRD_reg() override;
-    void STRH_imm() override;
-    void STRH_reg() override;
+    void STRD_imm(Cond cond, bool P, bool U, bool W, ArmReg Rn, ArmReg Rd, ArmImm4 imm8a, ArmImm4 imm8b) override;
+    void STRD_reg(Cond cond, bool P, bool U, bool W, ArmReg Rn, ArmReg Rd, ArmReg Rm) override;
+    void STRH_imm(Cond cond, bool P, bool U, bool W, ArmReg Rn, ArmReg Rd, ArmImm4 imm8a, ArmImm4 imm8b) override;
+    void STRH_reg(Cond cond, bool P, bool U, bool W, ArmReg Rn, ArmReg Rd, ArmReg Rm) override;
     void STRHT() override;
     void STRT() override;
 

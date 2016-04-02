@@ -159,6 +159,24 @@ void JitX64::CompileSingleThumbInstruction() {
     }
 }
 
+void JitX64::CompileCallHost(const void* const fn) {
+    // There is no need to setup the stack as the stored RSP has already been properly aligned.
+
+    reg_alloc.FlushABICallerSaved();
+
+    ASSERT(reg_alloc.JitStateReg() != RSP);
+    code->MOV(64, R(RSP), MJitStateHostReturnRSP());
+
+    const u64 distance = reinterpret_cast<const u64>(fn) - (reinterpret_cast<const u64>(code->GetCodePtr()) + 5);
+    if (distance >= 0x0000000080000000ULL && distance < 0xFFFFFFFF80000000ULL) {
+        // Far call
+        code->MOV(64, R(RAX), ImmPtr(fn));
+        code->CALLptr(R(RAX));
+    } else {
+        code->CALL(fn);
+    }
+}
+
 // Convenience functions:
 // We static_assert types because anything that calls these functions makes those assumptions.
 // If the types of the variables are changed please update all code that calls these functions.

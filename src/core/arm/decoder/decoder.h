@@ -51,9 +51,11 @@ public:
 };
 
 using Cond = u8;
+using Imm4 = u32;
 using Imm5 = u32;
 using Imm8 = u32;
 using Imm11 = u32;
+using Imm12 = u32;
 using Imm24 = u32;
 using Register = int;
 using ShiftType = int;
@@ -156,32 +158,32 @@ public:
     virtual void YIELD() = 0;
 
     // Load/Store instructions
-    virtual void LDR_imm() = 0;
-    virtual void LDR_reg() = 0;
-    virtual void LDRB_imm() = 0;
-    virtual void LDRB_reg() = 0;
+    virtual void LDR_imm(Cond cond, bool P, bool U, bool W, Register Rn, Register Rd, Imm12 imm12) = 0;
+    virtual void LDR_reg(Cond cond, bool P, bool U, bool W, Register Rn, Register Rd, Imm5 imm5, ShiftType shift, Register Rm) = 0;
+    virtual void LDRB_imm(Cond cond, bool P, bool U, bool W, Register Rn, Register Rd, Imm12 imm12) = 0;
+    virtual void LDRB_reg(Cond cond, bool P, bool U, bool W, Register Rn, Register Rd, Imm5 imm5, ShiftType shift, Register Rm) = 0;
     virtual void LDRBT() = 0;
-    virtual void LDRD_imm() = 0;
-    virtual void LDRD_reg() = 0;
-    virtual void LDRH_imm() = 0;
-    virtual void LDRH_reg() = 0;
+    virtual void LDRD_imm(Cond cond, bool P, bool U, bool W, Register Rn, Register Rd, Imm4 imm8a, Imm4 imm8b) = 0;
+    virtual void LDRD_reg(Cond cond, bool P, bool U, bool W, Register Rn, Register Rd, Register Rm) = 0;
+    virtual void LDRH_imm(Cond cond, bool P, bool U, bool W, Register Rn, Register Rd, Imm4 imm8a, Imm4 imm8b) = 0;
+    virtual void LDRH_reg(Cond cond, bool P, bool U, bool W, Register Rn, Register Rd, Register Rm) = 0;
     virtual void LDRHT() = 0;
-    virtual void LDRSB_imm() = 0;
-    virtual void LDRSB_reg() = 0;
+    virtual void LDRSB_imm(Cond cond, bool P, bool U, bool W, Register Rn, Register Rd, Imm4 imm8a, Imm4 imm8b) = 0;
+    virtual void LDRSB_reg(Cond cond, bool P, bool U, bool W, Register Rn, Register Rd, Register Rm) = 0;
     virtual void LDRSBT() = 0;
-    virtual void LDRSH_imm() = 0;
-    virtual void LDRSH_reg() = 0;
+    virtual void LDRSH_imm(Cond cond, bool P, bool U, bool W, Register Rn, Register Rd, Imm4 imm8a, Imm4 imm8b) = 0;
+    virtual void LDRSH_reg(Cond cond, bool P, bool U, bool W, Register Rn, Register Rd, Register Rm) = 0;
     virtual void LDRSHT() = 0;
     virtual void LDRT() = 0;
-    virtual void STR_imm() = 0;
-    virtual void STR_reg() = 0;
-    virtual void STRB_imm() = 0;
-    virtual void STRB_reg() = 0;
+    virtual void STR_imm(Cond cond, bool P, bool U, bool W, Register Rn, Register Rd, Imm12 imm12) = 0;
+    virtual void STR_reg(Cond cond, bool P, bool U, bool W, Register Rn, Register Rd, Imm5 imm5, ShiftType shift, Register Rm) = 0;
+    virtual void STRB_imm(Cond cond, bool P, bool U, bool W, Register Rn, Register Rd, Imm12 imm12) = 0;
+    virtual void STRB_reg(Cond cond, bool P, bool U, bool W, Register Rn, Register Rd, Imm5 imm5, ShiftType shift, Register Rm) = 0;
     virtual void STRBT() = 0;
-    virtual void STRD_imm() = 0;
-    virtual void STRD_reg() = 0;
-    virtual void STRH_imm() = 0;
-    virtual void STRH_reg() = 0;
+    virtual void STRD_imm(Cond cond, bool P, bool U, bool W, Register Rn, Register Rd, Imm4 imm8a, Imm4 imm8b) = 0;
+    virtual void STRD_reg(Cond cond, bool P, bool U, bool W, Register Rn, Register Rd, Register Rm) = 0;
+    virtual void STRH_imm(Cond cond, bool P, bool U, bool W, Register Rn, Register Rd, Imm4 imm8a, Imm4 imm8b) = 0;
+    virtual void STRH_reg(Cond cond, bool P, bool U, bool W, Register Rn, Register Rd, Register Rm) = 0;
     virtual void STRHT() = 0;
     virtual void STRT() = 0;
 

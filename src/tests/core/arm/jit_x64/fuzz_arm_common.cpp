@@ -4,6 +4,8 @@
 
 #include <cstdio>
 #include <cstring>
+#include <memory>
+#include <vector>
 
 #include <catch.hpp>
 
@@ -15,6 +17,7 @@
 #include "core/arm/jit_x64/interface.h"
 #include "core/core.h"
 #include "core/memory_setup.h"
+#include "core/mmio.h"
 
 #include "tests/core/arm/jit_x64/fuzz_arm_common.h"
 #include "tests/core/arm/jit_x64/rand_int.h"
@@ -42,16 +45,53 @@ std::pair<u32, u32> FromBitString32(const char* str) {
     return{ bits, mask };
 }
 
+class TestMemory final : public Memory::MMIORegion {
+public:
+    static constexpr size_t CODE_MEMORY_SIZE = 4096 * 2;
+    std::array<u32, CODE_MEMORY_SIZE> code_mem{};
+
+    u8 Read8(VAddr addr) override { return addr; }
+    u16 Read16(VAddr addr) override { return addr; }
+    u32 Read32(VAddr addr) override {
+        if (addr < CODE_MEMORY_SIZE) {
+            return code_mem[addr/4];
+        } else {
+            return addr;
+        }
+    }
+    u64 Read64(VAddr addr) override { return addr; }
+
+    struct WriteRecord {
+        WriteRecord(size_t size, VAddr addr, u64 data) : size(size), addr(addr), data(data) {}
+        size_t size;
+        VAddr addr;
+        u64 data;
+        bool operator==(const WriteRecord& o) const {
+            return std::tie(size, addr, data) == std::tie(o.size, o.addr, o.data);
+        }
+    };
+
+    std::vector<WriteRecord> recording;
+
+    void Write8(VAddr addr, u8 data) override { recording.emplace_back(1, addr, data); }
+    void Write16(VAddr addr, u16 data) override { recording.emplace_back(2, addr, data); }
+    void Write32(VAddr addr, u32 data) override { recording.emplace_back(4, addr, data); }
+    void Write64(VAddr addr, u64 data) override { recording.emplace_back(8, addr, data); }
+};
+
 void FuzzJit(const int instruction_count, const int instructions_to_execute_count, const int run_count, const std::function<u32()> instruction_generator) {
     // Init core
     Core::Init();
     SCOPE_EXIT({ Core::Shutdown(); });
 
     // Prepare memory
-    constexpr size_t MEMORY_SIZE = 4096 * 2;
-    std::array<u8, MEMORY_SIZE> test_mem{};
-    Memory::MapMemoryRegion(0, MEMORY_SIZE, test_mem.data());
-    SCOPE_EXIT({ Memory::UnmapRegion(0, MEMORY_SIZE); });
+    std::shared_ptr<TestMemory> test_mem = std::make_unique<TestMemory>();
+    Memory::MapIoRegion(0x00000000, 0x80000000, test_mem);
+    Memory::MapIoRegion(0x80000000, 0x80000000, test_mem);
+    SCOPE_EXIT({
+        Memory::UnmapRegion(0x00000000, 0x80000000);
+        Memory::UnmapRegion(0x80000000, 0x80000000);
+    });
 
     // Prepare test subjects
     JitX64::ARM_Jit jit(PrivilegeMode::USER32MODE);
@@ -81,14 +121,18 @@ void FuzzJit(const int instruction_count, const int instructions_to_execute_coun
 
         for (int i = 0; i < instruction_count; i++) {
             u32 inst = instruction_generator();
-
-            Memory::Write32(i * 4, inst);
+            test_mem->code_mem[i] = inst;
         }
 
-        Memory::Write32(instruction_count * 4, 0xEAFFFFFE); // b +#0 // busy wait loop
+        test_mem->code_mem[instruction_count] = 0xEAFFFFFE; // b +#0 // busy wait loop
 
+        test_mem->recording.clear();
         interp.ExecuteInstructions(instructions_to_execute_count);
+        auto interp_mem_recording = test_mem->recording;
+
+        test_mem->recording.clear();
         jit.ExecuteInstructions(instructions_to_execute_count);
+        auto jit_mem_recording = test_mem->recording;
 
         bool pass = true;
 
@@ -96,6 +140,7 @@ void FuzzJit(const int instruction_count, const int instructions_to_execute_coun
         for (int i = 0; i <= 15; i++) {
             if (interp.GetReg(i) != jit.GetReg(i)) pass = false;
         }
+        if (interp_mem_recording != jit_mem_recording) pass = false;
 
         if (!pass) {
             printf("Failed at execution number %i\n", run_number);
@@ -112,6 +157,18 @@ void FuzzJit(const int instruction_count, const int instructions_to_execute_coun
             }
             printf("CPSR: %08x %08x %s\n", interp.GetCPSR(), jit.GetCPSR(), interp.GetCPSR() != jit.GetCPSR() ? "*" : "");
 
+            if (interp_mem_recording != jit_mem_recording) {
+                printf("memory write recording mismatch *\n");
+                size_t i = 0;
+                while (i < interp_mem_recording.size() && i < jit_mem_recording.size()) {
+                    if (i < interp_mem_recording.size())
+                        printf("interp: %i %08x %08x\n", interp_mem_recording[i].size, interp_mem_recording[i].addr, interp_mem_recording[i].data);
+                    if (i < jit_mem_recording.size())
+                        printf("jit   : %i %08x %08x\n", jit_mem_recording[i].size, jit_mem_recording[i].addr, jit_mem_recording[i].data);
+                    i++;
+                }
+            }
+
             printf("\nInterpreter walkthrough:\n");
             interp.ClearCache();
             interp.SetPC(0);
@@ -120,6 +177,7 @@ void FuzzJit(const int instruction_count, const int instructions_to_execute_coun
                 interp.SetReg(i, initial_regs[i]);
                 printf("%4i: %08x\n", i, interp.GetReg(i));
             }
+            test_mem->recording.clear();
             for (int inst = 0; inst < instruction_count; inst++) {
                 printf("%s\n", ARM_Disasm::Disassemble(inst * 4, Memory::Read32(inst * 4)).c_str());
                 interp.Step();

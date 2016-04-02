@@ -224,7 +224,7 @@ static const std::array<Instruction, 27> thumb_instruction_table = { {
         // LDR Rd, [PC, #]
         Register Rd = bits<8, 10>(instruction);
         u32 imm8 = bits<0, 7>(instruction);
-        v->LDR_imm();
+        v->LDR_imm(0xE, /*P=*/1, /*U=*/1, /*W=*/0, 15, Rd, imm8 << 2);
     })},
     { "load/store reg offset",   MakeMatcher("0101oooxxxxxxxxx", [](Visitor* v, u32 instruction) {
         u32 opcode = bits<9, 11>(instruction);
@@ -233,28 +233,28 @@ static const std::array<Instruction, 27> thumb_instruction_table = { {
         Register Rd = bits<0, 2>(instruction);
         switch (opcode) {
         case 0: // STR Rd, [Rn, Rm]
-            v->STR_reg();
+            v->STR_reg(0xE, /*P=*/1, /*U=*/1, /*W=*/0, Rn, Rd, 0, 0, Rm);
             break;
         case 1: // STRH Rd, [Rn, Rm]
-            v->STRH_reg();
+            v->STRH_reg(0xE, /*P=*/1, /*U=*/1, /*W=*/0, Rn, Rd, Rm);
             break;
         case 2: // STRB Rd, [Rn, Rm]
-            v->STRB_reg();
+            v->STRB_reg(0xE, /*P=*/1, /*U=*/1, /*W=*/0, Rn, Rd, 0, 0, Rm);
             break;
         case 3: // LDRSB Rd, [Rn, Rm]
-            v->LDRSB_reg();
+            v->LDRSB_reg(0xE, /*P=*/1, /*U=*/1, /*W=*/0, Rn, Rd, Rm);
             break;
         case 4: // LDR Rd, [Rn, Rm]
-            v->LDR_reg();
+            v->LDR_reg(0xE, /*P=*/1, /*U=*/1, /*W=*/0, Rn, Rd, 0, 0, Rm);
             break;
         case 5: // LDRH Rd, [Rn, Rm]
-            v->LDRH_reg();
+            v->LDRH_reg(0xE, /*P=*/1, /*U=*/1, /*W=*/0, Rn, Rd, Rm);
             break;
         case 6: // LDRB Rd, [Rn, Rm]
-            v->LDRB_reg();
+            v->LDRB_reg(0xE, /*P=*/1, /*U=*/1, /*W=*/0, Rn, Rd, 0, 0, Rm);
             break;
         case 7: // LDRSH Rd, [Rn, Rm]
-            v->LDRSH_reg();
+            v->LDRSH_reg(0xE, /*P=*/1, /*U=*/1, /*W=*/0, Rn, Rd, Rm);
             break;
         default:
             UNREACHABLE();
@@ -267,16 +267,16 @@ static const std::array<Instruction, 27> thumb_instruction_table = { {
         Register Rd = bits<0, 2>(instruction);
         switch (opc) {
         case 0: // STR Rd, [Rn, #offset]
-            v->STR_imm();
+            v->STR_imm(0xE, /*P=*/1, /*U=*/1, /*W=*/0, Rn, Rd, offset * 4);
             break;
         case 1: // LDR Rd, [Rn, #offset]
-            v->LDR_imm();
+            v->LDR_imm(0xE, /*P=*/1, /*U=*/1, /*W=*/0, Rn, Rd, offset * 4);
             break;
         case 2: // STRB Rd, [Rn, #offset]
-            v->STRB_imm();
+            v->STRB_imm(0xE, /*P=*/1, /*U=*/1, /*W=*/0, Rn, Rd, offset);
             break;
         case 3: // LDRB Rd, [Rn, #offset]
-            v->LDRB_imm();
+            v->LDRB_imm(0xE, /*P=*/1, /*U=*/1, /*W=*/0, Rn, Rd, offset);
             break;
         default:
             UNREACHABLE();
@@ -288,9 +288,9 @@ static const std::array<Instruction, 27> thumb_instruction_table = { {
         Register Rn = bits<3, 5>(instruction);
         Register Rd = bits<0, 2>(instruction);
         if (!L) { // STRH Rd, [Rn, #offset]
-            v->STRH_imm();
+            v->STRH_imm(0xE, /*P=*/1, /*U=*/1, /*W=*/0, Rn, Rd, (offset * 2) >> 4, (offset * 2) & 0xF);
         } else { // LDRH Rd, [Rn, #offset]
-            v->LDRH_imm();
+            v->LDRH_imm(0xE, /*P=*/1, /*U=*/1, /*W=*/0, Rn, Rd, (offset * 2) >> 4, (offset * 2) & 0xF);
         }
     })},
     { "load/store stack",        MakeMatcher("1001xxxxxxxxxxxx", [](Visitor* v, u32 instruction) {
@@ -298,9 +298,9 @@ static const std::array<Instruction, 27> thumb_instruction_table = { {
         Register Rd = bits<8, 10>(instruction);
         u32 offset = bits<0, 7>(instruction);
         if (!L) { // STR Rd, [SP, #offset]
-            v->STR_imm();
+            v->STR_imm(0xE, /*P=*/1, /*U=*/1, /*W=*/0, 13, Rd, offset * 4);
         } else { // LDR Rd, [SP, #offset]
-            v->LDR_imm();
+            v->LDR_imm(0xE, /*P=*/1, /*U=*/1, /*W=*/0, 13, Rd, offset * 4);
         }
     })},
     { "add to sp/pc",            MakeMatcher("1010oxxxxxxxxxxx", [](Visitor* v, u32 instruction) {

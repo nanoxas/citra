@@ -29,6 +29,10 @@ public:
 
         run_jit = this->GetCodePtr();
 
+        // This serves two purposes:
+        // 1. It saves all the registers we as a callee need to save.
+        // 2. It aligns the stack so that the code the JIT emits can assume
+        //    that the stack is appropriately aligned for CALLs.
         ABI_PushRegistersAndAdjustStack(ABI_ALL_CALLEE_SAVED, 8);
 
         MOV(64, MDisp(ABI_PARAM1, offsetof(JitX64::JitState, save_host_RSP)), R(RSP));

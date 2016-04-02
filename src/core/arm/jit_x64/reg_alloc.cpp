@@ -6,6 +6,7 @@
 #include <map>
 
 #include "common/assert.h"
+#include "common/x64/abi.h"
 
 #include "core/arm/jit_x64/reg_alloc.h"
 
@@ -81,9 +82,14 @@ void RegAlloc::FlushX64(Gen::X64Reg x64_reg) {
         arm_state.location = MJitStateCpuReg(state.arm_reg);
         break;
     }
-    case X64State::State::DirtyArmReg:
+    case X64State::State::DirtyArmReg: {
+        ArmState& arm_state = arm_gpr[state.arm_reg];
+        ASSERT(arm_state.location.IsSimpleReg());
+        ASSERT(arm_state.location.GetSimpleReg() == x64_reg);
         FlushArm(state.arm_reg);
+        ASSERT(state.state == X64State::State::Free);
         break;
+    }
     default:
         UNREACHABLE();
         break;
@@ -264,6 +270,23 @@ void RegAlloc::FlushEverything() {
         FlushX64(i.first);
         ASSERT(x64_state.state == X64State::State::Free);
     }
+}
+
+void RegAlloc::FlushABICallerSaved() {
+    for (auto i : x64_reg_to_index) {
+        if (ABI_ALL_CALLER_SAVED.m_val & (1 << i.first)) {
+            X64State& x64_state = x64_gpr[i.second];
+            if (x64_state.state != X64State::State::UserManuallyLocked) {
+                ASSERT(!x64_state.locked);
+                FlushX64(i.first);
+                ASSERT(x64_state.state == X64State::State::Free);
+            } else {
+                ASSERT(x64_state.locked);
+            }
+        }
+    }
+
+    ASSERT(!ABI_ALL_CALLER_SAVED[JitStateReg()]);
 }
 
 Gen::X64Reg RegAlloc::GetX64For(ArmReg arm_reg) {

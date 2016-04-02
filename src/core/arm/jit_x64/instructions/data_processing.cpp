@@ -61,11 +61,68 @@ void JitX64::CompileDataProcessingHelper_Reverse(ArmReg Rn_index, ArmReg Rd_inde
     }
 }
 
-X64Reg JitX64::CompileDataProcessingHelper_reg(ArmImm5 imm5, ShiftType shift, ArmReg Rm_index, bool do_shifter_carry_out) {
-    // Caller must call reg_alloc.UnlockTemp on return value.
+void JitX64::CompileShifter_imm(X64Reg dest, ArmImm5 imm5, ShiftType shift, bool do_shifter_carry_out) {
+    // dest must contain a copy of the value of Rm.
     // if do_shifter_carry_out,
     //    we output code that calculates and puts shifter_carry_out into MJitStateCFlag().
 
+    switch (shift) {
+    case 0b00: // Logical shift left by immediate
+        if (imm5 != 0) {
+            code->SHL(32, R(dest), Imm8(imm5));
+            if (do_shifter_carry_out) {
+                code->SETcc(CC_C, MJitStateCFlag());
+            }
+        }
+        return;
+    case 0b01: // Logical shift right by immediate
+        if (imm5 == 0) {
+            if (do_shifter_carry_out) {
+                code->BT(32, R(dest), Imm8(31));
+                code->SETcc(CC_C, MJitStateCFlag());
+            }
+            code->MOV(64, R(dest), Imm32(0));
+        } else {
+            code->SHR(32, R(dest), Imm8(imm5));
+            if (do_shifter_carry_out) {
+                code->SETcc(CC_C, MJitStateCFlag());
+            }
+        }
+        return;
+    case 0b10: // Arithmetic shift right by immediate
+        if (imm5 == 0) {
+            if (do_shifter_carry_out) {
+                code->BT(32, R(dest), Imm8(31));
+                code->SETcc(CC_C, MJitStateCFlag());
+            }
+            code->SAR(32, R(dest), Imm8(31));
+        } else {
+            code->SAR(32, R(dest), Imm8(imm5));
+            if (do_shifter_carry_out) {
+                code->SETcc(CC_C, MJitStateCFlag());
+            }
+        }
+        return;
+    case 0b11: // Rotate right by immediate
+        if (imm5 == 0) { //RRX
+            code->BT(8, MJitStateCFlag(), Imm8(0));
+            code->RCR(32, R(dest), Imm8(1));
+            if (do_shifter_carry_out) {
+                code->SETcc(CC_C, MJitStateCFlag());
+            }
+        } else {
+            code->ROR(32, R(dest), Imm8(imm5));
+            if (do_shifter_carry_out) {
+                code->SETcc(CC_C, MJitStateCFlag());
+            }
+        }
+        return;
+    }
+
+    UNREACHABLE();
+}
+
+X64Reg JitX64::CompileDataProcessingHelper_reg(ArmImm5 imm5, ShiftType shift, ArmReg Rm_index, bool do_shifter_carry_out) {
     X64Reg tmp = reg_alloc.AllocTemp();
 
     if (Rm_index != 15) {
@@ -80,60 +137,9 @@ X64Reg JitX64::CompileDataProcessingHelper_reg(ArmImm5 imm5, ShiftType shift, Ar
         cond_manager.FlagsDirty();
     }
 
-    switch (shift) {
-    case 0b00: // Logical shift left by immediate
-        if (imm5 != 0) {
-            code->SHL(32, R(tmp), Imm8(imm5));
-            if (do_shifter_carry_out) {
-                code->SETcc(CC_C, MJitStateCFlag());
-            }
-        }
-        return tmp;
-    case 0b01: // Logical shift right by immediate
-        if (imm5 == 0) {
-            if (do_shifter_carry_out) {
-                code->BT(32, R(tmp), Imm8(31));
-                code->SETcc(CC_C, MJitStateCFlag());
-            }
-            code->MOV(64, R(tmp), Imm32(0));
-        } else {
-            code->SHR(32, R(tmp), Imm8(imm5));
-            if (do_shifter_carry_out) {
-                code->SETcc(CC_C, MJitStateCFlag());
-            }
-        }
-        return tmp;
-    case 0b10: // Arithmetic shift right by immediate
-        if (imm5 == 0) {
-            if (do_shifter_carry_out) {
-                code->BT(32, R(tmp), Imm8(31));
-                code->SETcc(CC_C, MJitStateCFlag());
-            }
-            code->SAR(32, R(tmp), Imm8(31));
-        } else {
-            code->SAR(32, R(tmp), Imm8(imm5));
-            if (do_shifter_carry_out) {
-                code->SETcc(CC_C, MJitStateCFlag());
-            }
-        }
-        return tmp;
-    case 0b11: // Rotate right by immediate
-        if (imm5 == 0) { //RRX
-            code->BT(8, MJitStateCFlag(), Imm8(0));
-            code->RCR(32, R(tmp), Imm8(1));
-            if (do_shifter_carry_out) {
-                code->SETcc(CC_C, MJitStateCFlag());
-            }
-        } else {
-            code->ROR(32, R(tmp), Imm8(imm5));
-            if (do_shifter_carry_out) {
-                code->SETcc(CC_C, MJitStateCFlag());
-            }
-        }
-        return tmp;
-    }
+    CompileShifter_imm(tmp, imm5, shift, do_shifter_carry_out);
 
-    UNREACHABLE();
+    return tmp;
 }
 
 X64Reg JitX64::CompileDataProcessingHelper_rsr(ArmReg Rs_index, ShiftType shift, ArmReg Rm_index, bool do_shifter_carry_out) {

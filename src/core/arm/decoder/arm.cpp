@@ -228,38 +228,38 @@ static const std::array<Instruction, 230> arm_instruction_table = {{
     { "SWP",                 MakeMatcher<0>("----00010-00--------00001001----", &Visitor::SWP)       }, // ARMv2S
 
     // Load/Store instructions
-    { "LDR (imm)",           MakeMatcher<0>("----010--0-1--------------------", &Visitor::LDR_imm)   },
-    { "LDR (reg)",           MakeMatcher<0>("----011--0-1---------------0----", &Visitor::LDR_reg)   },
-    { "LDRB (imm)",          MakeMatcher<0>("----010--1-1--------------------", &Visitor::LDRB_imm)  },
-    { "LDRB (reg)",          MakeMatcher<0>("----011--1-1---------------0----", &Visitor::LDRB_reg)  },
+    { "LDR (imm)",           MakeMatcher<7>("cccc010pu0w1nnnnddddvvvvvvvvvvvv", &Visitor::LDR_imm)   },
+    { "LDR (reg)",           MakeMatcher<9>("cccc011pu0w1nnnnddddvvvvvrr0mmmm", &Visitor::LDR_reg)   },
+    { "LDRB (imm)",          MakeMatcher<7>("cccc010pu1w1nnnnddddvvvvvvvvvvvv", &Visitor::LDRB_imm)  },
+    { "LDRB (reg)",          MakeMatcher<9>("cccc011pu1w1nnnnddddvvvvvrr0mmmm", &Visitor::LDRB_reg)  },
     { "LDRBT (A1)",          MakeMatcher<0>("----0100-111--------------------", &Visitor::LDRBT)     },
     { "LDRBT (A2)",          MakeMatcher<0>("----0110-111---------------0----", &Visitor::LDRBT)     },
-    { "LDRD (imm)",          MakeMatcher<0>("----000--1-0------------1101----", &Visitor::LDRD_imm)  }, // ARMv5E
-    { "LDRD (reg)",          MakeMatcher<0>("----000--0-0--------00001101----", &Visitor::LDRD_reg)  }, // ARMv5E
-    { "LDRH (imm)",          MakeMatcher<0>("----000--1-1------------1011----", &Visitor::LDRH_imm)  },
-    { "LDRH (reg)",          MakeMatcher<0>("----000--0-1--------00001011----", &Visitor::LDRH_reg)  },
+    { "LDRD (imm)",          MakeMatcher<8>("cccc000pu1w0nnnnddddvvvv1101vvvv", &Visitor::LDRD_imm)  }, // ARMv5E
+    { "LDRD (reg)",          MakeMatcher<7>("cccc000pu0w0nnnndddd00001101mmmm", &Visitor::LDRD_reg)  }, // ARMv5E
+    { "LDRH (imm)",          MakeMatcher<8>("cccc000pu1w1nnnnddddvvvv1011vvvv", &Visitor::LDRH_imm)  },
+    { "LDRH (reg)",          MakeMatcher<7>("cccc000pu0w1nnnndddd00001011mmmm", &Visitor::LDRH_reg)  },
     { "LDRHT (A1)",          MakeMatcher<0>("----0000-111------------1011----", &Visitor::LDRHT)     },
     { "LDRHT (A2)",          MakeMatcher<0>("----0000-011--------00001011----", &Visitor::LDRHT)     },
-    { "LDRSB (imm)",         MakeMatcher<0>("----000--1-1------------1101----", &Visitor::LDRSB_imm) },
-    { "LDRSB (reg)",         MakeMatcher<0>("----000--0-1--------00001101----", &Visitor::LDRSB_reg) },
+    { "LDRSB (imm)",         MakeMatcher<8>("cccc000pu1w1nnnnddddvvvv1101vvvv", &Visitor::LDRSB_imm) },
+    { "LDRSB (reg)",         MakeMatcher<7>("cccc000pu0w1nnnndddd00001101mmmm", &Visitor::LDRSB_reg) },
     { "LDRSBT (A1)",         MakeMatcher<0>("----0000-111------------1101----", &Visitor::LDRSBT)    },
     { "LDRSBT (A2)",         MakeMatcher<0>("----0000-011--------00001101----", &Visitor::LDRSBT)    },
-    { "LDRSH (imm)",         MakeMatcher<0>("----000--1-1------------1111----", &Visitor::LDRSH_imm) },
-    { "LDRSH (reg)",         MakeMatcher<0>("----000--0-1--------00001111----", &Visitor::LDRSH_reg) },
+    { "LDRSH (imm)",         MakeMatcher<8>("cccc000pu1w1nnnnddddvvvv1111vvvv", &Visitor::LDRSH_imm) },
+    { "LDRSH (reg)",         MakeMatcher<7>("cccc000pu0w1nnnndddd00001111mmmm", &Visitor::LDRSH_reg) },
     { "LDRSHT (A1)",         MakeMatcher<0>("----0000-111------------1111----", &Visitor::LDRSHT)    },
     { "LDRSHT (A2)",         MakeMatcher<0>("----0000-011--------00001111----", &Visitor::LDRSHT)    },
     { "LDRT (A1)",           MakeMatcher<0>("----0100-011--------------------", &Visitor::LDRT)      },
     { "LDRT (A2)",           MakeMatcher<0>("----0110-011---------------0----", &Visitor::LDRT)      },
-    { "STR (imm)",           MakeMatcher<0>("----010--0-0--------------------", &Visitor::STR_imm)   },
-    { "STR (reg)",           MakeMatcher<0>("----011--0-0---------------0----", &Visitor::STR_reg)   },
-    { "STRB (imm)",          MakeMatcher<0>("----010--1-0--------------------", &Visitor::STRB_imm)  },
-    { "STRB (reg)",          MakeMatcher<0>("----011--1-0---------------0----", &Visitor::STRB_reg)  },
+    { "STR (imm)",           MakeMatcher<7>("cccc010pu0w0nnnnddddvvvvvvvvvvvv", &Visitor::STR_imm)   },
+    { "STR (reg)",           MakeMatcher<9>("cccc011pu0w0nnnnddddvvvvvrr0mmmm", &Visitor::STR_reg)   },
+    { "STRB (imm)",          MakeMatcher<7>("cccc010pu1w0nnnnddddvvvvvvvvvvvv", &Visitor::STRB_imm)  },
+    { "STRB (reg)",          MakeMatcher<9>("cccc011pu1w0nnnnddddvvvvvrr0mmmm", &Visitor::STRB_reg)  },
     { "STRBT (A1)",          MakeMatcher<0>("----0100-110--------------------", &Visitor::STRBT)     },
     { "STRBT (A2)",          MakeMatcher<0>("----0110-110---------------0----", &Visitor::STRBT)     },
-    { "STRD (imm)",          MakeMatcher<0>("----000--1-0------------1111----", &Visitor::STRD_imm)  }, // ARMv5E
-    { "STRD (reg)",          MakeMatcher<0>("----000--0-0--------00001111----", &Visitor::STRD_reg)  }, // ARMv5E
-    { "STRH (imm)",          MakeMatcher<0>("----000--1-0------------1011----", &Visitor::STRH_imm)  },
-    { "STRH (reg)",          MakeMatcher<0>("----000--0-0--------00001011----", &Visitor::STRH_reg)  },
+    { "STRD (imm)",          MakeMatcher<8>("cccc000pu1w0nnnnddddvvvv1111vvvv", &Visitor::STRD_imm)  }, // ARMv5E
+    { "STRD (reg)",          MakeMatcher<7>("cccc000pu0w0nnnndddd00001111mmmm", &Visitor::STRD_reg)  }, // ARMv5E
+    { "STRH (imm)",          MakeMatcher<8>("cccc000pu1w0nnnnddddvvvv1011vvvv", &Visitor::STRH_imm)  },
+    { "STRH (reg)",          MakeMatcher<7>("cccc000pu0w0nnnndddd00001011mmmm", &Visitor::STRH_reg)  },
     { "STRHT (A1)",          MakeMatcher<0>("----0000-110------------1011----", &Visitor::STRHT)     },
     { "STRHT (A2)",          MakeMatcher<0>("----0000-010--------00001011----", &Visitor::STRHT)     },
     { "STRT (A1)",           MakeMatcher<0>("----0100-010--------------------", &Visitor::STRT)      },

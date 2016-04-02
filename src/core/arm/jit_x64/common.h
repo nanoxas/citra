@@ -12,9 +12,11 @@
 namespace JitX64 {
 
 using ArmReg = ArmDecoder::Register;
+using ArmImm4 = ArmDecoder::Imm4;
 using ArmImm5 = ArmDecoder::Imm5;
 using ArmImm8 = ArmDecoder::Imm8;
 using ArmImm11 = ArmDecoder::Imm11;
+using ArmImm12 = ArmDecoder::Imm12;
 using ArmImm24 = ArmDecoder::Imm24;
 using Cond = ArmDecoder::Cond;
 using ShiftType = ArmDecoder::ShiftType;
