@@ -56,4 +56,4 @@
 
 #define ABI_ALL_CALLEE_SAVED (~ABI_ALL_CALLER_SAVED)
 
-#define ABI_RETURN RAX
+#define ABI_RETURN ::Gen::RAX

@@ -224,7 +224,7 @@ static const std::array<Instruction, 27> thumb_instruction_table = { {
         // LDR Rd, [PC, #]
         Register Rd = bits<8, 10>(instruction);
         u32 imm8 = bits<0, 7>(instruction);
-        v->LDR_imm(0xE, /*P=*/1, /*U=*/1, /*W=*/0, 15, Rd, imm8 << 2);
+        v->LDR_imm(0xE, /*P=*/1, /*U=*/1, /*W=*/0, 15, Rd, imm8 * 4);
     })},
     { "load/store reg offset",   MakeMatcher("0101oooxxxxxxxxx", [](Visitor* v, u32 instruction) {
         u32 opcode = bits<9, 11>(instruction);
@@ -404,7 +404,7 @@ static const std::array<Instruction, 27> thumb_instruction_table = { {
         if (!L) { // STMIA Rn!, { reglist }
             v->STM(0xE, /*P=*/0, /*U=*/1, /*W=*/1, Rn, reglist);
         } else { // LDMIA Rn!, { reglist }
-            bool w = reglist & (1 << Rn);
+            bool w = (reglist & (1 << Rn)) == 0;
             v->LDM(0xE, /*P=*/0, /*U=*/1, /*W=*/w, Rn, reglist);
         }
     })},

@@ -121,10 +121,14 @@ void RegAlloc::FlushArm(ArmReg arm_reg) {
     ASSERT(arm_reg >= 0 && arm_reg <= 15);
 
     ArmState& arm_state = arm_gpr[arm_reg];
+    ASSERT(!arm_state.locked);
+    if (!arm_state.location.IsSimpleReg()) {
+        return;
+    }
+
     Gen::X64Reg x64_reg = GetX64For(arm_reg);
     X64State& x64_state = x64_gpr[x64_reg_to_index.at(x64_reg)];
 
-    ASSERT(!arm_state.locked);
     ASSERT(!x64_state.locked);
     ASSERT(x64_state.state == X64State::State::CleanArmReg || x64_state.state == X64State::State::DirtyArmReg);
     ASSERT(x64_state.arm_reg == arm_reg);

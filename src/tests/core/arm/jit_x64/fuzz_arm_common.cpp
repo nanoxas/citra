@@ -4,6 +4,7 @@
 
 #include <cstdio>
 #include <cstring>
+#include <inttypes.h>
 #include <memory>
 #include <vector>
 
@@ -85,7 +86,7 @@ void FuzzJit(const int instruction_count, const int instructions_to_execute_coun
     SCOPE_EXIT({ Core::Shutdown(); });
 
     // Prepare memory
-    std::shared_ptr<TestMemory> test_mem = std::make_unique<TestMemory>();
+    std::shared_ptr<TestMemory> test_mem = std::make_shared<TestMemory>();
     Memory::MapIoRegion(0x00000000, 0x80000000, test_mem);
     Memory::MapIoRegion(0x80000000, 0x80000000, test_mem);
     SCOPE_EXIT({
@@ -162,9 +163,9 @@ void FuzzJit(const int instruction_count, const int instructions_to_execute_coun
                 size_t i = 0;
                 while (i < interp_mem_recording.size() || i < jit_mem_recording.size()) {
                     if (i < interp_mem_recording.size())
-                        printf("interp: %i %08x %08x\n", interp_mem_recording[i].size, interp_mem_recording[i].addr, interp_mem_recording[i].data);
+                        printf("interp: %zu %08x %08" PRIx64 "\n", interp_mem_recording[i].size, interp_mem_recording[i].addr, interp_mem_recording[i].data);
                     if (i < jit_mem_recording.size())
-                        printf("jit   : %i %08x %08x\n", jit_mem_recording[i].size, jit_mem_recording[i].addr, jit_mem_recording[i].data);
+                        printf("jit   : %zu %08x %08" PRIx64 "\n", jit_mem_recording[i].size, jit_mem_recording[i].addr, jit_mem_recording[i].data);
                     i++;
                 }
             }

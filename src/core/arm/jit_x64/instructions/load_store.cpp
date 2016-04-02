@@ -864,13 +864,13 @@ static void LoadAndStoreMultiple_DecrementAfter(XEmitter* code, RegAlloc& reg_al
 }
 
 static void LoadAndStoreMultiple_DecrementBefore(XEmitter* code, RegAlloc& reg_alloc, bool W, ArmReg Rn_index, ArmRegList list, std::function<void()> call) {
-    if (W && (list & (1 << Rn_index))) {
+    if (W && !(list & (1 << Rn_index))) {
         X64Reg Rn = reg_alloc.BindArmForReadWrite(Rn_index);
         code->SUB(32, R(Rn), Imm32(4 * Common::CountSetBits(list)));
         code->MOV(32, R(ABI_PARAM1), R(Rn));
         reg_alloc.UnlockArm(Rn_index);
         call();
-    } else if (W && (list & (1 << Rn_index))) {
+    } else if (W) {
         X64Reg Rn = reg_alloc.BindArmForReadWrite(Rn_index);
         code->MOV(32, R(ABI_PARAM1), R(Rn));
         code->SUB(32, R(ABI_PARAM1), Imm32(4 * Common::CountSetBits(list)));
@@ -897,6 +897,12 @@ static void LoadAndStoreMultiple_Helper(XEmitter* code, RegAlloc& reg_alloc, boo
     reg_alloc.LockX64(ABI_PARAM2);
     reg_alloc.FlushX64(ABI_PARAM3);
     reg_alloc.LockX64(ABI_PARAM3);
+
+    for (int i = 0; i < 15; i++) {
+        if (list & (1 << i)) {
+            reg_alloc.FlushArm(i);
+        }
+    }
 
     code->MOV(32, R(ABI_PARAM2), Imm32(list));
     code->MOV(64, R(ABI_PARAM3), R(reg_alloc.JitStateReg()));

@@ -163,6 +163,7 @@ void JitX64::CompileCallHost(const void* const fn) {
     // There is no need to setup the stack as the stored RSP has already been properly aligned.
 
     reg_alloc.FlushABICallerSaved();
+    reg_alloc.FlushX64(RSP);
 
     ASSERT(reg_alloc.JitStateReg() != RSP);
     code->MOV(64, R(RSP), MJitStateHostReturnRSP());

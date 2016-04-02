@@ -56,7 +56,7 @@ TEST_CASE("Fuzz ARM load/store instructions (byte, half-word, word)", "[JitX64]"
     };
 
     SECTION("short blocks") {
-        FuzzJit(5, 6, 5000, instruction_select);
+        FuzzJit(5, 6, 1000, instruction_select);
     }
 }
 
@@ -118,7 +118,7 @@ TEST_CASE("Fuzz ARM load/store multiple instructions", "[JitX64]") {
         if (inst_index == 1 && (flags & 2)) {
             if (reg_list & (1 << Rn))
                 reg_list &= ~((1 << Rn) - 1);
-        } else if (inst_index == 1 && (flags & 2)) {
+        } else if (inst_index == 0 && (flags & 2)) {
             reg_list &= ~(1 << Rn);
         }
 
@@ -127,7 +127,5 @@ TEST_CASE("Fuzz ARM load/store multiple instructions", "[JitX64]") {
         return instructions[inst_index].first | (assemble_randoms & (~instructions[inst_index].second));
     };
 
-    SECTION("short blocks") {
-        FuzzJit(1, 1, 5000, instruction_select);
-    }
+    FuzzJit(1, 1, 10000, instruction_select);
 }

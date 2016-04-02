@@ -175,6 +175,9 @@ public:
      */
     void FlushABICallerSaved();
 
+    /// Ensures that the ARM register arm_reg is not in an x64 register.
+    void FlushArm(ArmReg arm_reg);
+
     // Debug:
 
     void AssertNoLocked();
@@ -182,8 +185,6 @@ public:
 private:
     /// INTERNAL: Gets the x64 register this ArmReg is currently bound to.
     Gen::X64Reg GetX64For(ArmReg arm_reg);
-    /// INTERNAL: Ensures that this ARM register is not in an x64 register.
-    void FlushArm(ArmReg arm_reg);
     /// INTERNAL: Is this ARM register currently in an x64 register?
     bool IsBoundToX64(ArmReg arm_reg);
     /// INTERNAL: Marks register as dirty. Ensures that it is written back to memory if it's in a x64 register.
