@@ -1005,7 +1005,7 @@ static void ExecuteSTMBE(u32 start_address, u16 reg_list, JitState* jit_state) {
 void JitX64::STM(Cond cond, bool P, bool U, bool W, ArmReg Rn_index, ArmRegList list) {
     cond_manager.CompileCond((ConditionCode)cond);
 
-    ASSERT(list != 0, "UNPREDICTABLE");
+    ASSERT_MSG(list != 0, "UNPREDICTABLE");
     if (W && (list & (1 << Rn_index)))
         ASSERT_MSG((list & ((1 << Rn_index) - 1)) == 0, "UNPREDICTABLE");
 

@@ -202,7 +202,7 @@ X64Reg JitX64::CompileDataProcessingHelper_rsr(ArmReg Rs_index, ShiftType shift,
             code->MOV(32, R(tmp), Imm32(0));
             // }
             code->SetJumpTarget(jmp_to_end_1);
-            code->SetJumpTarget(jmp_to_end_1);
+            code->SetJumpTarget(jmp_to_end_2);
             code->SetJumpTarget(Rs_zero);
         }
         break;

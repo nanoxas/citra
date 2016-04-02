@@ -2,9 +2,9 @@
 // Licensed under GPLv2 or any later version
 // Refer to the license.txt file included.
 
+#include <cinttypes>
 #include <cstdio>
 #include <cstring>
-#include <inttypes.h>
 
 #include <catch.hpp>
 
