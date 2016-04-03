@@ -6,8 +6,8 @@
 
 namespace JitX64 {
 
-void JitX64::REV() { CompileInterpretInstruction(); }
-void JitX64::REV16() { CompileInterpretInstruction(); }
-void JitX64::REVSH() { CompileInterpretInstruction(); }
+void JitX64::REV(Cond cond, ArmReg Rd, ArmReg Rm) { CompileInterpretInstruction(); }
+void JitX64::REV16(Cond cond, ArmReg Rd, ArmReg Rm) { CompileInterpretInstruction(); }
+void JitX64::REVSH(Cond cond, ArmReg Rd, ArmReg Rm) { CompileInterpretInstruction(); }
 
-}
+} // namespace JitX64

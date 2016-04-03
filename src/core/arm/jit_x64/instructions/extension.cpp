@@ -6,17 +6,17 @@
 
 namespace JitX64 {
 
-void JitX64::SXTAB() { CompileInterpretInstruction(); }
-void JitX64::SXTAB16() { CompileInterpretInstruction(); }
-void JitX64::SXTAH() { CompileInterpretInstruction(); }
-void JitX64::SXTB() { CompileInterpretInstruction(); }
-void JitX64::SXTB16() { CompileInterpretInstruction(); }
-void JitX64::SXTH() { CompileInterpretInstruction(); }
-void JitX64::UXTAB() { CompileInterpretInstruction(); }
-void JitX64::UXTAB16() { CompileInterpretInstruction(); }
-void JitX64::UXTAH() { CompileInterpretInstruction(); }
-void JitX64::UXTB() { CompileInterpretInstruction(); }
-void JitX64::UXTB16() { CompileInterpretInstruction(); }
-void JitX64::UXTH() { CompileInterpretInstruction(); }
+void JitX64::SXTAB(Cond cond, ArmReg Rn, ArmReg Rd, SignExtendRotation rotate, ArmReg Rm) { CompileInterpretInstruction(); }
+void JitX64::SXTAB16(Cond cond, ArmReg Rn, ArmReg Rd, SignExtendRotation rotate, ArmReg Rm) { CompileInterpretInstruction(); }
+void JitX64::SXTAH(Cond cond, ArmReg Rn, ArmReg Rd, SignExtendRotation rotate, ArmReg Rm) { CompileInterpretInstruction(); }
+void JitX64::SXTB(Cond cond, ArmReg Rd, SignExtendRotation rotate, ArmReg Rm) { CompileInterpretInstruction(); }
+void JitX64::SXTB16(Cond cond, ArmReg Rd, SignExtendRotation rotate, ArmReg Rm) { CompileInterpretInstruction(); }
+void JitX64::SXTH(Cond cond, ArmReg Rd, SignExtendRotation rotate, ArmReg Rm) { CompileInterpretInstruction(); }
+void JitX64::UXTAB(Cond cond, ArmReg Rn, ArmReg Rd, SignExtendRotation rotate, ArmReg Rm) { CompileInterpretInstruction(); }
+void JitX64::UXTAB16(Cond cond, ArmReg Rn, ArmReg Rd, SignExtendRotation rotate, ArmReg Rm) { CompileInterpretInstruction(); }
+void JitX64::UXTAH(Cond cond, ArmReg Rn, ArmReg Rd, SignExtendRotation rotate, ArmReg Rm) { CompileInterpretInstruction(); }
+void JitX64::UXTB(Cond cond, ArmReg Rd, SignExtendRotation rotate, ArmReg Rm) { CompileInterpretInstruction(); }
+void JitX64::UXTB16(Cond cond, ArmReg Rd, SignExtendRotation rotate, ArmReg Rm) { CompileInterpretInstruction(); }
+void JitX64::UXTH(Cond cond, ArmReg Rd, SignExtendRotation rotate, ArmReg Rm) { CompileInterpretInstruction(); }
 
-}
+} // namespace JitX64

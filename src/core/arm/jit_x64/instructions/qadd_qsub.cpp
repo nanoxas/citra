@@ -6,9 +6,9 @@
 
 namespace JitX64 {
 
-void JitX64::QADD() { CompileInterpretInstruction(); }
-void JitX64::QSUB() { CompileInterpretInstruction(); }
-void JitX64::QDADD() { CompileInterpretInstruction(); }
-void JitX64::QDSUB() { CompileInterpretInstruction(); }
+void JitX64::QADD(Cond cond, ArmReg Rn, ArmReg Rd, ArmReg Rm) { CompileInterpretInstruction(); }
+void JitX64::QSUB(Cond cond, ArmReg Rn, ArmReg Rd, ArmReg Rm) { CompileInterpretInstruction(); }
+void JitX64::QDADD(Cond cond, ArmReg Rn, ArmReg Rd, ArmReg Rm) { CompileInterpretInstruction(); }
+void JitX64::QDSUB(Cond cond, ArmReg Rn, ArmReg Rd, ArmReg Rm) { CompileInterpretInstruction(); }
 
-}
+} // namespace JitX64

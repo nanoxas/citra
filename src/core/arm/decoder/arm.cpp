@@ -195,18 +195,18 @@ static const std::array<Instruction, 221> arm_instruction_table = {{
     { "UDF",                 MakeMatcher<0>("111001111111------------1111----", &Visitor::UDF)       }, // all
 
     // Extension instructions
-    { "SXTB",                MakeMatcher<0>("----011010101111------000111----", &Visitor::SXTB)      }, // ARMv6
-    { "SXTB16",              MakeMatcher<0>("----011010001111------000111----", &Visitor::SXTB16)    }, // ARMv6
-    { "SXTH",                MakeMatcher<0>("----011010111111------000111----", &Visitor::SXTH)      }, // ARMv6
-    { "SXTAB",               MakeMatcher<0>("----01101010----------000111----", &Visitor::SXTAB)     }, // ARMv6
-    { "SXTAB16",             MakeMatcher<0>("----01101000----------000111----", &Visitor::SXTAB16)   }, // ARMv6
-    { "SXTAH",               MakeMatcher<0>("----01101011----------000111----", &Visitor::SXTAH)     }, // ARMv6
-    { "UXTB",                MakeMatcher<0>("----011011101111------000111----", &Visitor::UXTB)      }, // ARMv6
-    { "UXTB16",              MakeMatcher<0>("----011011001111------000111----", &Visitor::UXTB16)    }, // ARMv6
-    { "UXTH",                MakeMatcher<0>("----011011111111------000111----", &Visitor::UXTH)      }, // ARMv6
-    { "UXTAB",               MakeMatcher<0>("----01101110----------000111----", &Visitor::UXTAB)     }, // ARMv6
-    { "UXTAB16",             MakeMatcher<0>("----01101100----------000111----", &Visitor::UXTAB16)   }, // ARMv6
-    { "UXTAH",               MakeMatcher<0>("----01101111----------000111----", &Visitor::UXTAH)     }, // ARMv6
+    { "SXTB",                MakeMatcher<4>("cccc011010101111ddddrr000111mmmm", &Visitor::SXTB)      }, // ARMv6
+    { "SXTB16",              MakeMatcher<4>("cccc011010001111ddddrr000111mmmm", &Visitor::SXTB16)    }, // ARMv6
+    { "SXTH",                MakeMatcher<4>("cccc011010111111ddddrr000111mmmm", &Visitor::SXTH)      }, // ARMv6
+    { "SXTAB",               MakeMatcher<5>("cccc01101010nnnnddddrr000111mmmm", &Visitor::SXTAB)     }, // ARMv6
+    { "SXTAB16",             MakeMatcher<5>("cccc01101000nnnnddddrr000111mmmm", &Visitor::SXTAB16)   }, // ARMv6
+    { "SXTAH",               MakeMatcher<5>("cccc01101011nnnnddddrr000111mmmm", &Visitor::SXTAH)     }, // ARMv6
+    { "UXTB",                MakeMatcher<4>("cccc011011101111ddddrr000111mmmm", &Visitor::UXTB)      }, // ARMv6
+    { "UXTB16",              MakeMatcher<4>("cccc011011001111ddddrr000111mmmm", &Visitor::UXTB16)    }, // ARMv6
+    { "UXTH",                MakeMatcher<4>("cccc011011111111ddddrr000111mmmm", &Visitor::UXTH)      }, // ARMv6
+    { "UXTAB",               MakeMatcher<5>("cccc01101110nnnnddddrr000111mmmm", &Visitor::UXTAB)     }, // ARMv6
+    { "UXTAB16",             MakeMatcher<5>("cccc01101100nnnnddddrr000111mmmm", &Visitor::UXTAB16)   }, // ARMv6
+    { "UXTAH",               MakeMatcher<5>("cccc01101111nnnnddddrr000111mmmm", &Visitor::UXTAH)     }, // ARMv6
 
     // Hint instructions
     { "PLD",                 MakeMatcher<0>("111101---101----1111------------", &Visitor::PLD)       }, // ARMv5E
@@ -274,109 +274,109 @@ static const std::array<Instruction, 221> arm_instruction_table = {{
     { "STM (usr reg)",       MakeMatcher<0>("----100--100--------------------", &Visitor::STM_usr)   }, // all
 
     // Miscellaneous instructions
-    { "CLZ",                 MakeMatcher<0>("----000101101111----11110001----", &Visitor::CLZ)       }, // ARMv5
+    { "CLZ",                 MakeMatcher<3>("cccc000101101111dddd11110001mmmm", &Visitor::CLZ)       }, // ARMv5
     { "NOP",                 MakeMatcher<0>("----001100100000111100000000----", &Visitor::NOP)       }, // ARMv6K
-    { "SEL",                 MakeMatcher<0>("----01101000--------11111011----", &Visitor::SEL)       }, // ARMv6
+    { "SEL",                 MakeMatcher<4>("cccc01101000nnnndddd11111011mmmm", &Visitor::SEL)       }, // ARMv6
 
     // Unsigned Sum of Absolute Differences instructions
-    { "USAD8",               MakeMatcher<0>("----01111000----1111----0001----", &Visitor::USAD8)     }, // ARMv6
-    { "USADA8",              MakeMatcher<0>("----01111000------------0001----", &Visitor::USADA8)    }, // ARMv6
+    { "USAD8",               MakeMatcher<4>("cccc01111000dddd1111mmmm0001nnnn", &Visitor::USAD8)     }, // ARMv6
+    { "USADA8",              MakeMatcher<5>("cccc01111000ddddaaaammmm0001nnnn", &Visitor::USADA8)    }, // ARMv6
 
     // Packing instructions
     { "PKHBT",               MakeMatcher<5>("cccc01101000nnnnddddvvvvv001mmmm", &Visitor::PKHBT)     }, // ARMv6K
     { "PKHTB",               MakeMatcher<5>("cccc01101000nnnnddddvvvvv101mmmm", &Visitor::PKHTB)     }, // ARMv6K
 
     // Reversal instructions
-    { "REV",                 MakeMatcher<0>("----011010111111----11110011----", &Visitor::REV)       }, // ARMv6
-    { "REV16",               MakeMatcher<0>("----011010111111----11111011----", &Visitor::REV16)     }, // ARMv6
-    { "REVSH",               MakeMatcher<0>("----011011111111----11111011----", &Visitor::REVSH)     }, // ARMv6
+    { "REV",                 MakeMatcher<3>("cccc011010111111dddd11110011mmmm", &Visitor::REV)       }, // ARMv6
+    { "REV16",               MakeMatcher<3>("cccc011010111111dddd11111011mmmm", &Visitor::REV16)     }, // ARMv6
+    { "REVSH",               MakeMatcher<3>("cccc011011111111dddd11111011mmmm", &Visitor::REVSH)     }, // ARMv6
 
     // Saturation instructions
-    { "SSAT",                MakeMatcher<0>("----0110101---------------01----", &Visitor::SSAT)      }, // ARMv6
-    { "SSAT16",              MakeMatcher<0>("----01101010--------11110011----", &Visitor::SSAT16)    }, // ARMv6
-    { "USAT",                MakeMatcher<0>("----0110111---------------01----", &Visitor::USAT)      }, // ARMv6
-    { "USAT16",              MakeMatcher<0>("----01101110--------11110011----", &Visitor::USAT16)    }, // ARMv6
+    { "SSAT",                MakeMatcher<6>("cccc0110101vvvvvddddvvvvvr01nnnn", &Visitor::SSAT)      }, // ARMv6
+    { "SSAT16",              MakeMatcher<4>("cccc01101010vvvvdddd11110011nnnn", &Visitor::SSAT16)    }, // ARMv6
+    { "USAT",                MakeMatcher<6>("cccc0110111vvvvvddddvvvvvr01nnnn", &Visitor::USAT)      }, // ARMv6
+    { "USAT16",              MakeMatcher<4>("cccc01101110vvvvdddd11110011nnnn", &Visitor::USAT16)    }, // ARMv6
 
     // Multiply (Normal) instructions
-    { "MLA",                 MakeMatcher<0>("----0000001-------------1001----", &Visitor::MLA)       }, // ARMv2
-    { "MUL",                 MakeMatcher<0>("----0000000-----0000----1001----", &Visitor::MUL)       }, // ARMv2
+    { "MLA",                 MakeMatcher<6>("cccc0000001Sddddaaaammmm1001nnnn", &Visitor::MLA)       }, // ARMv2
+    { "MUL",                 MakeMatcher<5>("cccc0000000Sdddd0000mmmm1001nnnn", &Visitor::MUL)       }, // ARMv2
 
     // Multiply (Long) instructions
-    { "SMLAL",               MakeMatcher<0>("----0000111-------------1001----", &Visitor::SMLAL)     }, // ARMv3M
-    { "SMULL",               MakeMatcher<0>("----0000110-------------1001----", &Visitor::SMULL)     }, // ARMv3M
-    { "UMAAL",               MakeMatcher<0>("----00000100------------1001----", &Visitor::UMAAL)     }, // ARMv6
-    { "UMLAL",               MakeMatcher<0>("----0000101-------------1001----", &Visitor::UMLAL)     }, // ARMv3M
-    { "UMULL",               MakeMatcher<0>("----0000100-------------1001----", &Visitor::UMULL)     }, // ARMv3M
+    { "SMLAL",               MakeMatcher<6>("cccc0000111Sddddaaaammmm1001nnnn", &Visitor::SMLAL)     }, // ARMv3M
+    { "SMULL",               MakeMatcher<6>("cccc0000110Sddddaaaammmm1001nnnn", &Visitor::SMULL)     }, // ARMv3M
+    { "UMAAL",               MakeMatcher<5>("cccc00000100ddddaaaammmm1001nnnn", &Visitor::UMAAL)     }, // ARMv6
+    { "UMLAL",               MakeMatcher<6>("cccc0000101Sddddaaaammmm1001nnnn", &Visitor::UMLAL)     }, // ARMv3M
+    { "UMULL",               MakeMatcher<6>("cccc0000100Sddddaaaammmm1001nnnn", &Visitor::UMULL)     }, // ARMv3M
 
     // Multiply (Halfword) instructions
-    { "SMLALXY",             MakeMatcher<0>("----00010100------------1--0----", &Visitor::SMLALxy)   }, // ARMv5xP
-    { "SMLAXY",              MakeMatcher<0>("----00010000------------1--0----", &Visitor::SMLAxy)    }, // ARMv5xP
-    { "SMULXY",              MakeMatcher<0>("----00010110----0000----1--0----", &Visitor::SMULxy)    }, // ARMv5xP
+    { "SMLALXY",             MakeMatcher<7>("cccc00010100ddddaaaammmm1xy0nnnn", &Visitor::SMLALxy)   }, // ARMv5xP
+    { "SMLAXY",              MakeMatcher<7>("cccc00010000ddddaaaammmm1xy0nnnn", &Visitor::SMLAxy)    }, // ARMv5xP
+    { "SMULXY",              MakeMatcher<6>("cccc00010110dddd0000mmmm1xy0nnnn", &Visitor::SMULxy)    }, // ARMv5xP
 
     // Multiply (Word by Halfword) instructions
-    { "SMLAWY",              MakeMatcher<0>("----00010010------------1-00----", &Visitor::SMLAWy)    }, // ARMv5xP
-    { "SMULWY",              MakeMatcher<0>("----00010010----0000----1-10----", &Visitor::SMULWy)    }, // ARMv5xP
+    { "SMLAWY",              MakeMatcher<6>("cccc00010010ddddaaaammmm1y00nnnn", &Visitor::SMLAWy)    }, // ARMv5xP
+    { "SMULWY",              MakeMatcher<5>("cccc00010010dddd0000mmmm1y10nnnn", &Visitor::SMULWy)    }, // ARMv5xP
 
     // Multiply (Most Significant Word) instructions
-    { "SMMUL",               MakeMatcher<0>("----01110101----1111----00-1----", &Visitor::SMMUL)     }, // ARMv6
-    { "SMMLA",               MakeMatcher<0>("----01110101------------00-1----", &Visitor::SMMLA)     }, // ARMv6
-    { "SMMLS",               MakeMatcher<0>("----01110101------------11-1----", &Visitor::SMMLS)     }, // ARMv6
+    { "SMMUL",               MakeMatcher<5>("cccc01110101dddd1111mmmm00R1nnnn", &Visitor::SMMUL)     }, // ARMv6
+    { "SMMLA",               MakeMatcher<6>("cccc01110101ddddaaaammmm00R1nnnn", &Visitor::SMMLA)     }, // ARMv6
+    { "SMMLS",               MakeMatcher<6>("cccc01110101ddddaaaammmm11R1nnnn", &Visitor::SMMLS)     }, // ARMv6
 
     // Multiply (Dual) instructions
-    { "SMLAD",               MakeMatcher<0>("----01110000------------00-1----", &Visitor::SMLAD)     }, // ARMv6
-    { "SMLALD",              MakeMatcher<0>("----01110100------------00-1----", &Visitor::SMLALD)    }, // ARMv6
-    { "SMLSD",               MakeMatcher<0>("----01110000------------01-1----", &Visitor::SMLSD)     }, // ARMv6
-    { "SMLSLD",              MakeMatcher<0>("----01110100------------01-1----", &Visitor::SMLSLD)    }, // ARMv6
-    { "SMUAD",               MakeMatcher<0>("----01110000----1111----00-1----", &Visitor::SMUAD)     }, // ARMv6
-    { "SMUSD",               MakeMatcher<0>("----01110000----1111----01-1----", &Visitor::SMUSD)     }, // ARMv6
+    { "SMLAD",               MakeMatcher<6>("cccc01110000ddddaaaammmm00M1nnnn", &Visitor::SMLAD)     }, // ARMv6
+    { "SMLALD",              MakeMatcher<6>("cccc01110100ddddaaaammmm00M1nnnn", &Visitor::SMLALD)    }, // ARMv6
+    { "SMLSD",               MakeMatcher<6>("cccc01110000ddddaaaammmm01M1nnnn", &Visitor::SMLSD)     }, // ARMv6
+    { "SMLSLD",              MakeMatcher<6>("cccc01110100ddddaaaammmm01M1nnnn", &Visitor::SMLSLD)    }, // ARMv6
+    { "SMUAD",               MakeMatcher<5>("cccc01110000dddd1111mmmm00M1nnnn", &Visitor::SMUAD)     }, // ARMv6
+    { "SMUSD",               MakeMatcher<5>("cccc01110000dddd1111mmmm01M1nnnn", &Visitor::SMUSD)     }, // ARMv6
 
     // Parallel Add/Subtract (Modulo) instructions
-    { "SADD8",               MakeMatcher<0>("----01100001--------11111001----", &Visitor::SADD8)     }, // ARMv6
-    { "SADD16",              MakeMatcher<0>("----01100001--------11110001----", &Visitor::SADD16)    }, // ARMv6
-    { "SASX",                MakeMatcher<0>("----01100001--------11110011----", &Visitor::SASX)      }, // ARMv6
-    { "SSAX",                MakeMatcher<0>("----01100001--------11110101----", &Visitor::SSAX)      }, // ARMv6
-    { "SSUB8",               MakeMatcher<0>("----01100001--------11111111----", &Visitor::SSUB8)     }, // ARMv6
-    { "SSUB16",              MakeMatcher<0>("----01100001--------11110111----", &Visitor::SSUB16)    }, // ARMv6
-    { "UADD8",               MakeMatcher<0>("----01100101--------11111001----", &Visitor::UADD8)     }, // ARMv6
-    { "UADD16",              MakeMatcher<0>("----01100101--------11110001----", &Visitor::UADD16)    }, // ARMv6
-    { "UASX",                MakeMatcher<0>("----01100101--------11110011----", &Visitor::UASX)      }, // ARMv6
-    { "USAX",                MakeMatcher<0>("----01100101--------11110101----", &Visitor::USAX)      }, // ARMv6
-    { "USUB8",               MakeMatcher<0>("----01100101--------11111111----", &Visitor::USUB8)     }, // ARMv6
-    { "USUB16",              MakeMatcher<0>("----01100101--------11110111----", &Visitor::USUB16)    }, // ARMv6
+    { "SADD8",               MakeMatcher<4>("cccc01100001nnnndddd11111001mmmm", &Visitor::SADD8)     }, // ARMv6
+    { "SADD16",              MakeMatcher<4>("cccc01100001nnnndddd11110001mmmm", &Visitor::SADD16)    }, // ARMv6
+    { "SASX",                MakeMatcher<4>("cccc01100001nnnndddd11110011mmmm", &Visitor::SASX)      }, // ARMv6
+    { "SSAX",                MakeMatcher<4>("cccc01100001nnnndddd11110101mmmm", &Visitor::SSAX)      }, // ARMv6
+    { "SSUB8",               MakeMatcher<4>("cccc01100001nnnndddd11111111mmmm", &Visitor::SSUB8)     }, // ARMv6
+    { "SSUB16",              MakeMatcher<4>("cccc01100001nnnndddd11110111mmmm", &Visitor::SSUB16)    }, // ARMv6
+    { "UADD8",               MakeMatcher<4>("cccc01100101nnnndddd11111001mmmm", &Visitor::UADD8)     }, // ARMv6
+    { "UADD16",              MakeMatcher<4>("cccc01100101nnnndddd11110001mmmm", &Visitor::UADD16)    }, // ARMv6
+    { "UASX",                MakeMatcher<4>("cccc01100101nnnndddd11110011mmmm", &Visitor::UASX)      }, // ARMv6
+    { "USAX",                MakeMatcher<4>("cccc01100101nnnndddd11110101mmmm", &Visitor::USAX)      }, // ARMv6
+    { "USUB8",               MakeMatcher<4>("cccc01100101nnnndddd11111111mmmm", &Visitor::USUB8)     }, // ARMv6
+    { "USUB16",              MakeMatcher<4>("cccc01100101nnnndddd11110111mmmm", &Visitor::USUB16)    }, // ARMv6
 
     // Parallel Add/Subtract (Saturating) instructions
-    { "QADD8",               MakeMatcher<0>("----01100010--------11111001----", &Visitor::QADD8)     }, // ARMv6
-    { "QADD16",              MakeMatcher<0>("----01100010--------11110001----", &Visitor::QADD16)    }, // ARMv6
-    { "QASX",                MakeMatcher<0>("----01100010--------11110011----", &Visitor::QASX)      }, // ARMv6
-    { "QSAX",                MakeMatcher<0>("----01100010--------11110101----", &Visitor::QSAX)      }, // ARMv6
-    { "QSUB8",               MakeMatcher<0>("----01100010--------11111111----", &Visitor::QSUB8)     }, // ARMv6
-    { "QSUB16",              MakeMatcher<0>("----01100010--------11110111----", &Visitor::QSUB16)    }, // ARMv6
-    { "UQADD8",              MakeMatcher<0>("----01100110--------11111001----", &Visitor::UQADD8)    }, // ARMv6
-    { "UQADD16",             MakeMatcher<0>("----01100110--------11110001----", &Visitor::UQADD16)   }, // ARMv6
-    { "UQASX",               MakeMatcher<0>("----01100110--------11110011----", &Visitor::UQASX)     }, // ARMv6
-    { "UQSAX",               MakeMatcher<0>("----01100110--------11110101----", &Visitor::UQSAX)     }, // ARMv6
-    { "UQSUB8",              MakeMatcher<0>("----01100110--------11111111----", &Visitor::UQSUB8)    }, // ARMv6
-    { "UQSUB16",             MakeMatcher<0>("----01100110--------11110111----", &Visitor::UQSUB16)   }, // ARMv6
+    { "QADD8",               MakeMatcher<4>("cccc01100010nnnndddd11111001mmmm", &Visitor::QADD8)     }, // ARMv6
+    { "QADD16",              MakeMatcher<4>("cccc01100010nnnndddd11110001mmmm", &Visitor::QADD16)    }, // ARMv6
+    { "QASX",                MakeMatcher<4>("cccc01100010nnnndddd11110011mmmm", &Visitor::QASX)      }, // ARMv6
+    { "QSAX",                MakeMatcher<4>("cccc01100010nnnndddd11110101mmmm", &Visitor::QSAX)      }, // ARMv6
+    { "QSUB8",               MakeMatcher<4>("cccc01100010nnnndddd11111111mmmm", &Visitor::QSUB8)     }, // ARMv6
+    { "QSUB16",              MakeMatcher<4>("cccc01100010nnnndddd11110111mmmm", &Visitor::QSUB16)    }, // ARMv6
+    { "UQADD8",              MakeMatcher<4>("cccc01100110nnnndddd11111001mmmm", &Visitor::UQADD8)    }, // ARMv6
+    { "UQADD16",             MakeMatcher<4>("cccc01100110nnnndddd11110001mmmm", &Visitor::UQADD16)   }, // ARMv6
+    { "UQASX",               MakeMatcher<4>("cccc01100110nnnndddd11110011mmmm", &Visitor::UQASX)     }, // ARMv6
+    { "UQSAX",               MakeMatcher<4>("cccc01100110nnnndddd11110101mmmm", &Visitor::UQSAX)     }, // ARMv6
+    { "UQSUB8",              MakeMatcher<4>("cccc01100110nnnndddd11111111mmmm", &Visitor::UQSUB8)    }, // ARMv6
+    { "UQSUB16",             MakeMatcher<4>("cccc01100110nnnndddd11110111mmmm", &Visitor::UQSUB16)   }, // ARMv6
 
     // Parallel Add/Subtract (Halving) instructions
-    { "SHADD8",              MakeMatcher<0>("----01100011--------11111001----", &Visitor::SHADD8)    }, // ARMv6
-    { "SHADD16",             MakeMatcher<0>("----01100011--------11110001----", &Visitor::SHADD16)   }, // ARMv6
-    { "SHASX",               MakeMatcher<0>("----01100011--------11110011----", &Visitor::SHASX)     }, // ARMv6
-    { "SHSAX",               MakeMatcher<0>("----01100011--------11110101----", &Visitor::SHSAX)     }, // ARMv6
-    { "SHSUB8",              MakeMatcher<0>("----01100011--------11111111----", &Visitor::SHSUB8)    }, // ARMv6
-    { "SHSUB16",             MakeMatcher<0>("----01100011--------11110111----", &Visitor::SHSUB16)   }, // ARMv6
-    { "UHADD8",              MakeMatcher<0>("----01100111--------11111001----", &Visitor::UHADD8)    }, // ARMv6
-    { "UHADD16",             MakeMatcher<0>("----01100111--------11110001----", &Visitor::UHADD16)   }, // ARMv6
-    { "UHASX",               MakeMatcher<0>("----01100111--------11110011----", &Visitor::UHASX)     }, // ARMv6
-    { "UHSAX",               MakeMatcher<0>("----01100111--------11110101----", &Visitor::UHSAX)     }, // ARMv6
-    { "UHSUB8",              MakeMatcher<0>("----01100111--------11111111----", &Visitor::UHSUB8)    }, // ARMv6
-    { "UHSUB16",             MakeMatcher<0>("----01100111--------11110111----", &Visitor::UHSUB16)   }, // ARMv6
+    { "SHADD8",              MakeMatcher<4>("cccc01100011nnnndddd11111001mmmm", &Visitor::SHADD8)    }, // ARMv6
+    { "SHADD16",             MakeMatcher<4>("cccc01100011nnnndddd11110001mmmm", &Visitor::SHADD16)   }, // ARMv6
+    { "SHASX",               MakeMatcher<4>("cccc01100011nnnndddd11110011mmmm", &Visitor::SHASX)     }, // ARMv6
+    { "SHSAX",               MakeMatcher<4>("cccc01100011nnnndddd11110101mmmm", &Visitor::SHSAX)     }, // ARMv6
+    { "SHSUB8",              MakeMatcher<4>("cccc01100011nnnndddd11111111mmmm", &Visitor::SHSUB8)    }, // ARMv6
+    { "SHSUB16",             MakeMatcher<4>("cccc01100011nnnndddd11110111mmmm", &Visitor::SHSUB16)   }, // ARMv6
+    { "UHADD8",              MakeMatcher<4>("cccc01100111nnnndddd11111001mmmm", &Visitor::UHADD8)    }, // ARMv6
+    { "UHADD16",             MakeMatcher<4>("cccc01100111nnnndddd11110001mmmm", &Visitor::UHADD16)   }, // ARMv6
+    { "UHASX",               MakeMatcher<4>("cccc01100111nnnndddd11110011mmmm", &Visitor::UHASX)     }, // ARMv6
+    { "UHSAX",               MakeMatcher<4>("cccc01100111nnnndddd11110101mmmm", &Visitor::UHSAX)     }, // ARMv6
+    { "UHSUB8",              MakeMatcher<4>("cccc01100111nnnndddd11111111mmmm", &Visitor::UHSUB8)    }, // ARMv6
+    { "UHSUB16",             MakeMatcher<4>("cccc01100111nnnndddd11110111mmmm", &Visitor::UHSUB16)   }, // ARMv6
 
     // Saturated Add/Subtract instructions
-    { "QADD",                MakeMatcher<0>("----00010000--------00000101----", &Visitor::QADD)      }, // ARMv5xP
-    { "QSUB",                MakeMatcher<0>("----00010010--------00000101----", &Visitor::QSUB)      }, // ARMv5xP
-    { "QDADD",               MakeMatcher<0>("----00010100--------00000101----", &Visitor::QDADD)     }, // ARMv5xP
-    { "QDSUB",               MakeMatcher<0>("----00010110--------00000101----", &Visitor::QDSUB)     }, // ARMv5xP
+    { "QADD",                MakeMatcher<4>("cccc00010000nnnndddd00000101mmmm", &Visitor::QADD)      }, // ARMv5xP
+    { "QSUB",                MakeMatcher<4>("cccc00010010nnnndddd00000101mmmm", &Visitor::QSUB)      }, // ARMv5xP
+    { "QDADD",               MakeMatcher<4>("cccc00010100nnnndddd00000101mmmm", &Visitor::QDADD)     }, // ARMv5xP
+    { "QDSUB",               MakeMatcher<4>("cccc00010110nnnndddd00000101mmmm", &Visitor::QDSUB)     }, // ARMv5xP
 
     // Status Register Access instructions
     { "CPS",                 MakeMatcher<0>("111100010000---00000000---0-----", &Visitor::CPS)       }, // ARMv6
@@ -395,4 +395,4 @@ boost::optional<const Instruction&> DecodeArm(u32 i) {
     return iterator != arm_instruction_table.cend() ? boost::make_optional<const Instruction&>(*iterator) : boost::none;
 }
 
-};
+} // namespace ArmDecoder

@@ -294,4 +294,4 @@ void JitX64::SWPB(Cond cond, ArmReg Rn_index, ArmReg Rd_index, ArmReg Rm_index) 
     CompileInterpretInstruction();
 }
 
-}
+} // namespace JitX64

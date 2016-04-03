@@ -21,6 +21,7 @@ using ArmImm12 = ArmDecoder::Imm12;
 using ArmImm24 = ArmDecoder::Imm24;
 using Cond = ArmDecoder::Cond;
 using ShiftType = ArmDecoder::ShiftType;
+using SignExtendRotation = ArmDecoder::SignExtendRotation;
 
 struct JitState {
     JitState() : cpu_state(PrivilegeMode::USER32MODE) {}

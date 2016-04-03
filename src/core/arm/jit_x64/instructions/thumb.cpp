@@ -97,4 +97,4 @@ void JitX64::thumb_BLX_suffix(bool X, ArmImm11 imm11) {
     thumb_BLX_suffix_executed = true;
 }
 
-}
+} // namespace JitX64

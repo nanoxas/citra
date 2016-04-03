@@ -12,4 +12,4 @@ void JitX64::WFI() { CompileInterpretInstruction(); }
 void JitX64::WFE() { CompileInterpretInstruction(); }
 void JitX64::YIELD() { CompileInterpretInstruction(); }
 
-}
+} // namespace JitX64

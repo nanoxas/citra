@@ -1031,4 +1031,4 @@ void JitX64::LDM_usr() { CompileInterpretInstruction(); }
 void JitX64::LDM_eret() { CompileInterpretInstruction(); }
 void JitX64::STM_usr() { CompileInterpretInstruction(); }
 
-}
+} // namespace JitX64

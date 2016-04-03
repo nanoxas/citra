@@ -181,7 +181,7 @@ static const std::array<Instruction, 27> thumb_instruction_table = { {
             v->ORR_reg(0xE, /*S=*/true, Rd_Rn, Rd_Rn, 0, 0, Rm_Rs);
             break;
         case 13: // MUL Rd, Rm
-            v->MUL();
+            v->MUL(0xE, /*S=*/true, Rd_Rn, Rd_Rn, Rm_Rs);
             break;
         case 14: // BIC Rm, Rd
             v->BIC_reg(0xE, /*S=*/true, Rd_Rn, Rd_Rn, 0, 0, Rm_Rs);
@@ -331,16 +331,16 @@ static const std::array<Instruction, 27> thumb_instruction_table = { {
         Register Rd = bits<0, 2>(instruction);
         switch (opc) {
         case 0: // SXTH Rd, Rm
-            v->SXTH();
+            v->SXTH(0xE, Rd, 0, Rm);
             break;
         case 1: // SXTB Rd, Rm
-            v->SXTB();
+            v->SXTB(0xE, Rd, 0, Rm);
             break;
         case 2: // UXTH Rd, Rm
-            v->UXTH();
+            v->UXTH(0xE, Rd, 0, Rm);
             break;
         case 3: // UXTB Rd, Rm
-            v->UXTB();
+            v->UXTB(0xE, Rd, 0, Rm);
             break;
         default:
             UNREACHABLE();
@@ -377,16 +377,16 @@ static const std::array<Instruction, 27> thumb_instruction_table = { {
         Register Rd = bits<0, 2>(instruction);
         switch (opc) {
         case 0: // REV Rd, Rn
-            v->REV();
+            v->REV(0xE, Rd, Rn);
             break;
         case 1: // REV16 Rd, Rn
-            v->REV16();
+            v->REV16(0xE, Rd, Rn);
             break;
         case 2: // undefined
             v->UDF();
             break;
         case 3: // REVSH Rd, Rn
-            v->REVSH();
+            v->REVSH(0xE, Rd, Rn);
             break;
         default:
             UNREACHABLE();

@@ -226,18 +226,18 @@ private:
     void UDF() override;
 
     // Extension functions
-    void SXTAB() override;
-    void SXTAB16() override;
-    void SXTAH() override;
-    void SXTB() override;
-    void SXTB16() override;
-    void SXTH() override;
-    void UXTAB() override;
-    void UXTAB16() override;
-    void UXTAH() override;
-    void UXTB() override;
-    void UXTB16() override;
-    void UXTH() override;
+    void SXTAB(Cond cond, ArmReg Rn, ArmReg Rd, SignExtendRotation rotate, ArmReg Rm) override;
+    void SXTAB16(Cond cond, ArmReg Rn, ArmReg Rd, SignExtendRotation rotate, ArmReg Rm) override;
+    void SXTAH(Cond cond, ArmReg Rn, ArmReg Rd, SignExtendRotation rotate, ArmReg Rm) override;
+    void SXTB(Cond cond, ArmReg Rd, SignExtendRotation rotate, ArmReg Rm) override;
+    void SXTB16(Cond cond, ArmReg Rd, SignExtendRotation rotate, ArmReg Rm) override;
+    void SXTH(Cond cond, ArmReg Rd, SignExtendRotation rotate, ArmReg Rm) override;
+    void UXTAB(Cond cond, ArmReg Rn, ArmReg Rd, SignExtendRotation rotate, ArmReg Rm) override;
+    void UXTAB16(Cond cond, ArmReg Rn, ArmReg Rd, SignExtendRotation rotate, ArmReg Rm) override;
+    void UXTAH(Cond cond, ArmReg Rn, ArmReg Rd, SignExtendRotation rotate, ArmReg Rm) override;
+    void UXTB(Cond cond, ArmReg Rd, SignExtendRotation rotate, ArmReg Rm) override;
+    void UXTB16(Cond cond, ArmReg Rd, SignExtendRotation rotate, ArmReg Rm) override;
+    void UXTH(Cond cond, ArmReg Rd, SignExtendRotation rotate, ArmReg Rm) override;
 
     // Hint instructions
     void PLD() override;
@@ -293,109 +293,109 @@ private:
     void STM_usr() override;
 
     // Miscellaneous instructions
-    void CLZ() override;
+    void CLZ(Cond cond, ArmReg Rd, ArmReg Rm) override;
     void NOP() override;
-    void SEL() override;
+    void SEL(Cond cond, ArmReg Rn, ArmReg Rd, ArmReg Rm) override;
 
     // Unsigned sum of absolute difference functions
-    void USAD8() override;
-    void USADA8() override;
+    void USAD8(Cond cond, ArmReg Rd, ArmReg Rm, ArmReg Rn) override;
+    void USADA8(Cond cond, ArmReg Rd, ArmReg Ra, ArmReg Rm, ArmReg Rn) override;
 
     // Packing instructions
     void PKHBT(Cond cond, ArmReg Rn, ArmReg Rd, ArmImm5 imm5, ArmReg Rm) override;
     void PKHTB(Cond cond, ArmReg Rn, ArmReg Rd, ArmImm5 imm5, ArmReg Rm) override;
 
     // Reversal instructions
-    void REV() override;
-    void REV16() override;
-    void REVSH() override;
+    void REV(Cond cond, ArmReg Rd, ArmReg Rm) override;
+    void REV16(Cond cond, ArmReg Rd, ArmReg Rm) override;
+    void REVSH(Cond cond, ArmReg Rd, ArmReg Rm) override;
 
     // Saturation instructions
-    void SSAT() override;
-    void SSAT16() override;
-    void USAT() override;
-    void USAT16() override;
+    void SSAT(Cond cond, ArmImm5 sat_imm, ArmReg Rd, ArmImm5 imm5, bool sh, ArmReg Rn) override;
+    void SSAT16(Cond cond, ArmImm4 sat_imm, ArmReg Rd, ArmReg Rn) override;
+    void USAT(Cond cond, ArmImm5 sat_imm, ArmReg Rd, ArmImm5 imm5, bool sh, ArmReg Rn) override;
+    void USAT16(Cond cond, ArmImm4 sat_imm, ArmReg Rd, ArmReg Rn) override;
 
     // Multiply (Normal) instructions
-    void MLA() override;
-    void MUL() override;
+    void MLA(Cond cond, bool S, ArmReg Rd, ArmReg Ra, ArmReg Rm, ArmReg Rn) override;
+    void MUL(Cond cond, bool S, ArmReg Rd, ArmReg Rm, ArmReg Rn) override;
 
     // Multiply (Long) instructions
-    void SMLAL() override;
-    void SMULL() override;
-    void UMAAL() override;
-    void UMLAL() override;
-    void UMULL() override;
+    void SMLAL(Cond cond, bool S, ArmReg RdHi, ArmReg RdLo, ArmReg Rm, ArmReg Rn) override;
+    void SMULL(Cond cond, bool S, ArmReg RdHi, ArmReg RdLo, ArmReg Rm, ArmReg Rn) override;
+    void UMAAL(Cond cond, ArmReg RdHi, ArmReg RdLo, ArmReg Rm, ArmReg Rn) override;
+    void UMLAL(Cond cond, bool S, ArmReg RdHi, ArmReg RdLo, ArmReg Rm, ArmReg Rn) override;
+    void UMULL(Cond cond, bool S, ArmReg RdHi, ArmReg RdLo, ArmReg Rm, ArmReg Rn) override;
 
     // Multiply (Halfword) instructions
-    void SMLALxy() override;
-    void SMLAxy() override;
-    void SMULxy() override;
+    void SMLALxy(Cond cond, ArmReg RdHi, ArmReg RdLo, ArmReg Rm, bool M, bool N, ArmReg Rn) override;
+    void SMLAxy(Cond cond, ArmReg Rd, ArmReg Ra, ArmReg Rm, bool M, bool N, ArmReg Rn) override;
+    void SMULxy(Cond cond, ArmReg Rd, ArmReg Rm, bool M, bool N, ArmReg Rn) override;
 
     // Multiply (word by halfword) instructions
-    void SMLAWy() override;
-    void SMULWy() override;
+    void SMLAWy(Cond cond, ArmReg Rd, ArmReg Ra, ArmReg Rm, bool M, ArmReg Rn) override;
+    void SMULWy(Cond cond, ArmReg Rd, ArmReg Rm, bool M, ArmReg Rn) override;
 
     // Multiply (Most significant word) instructions
-    void SMMLA() override;
-    void SMMLS() override;
-    void SMMUL() override;
+    void SMMLA(Cond cond, ArmReg Rd, ArmReg Ra, ArmReg Rm, bool R, ArmReg Rn) override;
+    void SMMLS(Cond cond, ArmReg Rd, ArmReg Ra, ArmReg Rm, bool R, ArmReg Rn) override;
+    void SMMUL(Cond cond, ArmReg Rd, ArmReg Rm, bool R, ArmReg Rn) override;
 
     // Multiply (Dual) instructions
-    void SMLAD() override;
-    void SMLALD() override;
-    void SMLSD() override;
-    void SMLSLD() override;
-    void SMUAD() override;
-    void SMUSD() override;
+    void SMLAD(Cond cond, ArmReg Rd, ArmReg Ra, ArmReg Rm, bool M, ArmReg Rn) override;
+    void SMLALD(Cond cond, ArmReg RdHi, ArmReg RdLo, ArmReg Rm, bool M, ArmReg Rn) override;
+    void SMLSD(Cond cond, ArmReg Rd, ArmReg Ra, ArmReg Rm, bool M, ArmReg Rn) override;
+    void SMLSLD(Cond cond, ArmReg RdHi, ArmReg RdLo, ArmReg Rm, bool M, ArmReg Rn) override;
+    void SMUAD(Cond cond, ArmReg Rd, ArmReg Rm, bool M, ArmReg Rn) override;
+    void SMUSD(Cond cond, ArmReg Rd, ArmReg Rm, bool M, ArmReg Rn) override;
 
     // Parallel Add/Subtract (Modulo arithmetic) instructions
-    void SADD8() override;
-    void SADD16() override;
-    void SASX() override;
-    void SSAX() override;
-    void SSUB8() override;
-    void SSUB16() override;
-    void UADD8() override;
-    void UADD16() override;
-    void UASX() override;
-    void USAX() override;
-    void USUB8() override;
-    void USUB16() override;
+    void SADD8(Cond cond, ArmReg Rn, ArmReg Rd, ArmReg Rm) override;
+    void SADD16(Cond cond, ArmReg Rn, ArmReg Rd, ArmReg Rm) override;
+    void SASX(Cond cond, ArmReg Rn, ArmReg Rd, ArmReg Rm) override;
+    void SSAX(Cond cond, ArmReg Rn, ArmReg Rd, ArmReg Rm) override;
+    void SSUB8(Cond cond, ArmReg Rn, ArmReg Rd, ArmReg Rm) override;
+    void SSUB16(Cond cond, ArmReg Rn, ArmReg Rd, ArmReg Rm) override;
+    void UADD8(Cond cond, ArmReg Rn, ArmReg Rd, ArmReg Rm) override;
+    void UADD16(Cond cond, ArmReg Rn, ArmReg Rd, ArmReg Rm) override;
+    void UASX(Cond cond, ArmReg Rn, ArmReg Rd, ArmReg Rm) override;
+    void USAX(Cond cond, ArmReg Rn, ArmReg Rd, ArmReg Rm) override;
+    void USUB8(Cond cond, ArmReg Rn, ArmReg Rd, ArmReg Rm) override;
+    void USUB16(Cond cond, ArmReg Rn, ArmReg Rd, ArmReg Rm) override;
 
     // Parallel Add/Subtract (Saturating) instructions
-    void QADD8() override;
-    void QADD16() override;
-    void QASX() override;
-    void QSAX() override;
-    void QSUB8() override;
-    void QSUB16() override;
-    void UQADD8() override;
-    void UQADD16() override;
-    void UQASX() override;
-    void UQSAX() override;
-    void UQSUB8() override;
-    void UQSUB16() override;
+    void QADD8(Cond cond, ArmReg Rn, ArmReg Rd, ArmReg Rm) override;
+    void QADD16(Cond cond, ArmReg Rn, ArmReg Rd, ArmReg Rm) override;
+    void QASX(Cond cond, ArmReg Rn, ArmReg Rd, ArmReg Rm) override;
+    void QSAX(Cond cond, ArmReg Rn, ArmReg Rd, ArmReg Rm) override;
+    void QSUB8(Cond cond, ArmReg Rn, ArmReg Rd, ArmReg Rm) override;
+    void QSUB16(Cond cond, ArmReg Rn, ArmReg Rd, ArmReg Rm) override;
+    void UQADD8(Cond cond, ArmReg Rn, ArmReg Rd, ArmReg Rm) override;
+    void UQADD16(Cond cond, ArmReg Rn, ArmReg Rd, ArmReg Rm) override;
+    void UQASX(Cond cond, ArmReg Rn, ArmReg Rd, ArmReg Rm) override;
+    void UQSAX(Cond cond, ArmReg Rn, ArmReg Rd, ArmReg Rm) override;
+    void UQSUB8(Cond cond, ArmReg Rn, ArmReg Rd, ArmReg Rm) override;
+    void UQSUB16(Cond cond, ArmReg Rn, ArmReg Rd, ArmReg Rm) override;
 
     // Parallel Add/Subtract (Halving) instructions
-    void SHADD8() override;
-    void SHADD16() override;
-    void SHASX() override;
-    void SHSAX() override;
-    void SHSUB8() override;
-    void SHSUB16() override;
-    void UHADD8() override;
-    void UHADD16() override;
-    void UHASX() override;
-    void UHSAX() override;
-    void UHSUB8() override;
-    void UHSUB16() override;
+    void SHADD8(Cond cond, ArmReg Rn, ArmReg Rd, ArmReg Rm) override;
+    void SHADD16(Cond cond, ArmReg Rn, ArmReg Rd, ArmReg Rm) override;
+    void SHASX(Cond cond, ArmReg Rn, ArmReg Rd, ArmReg Rm) override;
+    void SHSAX(Cond cond, ArmReg Rn, ArmReg Rd, ArmReg Rm) override;
+    void SHSUB8(Cond cond, ArmReg Rn, ArmReg Rd, ArmReg Rm) override;
+    void SHSUB16(Cond cond, ArmReg Rn, ArmReg Rd, ArmReg Rm) override;
+    void UHADD8(Cond cond, ArmReg Rn, ArmReg Rd, ArmReg Rm) override;
+    void UHADD16(Cond cond, ArmReg Rn, ArmReg Rd, ArmReg Rm) override;
+    void UHASX(Cond cond, ArmReg Rn, ArmReg Rd, ArmReg Rm) override;
+    void UHSAX(Cond cond, ArmReg Rn, ArmReg Rd, ArmReg Rm) override;
+    void UHSUB8(Cond cond, ArmReg Rn, ArmReg Rd, ArmReg Rm) override;
+    void UHSUB16(Cond cond, ArmReg Rn, ArmReg Rd, ArmReg Rm) override;
 
     // Saturated Add/Subtract instructions
-    void QADD() override;
-    void QSUB() override;
-    void QDADD() override;
-    void QDSUB() override;
+    void QADD(Cond cond, ArmReg Rn, ArmReg Rd, ArmReg Rm) override;
+    void QSUB(Cond cond, ArmReg Rn, ArmReg Rd, ArmReg Rm) override;
+    void QDADD(Cond cond, ArmReg Rn, ArmReg Rd, ArmReg Rm) override;
+    void QDSUB(Cond cond, ArmReg Rn, ArmReg Rd, ArmReg Rm) override;
 
     // Synchronization Primitive instructions
     void CLREX() override;
@@ -429,4 +429,4 @@ private:
     void thumb_BLX_suffix(bool L, ArmImm11 imm11) override;
 };
 
-}
+} // namespace JitX64

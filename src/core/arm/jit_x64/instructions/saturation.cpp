@@ -6,9 +6,9 @@
 
 namespace JitX64 {
 
-void JitX64::SSAT() { CompileInterpretInstruction(); }
-void JitX64::SSAT16() { CompileInterpretInstruction(); }
-void JitX64::USAT() { CompileInterpretInstruction(); }
-void JitX64::USAT16() { CompileInterpretInstruction(); }
+void JitX64::SSAT(Cond cond, ArmImm5 sat_imm, ArmReg Rd, ArmImm5 imm5, bool sh, ArmReg Rn) { CompileInterpretInstruction(); }
+void JitX64::SSAT16(Cond cond, ArmImm4 sat_imm, ArmReg Rd, ArmReg Rn) { CompileInterpretInstruction(); }
+void JitX64::USAT(Cond cond, ArmImm5 sat_imm, ArmReg Rd, ArmImm5 imm5, bool sh, ArmReg Rn) { CompileInterpretInstruction(); }
+void JitX64::USAT16(Cond cond, ArmImm4 sat_imm, ArmReg Rd, ArmReg Rn) { CompileInterpretInstruction(); }
 
-}
+} // namespace JitX64

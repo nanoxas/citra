@@ -7,36 +7,36 @@
 namespace JitX64 {
 
 // Multiply (Normal) instructions
-void JitX64::MLA() { CompileInterpretInstruction(); }
-void JitX64::MUL() { CompileInterpretInstruction(); }
+void JitX64::MLA(Cond cond, bool S, ArmReg Rd, ArmReg Ra, ArmReg Rm, ArmReg Rn) { CompileInterpretInstruction(); }
+void JitX64::MUL(Cond cond, bool S, ArmReg Rd, ArmReg Rm, ArmReg Rn) { CompileInterpretInstruction(); }
 
 // Multiply (Long) instructions
-void JitX64::SMLAL() { CompileInterpretInstruction(); }
-void JitX64::SMULL() { CompileInterpretInstruction(); }
-void JitX64::UMAAL() { CompileInterpretInstruction(); }
-void JitX64::UMLAL() { CompileInterpretInstruction(); }
-void JitX64::UMULL() { CompileInterpretInstruction(); }
+void JitX64::SMLAL(Cond cond, bool S, ArmReg RdHi, ArmReg RdLo, ArmReg Rm, ArmReg Rn) { CompileInterpretInstruction(); }
+void JitX64::SMULL(Cond cond, bool S, ArmReg RdHi, ArmReg RdLo, ArmReg Rm, ArmReg Rn) { CompileInterpretInstruction(); }
+void JitX64::UMAAL(Cond cond, ArmReg RdHi, ArmReg RdLo, ArmReg Rm, ArmReg Rn) { CompileInterpretInstruction(); }
+void JitX64::UMLAL(Cond cond, bool S, ArmReg RdHi, ArmReg RdLo, ArmReg Rm, ArmReg Rn) { CompileInterpretInstruction(); }
+void JitX64::UMULL(Cond cond, bool S, ArmReg RdHi, ArmReg RdLo, ArmReg Rm, ArmReg Rn) { CompileInterpretInstruction(); }
 
 // Multiply (Halfword) instructions
-void JitX64::SMLALxy() { CompileInterpretInstruction(); }
-void JitX64::SMLAxy() { CompileInterpretInstruction(); }
-void JitX64::SMULxy() { CompileInterpretInstruction(); }
+void JitX64::SMLALxy(Cond cond, ArmReg RdHi, ArmReg RdLo, ArmReg Rm, bool M, bool N, ArmReg Rn) { CompileInterpretInstruction(); }
+void JitX64::SMLAxy(Cond cond, ArmReg Rd, ArmReg Ra, ArmReg Rm, bool M, bool N, ArmReg Rn) { CompileInterpretInstruction(); }
+void JitX64::SMULxy(Cond cond, ArmReg Rd, ArmReg Rm, bool M, bool N, ArmReg Rn) { CompileInterpretInstruction(); }
 
 // Multiply (word by halfword) instructions
-void JitX64::SMLAWy() { CompileInterpretInstruction(); }
-void JitX64::SMULWy() { CompileInterpretInstruction(); }
+void JitX64::SMLAWy(Cond cond, ArmReg Rd, ArmReg Ra, ArmReg Rm, bool M, ArmReg Rn) { CompileInterpretInstruction(); }
+void JitX64::SMULWy(Cond cond, ArmReg Rd, ArmReg Rm, bool M, ArmReg Rn) { CompileInterpretInstruction(); }
 
 // Multiply (Most significant word) instructions
-void JitX64::SMMLA() { CompileInterpretInstruction(); }
-void JitX64::SMMLS() { CompileInterpretInstruction(); }
-void JitX64::SMMUL() { CompileInterpretInstruction(); }
+void JitX64::SMMLA(Cond cond, ArmReg Rd, ArmReg Ra, ArmReg Rm, bool R, ArmReg Rn) { CompileInterpretInstruction(); }
+void JitX64::SMMLS(Cond cond, ArmReg Rd, ArmReg Ra, ArmReg Rm, bool R, ArmReg Rn) { CompileInterpretInstruction(); }
+void JitX64::SMMUL(Cond cond, ArmReg Rd, ArmReg Rm, bool R, ArmReg Rn) { CompileInterpretInstruction(); }
 
 // Multiply (Dual) instructions
-void JitX64::SMLAD() { CompileInterpretInstruction(); }
-void JitX64::SMLALD() { CompileInterpretInstruction(); }
-void JitX64::SMLSD() { CompileInterpretInstruction(); }
-void JitX64::SMLSLD() { CompileInterpretInstruction(); }
-void JitX64::SMUAD() { CompileInterpretInstruction(); }
-void JitX64::SMUSD() { CompileInterpretInstruction(); }
+void JitX64::SMLAD(Cond cond, ArmReg Rd, ArmReg Ra, ArmReg Rm, bool M, ArmReg Rn) { CompileInterpretInstruction(); }
+void JitX64::SMLALD(Cond cond, ArmReg RdHi, ArmReg RdLo, ArmReg Rm, bool M, ArmReg Rn) { CompileInterpretInstruction(); }
+void JitX64::SMLSD(Cond cond, ArmReg Rd, ArmReg Ra, ArmReg Rm, bool M, ArmReg Rn) { CompileInterpretInstruction(); }
+void JitX64::SMLSLD(Cond cond, ArmReg RdHi, ArmReg RdLo, ArmReg Rm, bool M, ArmReg Rn) { CompileInterpretInstruction(); }
+void JitX64::SMUAD(Cond cond, ArmReg Rd, ArmReg Rm, bool M, ArmReg Rn) { CompileInterpretInstruction(); }
+void JitX64::SMUSD(Cond cond, ArmReg Rd, ArmReg Rm, bool M, ArmReg Rn) { CompileInterpretInstruction(); }
 
-}
+} // namespace JitX64

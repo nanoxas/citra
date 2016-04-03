@@ -65,4 +65,4 @@ void JitX64::UDF() {
     current.arm_pc += GetInstSize();
 }
 
-}
+} // namespace JitX64

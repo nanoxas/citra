@@ -60,6 +60,7 @@ using Imm24 = u32;
 using Register = int;
 using RegisterList = u16;
 using ShiftType = int;
+using SignExtendRotation = int;
 
 class Visitor {
 public:
@@ -138,18 +139,18 @@ public:
     virtual void UDF() = 0;
 
     // Extension functions
-    virtual void SXTAB() = 0;
-    virtual void SXTAB16() = 0;
-    virtual void SXTAH() = 0;
-    virtual void SXTB() = 0;
-    virtual void SXTB16() = 0;
-    virtual void SXTH() = 0;
-    virtual void UXTAB() = 0;
-    virtual void UXTAB16() = 0;
-    virtual void UXTAH() = 0;
-    virtual void UXTB() = 0;
-    virtual void UXTB16() = 0;
-    virtual void UXTH() = 0;
+    virtual void SXTAB(Cond cond, Register Rn, Register Rd, SignExtendRotation rotate, Register Rm) = 0;
+    virtual void SXTAB16(Cond cond, Register Rn, Register Rd, SignExtendRotation rotate, Register Rm) = 0;
+    virtual void SXTAH(Cond cond, Register Rn, Register Rd, SignExtendRotation rotate, Register Rm) = 0;
+    virtual void SXTB(Cond cond, Register Rd, SignExtendRotation rotate, Register Rm) = 0;
+    virtual void SXTB16(Cond cond, Register Rd, SignExtendRotation rotate, Register Rm) = 0;
+    virtual void SXTH(Cond cond, Register Rd, SignExtendRotation rotate, Register Rm) = 0;
+    virtual void UXTAB(Cond cond, Register Rn, Register Rd, SignExtendRotation rotate, Register Rm) = 0;
+    virtual void UXTAB16(Cond cond, Register Rn, Register Rd, SignExtendRotation rotate, Register Rm) = 0;
+    virtual void UXTAH(Cond cond, Register Rn, Register Rd, SignExtendRotation rotate, Register Rm) = 0;
+    virtual void UXTB(Cond cond, Register Rd, SignExtendRotation rotate, Register Rm) = 0;
+    virtual void UXTB16(Cond cond, Register Rd, SignExtendRotation rotate, Register Rm) = 0;
+    virtual void UXTH(Cond cond, Register Rd, SignExtendRotation rotate, Register Rm) = 0;
 
     // Hint instructions
     virtual void PLD() = 0;
@@ -196,109 +197,109 @@ public:
     virtual void STM_usr() = 0;
 
     // Miscellaneous instructions
-    virtual void CLZ() = 0;
+    virtual void CLZ(Cond cond, Register Rd, Register Rm) = 0;
     virtual void NOP() = 0;
-    virtual void SEL() = 0;
+    virtual void SEL(Cond cond, Register Rn, Register Rd, Register Rm) = 0;
 
     // Unsigned sum of absolute difference functions
-    virtual void USAD8() = 0;
-    virtual void USADA8() = 0;
+    virtual void USAD8(Cond cond, Register Rd, Register Rm, Register Rn) = 0;
+    virtual void USADA8(Cond cond, Register Rd, Register Ra, Register Rm, Register Rn) = 0;
 
     // Packing instructions
     virtual void PKHBT(Cond cond, Register Rn, Register Rd, Imm5 imm5, Register Rm) = 0;
     virtual void PKHTB(Cond cond, Register Rn, Register Rd, Imm5 imm5, Register Rm) = 0;
 
     // Reversal instructions
-    virtual void REV() = 0;
-    virtual void REV16() = 0;
-    virtual void REVSH() = 0;
+    virtual void REV(Cond cond, Register Rd, Register Rm) = 0;
+    virtual void REV16(Cond cond, Register Rd, Register Rm) = 0;
+    virtual void REVSH(Cond cond, Register Rd, Register Rm) = 0;
 
     // Saturation instructions
-    virtual void SSAT() = 0;
-    virtual void SSAT16() = 0;
-    virtual void USAT() = 0;
-    virtual void USAT16() = 0;
+    virtual void SSAT(Cond cond, Imm5 sat_imm, Register Rd, Imm5 imm5, bool sh, Register Rn) = 0;
+    virtual void SSAT16(Cond cond, Imm4 sat_imm, Register Rd, Register Rn) = 0;
+    virtual void USAT(Cond cond, Imm5 sat_imm, Register Rd, Imm5 imm5, bool sh, Register Rn) = 0;
+    virtual void USAT16(Cond cond, Imm4 sat_imm, Register Rd, Register Rn) = 0;
 
     // Multiply (Normal) instructions
-    virtual void MLA() = 0;
-    virtual void MUL() = 0;
+    virtual void MLA(Cond cond, bool S, Register Rd, Register Ra, Register Rm, Register Rn) = 0;
+    virtual void MUL(Cond cond, bool S, Register Rd, Register Rm, Register Rn) = 0;
 
     // Multiply (Long) instructions
-    virtual void SMLAL() = 0;
-    virtual void SMULL() = 0;
-    virtual void UMAAL() = 0;
-    virtual void UMLAL() = 0;
-    virtual void UMULL() = 0;
+    virtual void SMLAL(Cond cond, bool S, Register RdHi, Register RdLo, Register Rm, Register Rn) = 0;
+    virtual void SMULL(Cond cond, bool S, Register RdHi, Register RdLo, Register Rm, Register Rn) = 0;
+    virtual void UMAAL(Cond cond, Register RdHi, Register RdLo, Register Rm, Register Rn) = 0;
+    virtual void UMLAL(Cond cond, bool S, Register RdHi, Register RdLo, Register Rm, Register Rn) = 0;
+    virtual void UMULL(Cond cond, bool S, Register RdHi, Register RdLo, Register Rm, Register Rn) = 0;
 
     // Multiply (Halfword) instructions
-    virtual void SMLALxy() = 0;
-    virtual void SMLAxy() = 0;
-    virtual void SMULxy() = 0;
+    virtual void SMLALxy(Cond cond, Register RdHi, Register RdLo, Register Rm, bool M, bool N, Register Rn) = 0;
+    virtual void SMLAxy(Cond cond, Register Rd, Register Ra, Register Rm, bool M, bool N, Register Rn) = 0;
+    virtual void SMULxy(Cond cond, Register Rd, Register Rm, bool M, bool N, Register Rn) = 0;
 
     // Multiply (word by halfword) instructions
-    virtual void SMLAWy() = 0;
-    virtual void SMULWy() = 0;
+    virtual void SMLAWy(Cond cond, Register Rd, Register Ra, Register Rm, bool M, Register Rn) = 0;
+    virtual void SMULWy(Cond cond, Register Rd, Register Rm, bool M, Register Rn) = 0;
 
     // Multiply (Most significant word) instructions
-    virtual void SMMLA() = 0;
-    virtual void SMMLS() = 0;
-    virtual void SMMUL() = 0;
+    virtual void SMMLA(Cond cond, Register Rd, Register Ra, Register Rm, bool R, Register Rn) = 0;
+    virtual void SMMLS(Cond cond, Register Rd, Register Ra, Register Rm, bool R, Register Rn) = 0;
+    virtual void SMMUL(Cond cond, Register Rd, Register Rm, bool R, Register Rn) = 0;
 
     // Multiply (Dual) instructions
-    virtual void SMLAD() = 0;
-    virtual void SMLALD() = 0;
-    virtual void SMLSD() = 0;
-    virtual void SMLSLD() = 0;
-    virtual void SMUAD() = 0;
-    virtual void SMUSD() = 0;
+    virtual void SMLAD(Cond cond, Register Rd, Register Ra, Register Rm, bool M, Register Rn) = 0;
+    virtual void SMLALD(Cond cond, Register RdHi, Register RdLo, Register Rm, bool M, Register Rn) = 0;
+    virtual void SMLSD(Cond cond, Register Rd, Register Ra, Register Rm, bool M, Register Rn) = 0;
+    virtual void SMLSLD(Cond cond, Register RdHi, Register RdLo, Register Rm, bool M, Register Rn) = 0;
+    virtual void SMUAD(Cond cond, Register Rd, Register Rm, bool M, Register Rn) = 0;
+    virtual void SMUSD(Cond cond, Register Rd, Register Rm, bool M, Register Rn) = 0;
 
     // Parallel Add/Subtract (Modulo arithmetic) instructions
-    virtual void SADD8() = 0;
-    virtual void SADD16() = 0;
-    virtual void SASX() = 0;
-    virtual void SSAX() = 0;
-    virtual void SSUB8() = 0;
-    virtual void SSUB16() = 0;
-    virtual void UADD8() = 0;
-    virtual void UADD16() = 0;
-    virtual void UASX() = 0;
-    virtual void USAX() = 0;
-    virtual void USUB8() = 0;
-    virtual void USUB16() = 0;
+    virtual void SADD8(Cond cond, Register Rn, Register Rd, Register Rm) = 0;
+    virtual void SADD16(Cond cond, Register Rn, Register Rd, Register Rm) = 0;
+    virtual void SASX(Cond cond, Register Rn, Register Rd, Register Rm) = 0;
+    virtual void SSAX(Cond cond, Register Rn, Register Rd, Register Rm) = 0;
+    virtual void SSUB8(Cond cond, Register Rn, Register Rd, Register Rm) = 0;
+    virtual void SSUB16(Cond cond, Register Rn, Register Rd, Register Rm) = 0;
+    virtual void UADD8(Cond cond, Register Rn, Register Rd, Register Rm) = 0;
+    virtual void UADD16(Cond cond, Register Rn, Register Rd, Register Rm) = 0;
+    virtual void UASX(Cond cond, Register Rn, Register Rd, Register Rm) = 0;
+    virtual void USAX(Cond cond, Register Rn, Register Rd, Register Rm) = 0;
+    virtual void USUB8(Cond cond, Register Rn, Register Rd, Register Rm) = 0;
+    virtual void USUB16(Cond cond, Register Rn, Register Rd, Register Rm) = 0;
 
     // Parallel Add/Subtract (Saturating) instructions
-    virtual void QADD8() = 0;
-    virtual void QADD16() = 0;
-    virtual void QASX() = 0;
-    virtual void QSAX() = 0;
-    virtual void QSUB8() = 0;
-    virtual void QSUB16() = 0;
-    virtual void UQADD8() = 0;
-    virtual void UQADD16() = 0;
-    virtual void UQASX() = 0;
-    virtual void UQSAX() = 0;
-    virtual void UQSUB8() = 0;
-    virtual void UQSUB16() = 0;
+    virtual void QADD8(Cond cond, Register Rn, Register Rd, Register Rm) = 0;
+    virtual void QADD16(Cond cond, Register Rn, Register Rd, Register Rm) = 0;
+    virtual void QASX(Cond cond, Register Rn, Register Rd, Register Rm) = 0;
+    virtual void QSAX(Cond cond, Register Rn, Register Rd, Register Rm) = 0;
+    virtual void QSUB8(Cond cond, Register Rn, Register Rd, Register Rm) = 0;
+    virtual void QSUB16(Cond cond, Register Rn, Register Rd, Register Rm) = 0;
+    virtual void UQADD8(Cond cond, Register Rn, Register Rd, Register Rm) = 0;
+    virtual void UQADD16(Cond cond, Register Rn, Register Rd, Register Rm) = 0;
+    virtual void UQASX(Cond cond, Register Rn, Register Rd, Register Rm) = 0;
+    virtual void UQSAX(Cond cond, Register Rn, Register Rd, Register Rm) = 0;
+    virtual void UQSUB8(Cond cond, Register Rn, Register Rd, Register Rm) = 0;
+    virtual void UQSUB16(Cond cond, Register Rn, Register Rd, Register Rm) = 0;
 
     // Parallel Add/Subtract (Halving) instructions
-    virtual void SHADD8() = 0;
-    virtual void SHADD16() = 0;
-    virtual void SHASX() = 0;
-    virtual void SHSAX() = 0;
-    virtual void SHSUB8() = 0;
-    virtual void SHSUB16() = 0;
-    virtual void UHADD8() = 0;
-    virtual void UHADD16() = 0;
-    virtual void UHASX() = 0;
-    virtual void UHSAX() = 0;
-    virtual void UHSUB8() = 0;
-    virtual void UHSUB16() = 0;
+    virtual void SHADD8(Cond cond, Register Rn, Register Rd, Register Rm) = 0;
+    virtual void SHADD16(Cond cond, Register Rn, Register Rd, Register Rm) = 0;
+    virtual void SHASX(Cond cond, Register Rn, Register Rd, Register Rm) = 0;
+    virtual void SHSAX(Cond cond, Register Rn, Register Rd, Register Rm) = 0;
+    virtual void SHSUB8(Cond cond, Register Rn, Register Rd, Register Rm) = 0;
+    virtual void SHSUB16(Cond cond, Register Rn, Register Rd, Register Rm) = 0;
+    virtual void UHADD8(Cond cond, Register Rn, Register Rd, Register Rm) = 0;
+    virtual void UHADD16(Cond cond, Register Rn, Register Rd, Register Rm) = 0;
+    virtual void UHASX(Cond cond, Register Rn, Register Rd, Register Rm) = 0;
+    virtual void UHSAX(Cond cond, Register Rn, Register Rd, Register Rm) = 0;
+    virtual void UHSUB8(Cond cond, Register Rn, Register Rd, Register Rm) = 0;
+    virtual void UHSUB16(Cond cond, Register Rn, Register Rd, Register Rm) = 0;
 
     // Saturated Add/Subtract instructions
-    virtual void QADD() = 0;
-    virtual void QSUB() = 0;
-    virtual void QDADD() = 0;
-    virtual void QDSUB() = 0;
+    virtual void QADD(Cond cond, Register Rn, Register Rd, Register Rm) = 0;
+    virtual void QSUB(Cond cond, Register Rn, Register Rd, Register Rm) = 0;
+    virtual void QDADD(Cond cond, Register Rn, Register Rd, Register Rm) = 0;
+    virtual void QDSUB(Cond cond, Register Rn, Register Rd, Register Rm) = 0;
 
     // Synchronization Primitive instructions
     virtual void CLREX() = 0;
@@ -328,4 +329,4 @@ public:
     virtual void thumb_BLX_suffix(bool X, Imm11 imm11) = 0;
 };
 
-};
+} // namespace ArmDecoder

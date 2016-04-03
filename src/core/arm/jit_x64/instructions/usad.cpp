@@ -6,7 +6,7 @@
 
 namespace JitX64 {
 
-void JitX64::USAD8() { CompileInterpretInstruction(); }
-void JitX64::USADA8() { CompileInterpretInstruction(); }
+void JitX64::USAD8(Cond cond, ArmReg Rd, ArmReg Rm, ArmReg Rn) { CompileInterpretInstruction(); }
+void JitX64::USADA8(Cond cond, ArmReg Rd, ArmReg Ra, ArmReg Rm, ArmReg Rn) { CompileInterpretInstruction(); }
 
-}
+} // namespace JitX64

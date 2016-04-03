@@ -122,4 +122,4 @@ void JitX64::BXJ(Cond cond, ArmReg Rm) {
     BX(cond, Rm);
 }
 
-}
+} // namespace JitX64

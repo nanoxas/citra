@@ -6,18 +6,17 @@
 
 namespace JitX64 {
 
-void JitX64::QADD8() { CompileInterpretInstruction(); }
-void JitX64::QADD16() { CompileInterpretInstruction(); }
-void JitX64::QASX() { CompileInterpretInstruction(); }
-void JitX64::QSAX() { CompileInterpretInstruction(); }
-void JitX64::QSUB8() { CompileInterpretInstruction(); }
-void JitX64::QSUB16() { CompileInterpretInstruction(); }
-void JitX64::UQADD8() { CompileInterpretInstruction(); }
-void JitX64::UQADD16() { CompileInterpretInstruction(); }
-void JitX64::UQASX() { CompileInterpretInstruction(); }
-void JitX64::UQSAX() { CompileInterpretInstruction(); }
-void JitX64::UQSUB8() { CompileInterpretInstruction(); }
-void JitX64::UQSUB16() { CompileInterpretInstruction(); }
+void JitX64::QADD8(Cond cond, ArmReg Rn, ArmReg Rd, ArmReg Rm) { CompileInterpretInstruction(); }
+void JitX64::QADD16(Cond cond, ArmReg Rn, ArmReg Rd, ArmReg Rm) { CompileInterpretInstruction(); }
+void JitX64::QASX(Cond cond, ArmReg Rn, ArmReg Rd, ArmReg Rm) { CompileInterpretInstruction(); }
+void JitX64::QSAX(Cond cond, ArmReg Rn, ArmReg Rd, ArmReg Rm) { CompileInterpretInstruction(); }
+void JitX64::QSUB8(Cond cond, ArmReg Rn, ArmReg Rd, ArmReg Rm) { CompileInterpretInstruction(); }
+void JitX64::QSUB16(Cond cond, ArmReg Rn, ArmReg Rd, ArmReg Rm) { CompileInterpretInstruction(); }
+void JitX64::UQADD8(Cond cond, ArmReg Rn, ArmReg Rd, ArmReg Rm) { CompileInterpretInstruction(); }
+void JitX64::UQADD16(Cond cond, ArmReg Rn, ArmReg Rd, ArmReg Rm) { CompileInterpretInstruction(); }
+void JitX64::UQASX(Cond cond, ArmReg Rn, ArmReg Rd, ArmReg Rm) { CompileInterpretInstruction(); }
+void JitX64::UQSAX(Cond cond, ArmReg Rn, ArmReg Rd, ArmReg Rm) { CompileInterpretInstruction(); }
+void JitX64::UQSUB8(Cond cond, ArmReg Rn, ArmReg Rd, ArmReg Rm) { CompileInterpretInstruction(); }
+void JitX64::UQSUB16(Cond cond, ArmReg Rn, ArmReg Rd, ArmReg Rm) { CompileInterpretInstruction(); }
 
-
-}
+} // namespace JitX64

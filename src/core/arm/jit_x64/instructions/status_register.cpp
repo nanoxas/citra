@@ -29,4 +29,4 @@ void JitX64::SETEND(bool E) {
 
 void JitX64::SRS() { CompileInterpretInstruction(); }
 
-}
+} // namespace JitX64

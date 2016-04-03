@@ -14,4 +14,4 @@ void JitX64::MRC() { CompileInterpretInstruction(); }
 void JitX64::MRRC() { CompileInterpretInstruction(); }
 void JitX64::STC() { CompileInterpretInstruction(); }
 
-}
+} // namespace JitX64
