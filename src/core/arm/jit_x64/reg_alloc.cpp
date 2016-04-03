@@ -270,7 +270,7 @@ void RegAlloc::MarkDirty(ArmReg arm_reg) {
 void RegAlloc::FlushEverything() {
     for (auto i : x64_reg_to_index) {
         X64State& x64_state = x64_gpr[i.second];
-        ASSERT(!x64_state.locked);
+        ASSERT(!x64_state.locked || x64_state.state == X64State::State::UserManuallyLocked);
         FlushX64(i.first);
         ASSERT(x64_state.state == X64State::State::Free);
     }
@@ -278,15 +278,13 @@ void RegAlloc::FlushEverything() {
 
 void RegAlloc::FlushABICallerSaved() {
     for (auto i : x64_reg_to_index) {
-        if (ABI_ALL_CALLER_SAVED.m_val & (1 << i.first)) {
-            X64State& x64_state = x64_gpr[i.second];
-            if (x64_state.state != X64State::State::UserManuallyLocked) {
-                ASSERT(!x64_state.locked);
-                FlushX64(i.first);
-                ASSERT(x64_state.state == X64State::State::Free);
-            } else {
-                ASSERT(x64_state.locked);
-            }
+        X64State& x64_state = x64_gpr[i.second];
+        if (x64_state.state != X64State::State::UserManuallyLocked) {
+            ASSERT(!x64_state.locked);
+            FlushX64(i.first);
+            ASSERT(x64_state.state == X64State::State::Free);
+        } else {
+            ASSERT(x64_state.locked);
         }
     }
 

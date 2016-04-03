@@ -50,6 +50,13 @@ TEST_CASE("Fuzz ARM load/store instructions (byte, half-word, word)", "[JitX64]"
         u32 rand = RandInt<u32>(0, 0xFF);
         u32 Rm = RandInt<u32>(0, 14);
 
+        if (W) {
+            while (Rn == Rd) {
+                Rn = RandInt<u32>(0, 14);
+                Rd = RandInt<u32>(0, 14);
+            }
+        }
+
         u32 assemble_randoms = (Rm << 0) | (rand << 4) | (Rd << 12) | (Rn << 16) | (W << 21) | (U << 23) | (P << 24) | (cond << 28);
 
         return instructions[inst_index].first | (assemble_randoms & (~instructions[inst_index].second));
@@ -85,6 +92,17 @@ TEST_CASE("Fuzz ARM load/store instructions (double-word)", "[JitX64]") {
         u32 U = RandInt<u32>(0, 1);
         u32 rand = RandInt<u32>(0, 0xF);
         u32 Rm = RandInt<u32>(0, 14);
+
+        if (W) {
+            while (Rn == Rd) {
+                Rn = RandInt<u32>(0, 6) * 2;
+                Rd = RandInt<u32>(0, 6) * 2;
+            }
+        }
+
+        while (Rm == Rd || Rm == Rd + 1) {
+            Rm = RandInt<u32>(0, 14);
+        }
 
         u32 assemble_randoms = (Rm << 0) | (rand << 4) | (Rd << 12) | (Rn << 16) | (W << 21) | (U << 23) | (P << 24) | (cond << 28);
 

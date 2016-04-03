@@ -92,6 +92,8 @@ void JitX64::BLX_reg(Cond cond, ArmReg Rm_index) {
 
     current.arm_pc += GetInstSize();
     CompileReturnToDispatch();
+
+    stop_compilation = true;
 }
 
 void JitX64::BX(Cond cond, ArmReg Rm_index) {
@@ -111,6 +113,8 @@ void JitX64::BX(Cond cond, ArmReg Rm_index) {
 
     current.arm_pc += GetInstSize();
     CompileReturnToDispatch();
+
+    stop_compilation = true;
 }
 
 void JitX64::BXJ(Cond cond, ArmReg Rm) {
