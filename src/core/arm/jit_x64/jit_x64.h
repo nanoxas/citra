@@ -221,8 +221,8 @@ private:
     void TST_rsr(Cond cond,         ArmReg Rn,            ArmReg Rs, ShiftType shift, ArmReg Rm) override;
 
     // Exception generation instructions
-    void BKPT() override;
-    void SVC() override;
+    void BKPT(Cond cond, ArmImm12 imm12, ArmImm4 imm4) override;
+    void SVC(Cond cond, ArmImm24 imm24) override;
     void UDF() override;
 
     // Extension functions

@@ -395,7 +395,7 @@ static const std::array<Instruction, 27> thumb_instruction_table = { {
     { "BKPT",                    MakeMatcher("10111110xxxxxxxx", [](Visitor* v, u32 instruction) {
         // BKPT #imm8
         Imm8 imm8 = bits<0, 7>(instruction);
-        v->BKPT();
+        v->BKPT(0xE, imm8 >> 4, imm8 & 0xF);
     })},
     { "STMIA/LDMIA",             MakeMatcher("1100xxxxxxxxxxxx", [](Visitor* v, u32 instruction) {
         bool L = bits<11, 11>(instruction);
@@ -418,7 +418,7 @@ static const std::array<Instruction, 27> thumb_instruction_table = { {
     { "SWI",                     MakeMatcher("11011111xxxxxxxx", [](Visitor* v, u32 instruction) {
         // SWI #imm8
         Imm8 imm8 = bits<0, 7>(instruction);
-        v->SVC(/*imm8*/);
+        v->SVC(0xE, imm8);
     })},
     { "B",                       MakeMatcher("11100xxxxxxxxxxx", [](Visitor* v, u32 instruction) {
         // B <PC + #offset*2>

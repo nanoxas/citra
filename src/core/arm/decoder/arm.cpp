@@ -190,8 +190,8 @@ static const std::array<Instruction, 221> arm_instruction_table = {{
     { "TST (rsr)",           MakeMatcher<5>("cccc00010001nnnn0000ssss0rr1mmmm", &Visitor::TST_rsr)   }, // all
 
     // Exception Generating instructions
-    { "BKPT",                MakeMatcher<0>("----00010010------------0111----", &Visitor::BKPT)      }, // ARMv5
-    { "SVC",                 MakeMatcher<0>("----1111------------------------", &Visitor::SVC)       }, // all
+    { "BKPT",                MakeMatcher<3>("cccc00010010vvvvvvvvvvvv0111vvvv", &Visitor::BKPT)      }, // ARMv5
+    { "SVC",                 MakeMatcher<2>("cccc1111vvvvvvvvvvvvvvvvvvvvvvvv", &Visitor::SVC)       }, // all
     { "UDF",                 MakeMatcher<0>("111001111111------------1111----", &Visitor::UDF)       }, // all
 
     // Extension instructions

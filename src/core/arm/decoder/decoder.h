@@ -133,8 +133,8 @@ public:
     virtual void TST_rsr(Cond cond, Register Rn, Register Rs, ShiftType shift, Register Rm) = 0;
 
     // Exception generation instructions
-    virtual void BKPT() = 0;
-    virtual void SVC() = 0;
+    virtual void BKPT(Cond cond, Imm12 imm12, Imm4 imm4) = 0;
+    virtual void SVC(Cond cond, Imm24 imm24) = 0;
     virtual void UDF() = 0;
 
     // Extension functions
