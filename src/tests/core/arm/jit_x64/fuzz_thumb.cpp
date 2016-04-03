@@ -134,11 +134,11 @@ void FuzzJitThumb(const int instruction_count, const int instructions_to_execute
         test_mem->code_mem[2 + instruction_count] = 0xE7FE; // b +#0 // busy wait loop
 
         test_mem->recording.clear();
-        interp.ExecuteInstructions(instructions_to_execute_count);
+        interp.ExecuteInstructions(instructions_to_execute_count + 1);
         auto interp_mem_recording = test_mem->recording;
 
         test_mem->recording.clear();
-        jit.ExecuteInstructions(instructions_to_execute_count);
+        jit.ExecuteInstructions(instructions_to_execute_count + 1);
         auto jit_mem_recording = test_mem->recording;
 
         bool pass = true;
@@ -279,6 +279,7 @@ TEST_CASE("Fuzz Thumb instructions set 2 (affects PC)", "[JitX64][Thumb]") {
         FromBitString16("11100xxxxxxxxxxx"), // B
         FromBitString16("01000100h0xxxxxx"), // ADD (high registers)
         FromBitString16("01000110h0xxxxxx"), // MOV (high registers)
+        FromBitString16("11010000xxxxxxxx"), // B<cond>
         FromBitString16("11010001xxxxxxxx"), // B<cond>
         FromBitString16("11010010xxxxxxxx"), // B<cond>
         FromBitString16("11010011xxxxxxxx"), // B<cond>
@@ -291,7 +292,6 @@ TEST_CASE("Fuzz Thumb instructions set 2 (affects PC)", "[JitX64][Thumb]") {
         FromBitString16("11011010xxxxxxxx"), // B<cond>
         FromBitString16("11011011xxxxxxxx"), // B<cond>
         FromBitString16("11011100xxxxxxxx"), // B<cond>
-        FromBitString16("11011110xxxxxxxx"), // B<cond>
     }};
 
     auto instruction_select = [&](int) -> u16 {
@@ -321,5 +321,5 @@ TEST_CASE("Fuzz Thumb instructions set 3 (32-bit BL/BLX)", "[JitX64][Thumb]") {
         return inst_info.first | (random &~ inst_info.second);
     };
 
-    FuzzJitThumb(2, 1, 1000, instruction_select);
+    FuzzJitThumb(2, 2, 1000, instruction_select);
 }

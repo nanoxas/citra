@@ -412,6 +412,7 @@ static const std::array<Instruction, 27> thumb_instruction_table = { {
         // B<cond> <PC + #offset*2>
         Cond cond = bits<8, 11>(instruction);
         s32 offset = bits<0, 7>(instruction);
+        ASSERT_MSG(cond != 0b1110, "UNDEFINED");
         v->thumb_B(cond, offset);
     })},
     { "SWI",                     MakeMatcher("11011111xxxxxxxx", [](Visitor* v, u32 instruction) {

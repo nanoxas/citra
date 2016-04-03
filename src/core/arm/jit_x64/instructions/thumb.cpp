@@ -56,6 +56,7 @@ void JitX64::thumb_BLX_prefix(ArmImm11 imm11) {
     current.arm_pc += GetInstSize();
 
     // Compile the suffix, and make sure that it's compiled.
+    instructions_compiled++; // Has to be done to pass unit tests (same method of counting as interpreter).
     CompileSingleThumbInstruction();
     ASSERT_MSG(thumb_BLX_suffix_executed, "thumb BLX suffix did not come after thumb BLX prefix, pc = %u", current.arm_pc);
 
@@ -81,15 +82,14 @@ void JitX64::thumb_BLX_suffix(bool X, ArmImm11 imm11) {
     reg_alloc.UnlockArm(14);
 
     if (X) {
-        new_pc &= 0xFFFFFFFC;
-    } else {
         current.TFlag = false;
         code->MOV(32, MJitStateTFlag(), Imm32(0));
+        new_pc &= 0xFFFFFFFC;
     }
 
     reg_alloc.FlushEverything();
     current.arm_pc += GetInstSize();
-    CompileUpdateCycles(false);
+    CompileUpdateCycles();
     CompileJumpToBB(new_pc);
 
     stop_compilation = true;
