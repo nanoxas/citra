@@ -114,7 +114,7 @@ static std::unique_ptr<Matcher> MakeMatcher(const char format[32], Function fn) 
     return std::unique_ptr<Matcher>(std::move(ret));
 }
 
-static const std::array<Instruction, 220> arm_instruction_table = {{
+static const std::array<Instruction, 221> arm_instruction_table = {{
     // Branch instructions
     { "BLX (immediate)",     MakeMatcher<2>("1111101hvvvvvvvvvvvvvvvvvvvvvvvv", &Visitor::BLX_imm)   }, // ARMv5
     { "BLX (register)",      MakeMatcher<2>("cccc000100101111111111110011mmmm", &Visitor::BLX_reg)   }, // ARMv5
@@ -217,15 +217,16 @@ static const std::array<Instruction, 220> arm_instruction_table = {{
 
     // Synchronization Primitive instructions
     { "CLREX",               MakeMatcher<0>("11110101011111111111000000011111", &Visitor::CLREX)     }, // ARMv6K
-    { "LDREX",               MakeMatcher<0>("----00011001--------111110011111", &Visitor::LDREX)     }, // ARMv6
-    { "LDREXB",              MakeMatcher<0>("----00011101--------111110011111", &Visitor::LDREXB)    }, // ARMv6K
-    { "LDREXD",              MakeMatcher<0>("----00011011--------111110011111", &Visitor::LDREXD)    }, // ARMv6K
-    { "LDREXH",              MakeMatcher<0>("----00011111--------111110011111", &Visitor::LDREXH)    }, // ARMv6K
-    { "STREX",               MakeMatcher<0>("----00011000--------11111001----", &Visitor::STREX)     }, // ARMv6
-    { "STREXB",              MakeMatcher<0>("----00011100--------11111001----", &Visitor::STREXB)    }, // ARMv6K
-    { "STREXD",              MakeMatcher<0>("----00011010--------11111001----", &Visitor::STREXD)    }, // ARMv6K
-    { "STREXH",              MakeMatcher<0>("----00011110--------11111001----", &Visitor::STREXH)    }, // ARMv6K
-    { "SWP",                 MakeMatcher<0>("----00010-00--------00001001----", &Visitor::SWP)       }, // ARMv2S
+    { "LDREX",               MakeMatcher<3>("cccc00011001nnnndddd111110011111", &Visitor::LDREX)     }, // ARMv6
+    { "LDREXB",              MakeMatcher<3>("cccc00011101nnnndddd111110011111", &Visitor::LDREXB)    }, // ARMv6K
+    { "LDREXD",              MakeMatcher<3>("cccc00011011nnnndddd111110011111", &Visitor::LDREXD)    }, // ARMv6K
+    { "LDREXH",              MakeMatcher<3>("cccc00011111nnnndddd111110011111", &Visitor::LDREXH)    }, // ARMv6K
+    { "STREX",               MakeMatcher<4>("cccc00011000nnnndddd11111001mmmm", &Visitor::STREX)     }, // ARMv6
+    { "STREXB",              MakeMatcher<4>("cccc00011100nnnndddd11111001mmmm", &Visitor::STREXB)    }, // ARMv6K
+    { "STREXD",              MakeMatcher<4>("cccc00011010nnnndddd11111001mmmm", &Visitor::STREXD)    }, // ARMv6K
+    { "STREXH",              MakeMatcher<4>("cccc00011110nnnndddd11111001mmmm", &Visitor::STREXH)    }, // ARMv6K
+    { "SWP",                 MakeMatcher<4>("cccc00010000nnnndddd00001001mmmm", &Visitor::SWP)       }, // ARMv2S (Deprecated in ARMv6)
+    { "SWPB",                MakeMatcher<4>("cccc00010100nnnndddd00001001mmmm", &Visitor::SWPB)      }, // ARMv2S (Deprecated in ARMv6)
 
     // Load/Store instructions
     { "LDR (imm)",           MakeMatcher<7>("cccc010pu0w1nnnnddddvvvvvvvvvvvv", &Visitor::LDR_imm)   },

@@ -399,15 +399,16 @@ private:
 
     // Synchronization Primitive instructions
     void CLREX() override;
-    void LDREX() override;
-    void LDREXB() override;
-    void LDREXD() override;
-    void LDREXH() override;
-    void STREX() override;
-    void STREXB() override;
-    void STREXD() override;
-    void STREXH() override;
-    void SWP() override;
+    void LDREX(Cond cond, ArmReg Rn, ArmReg Rd) override;
+    void LDREXB(Cond cond, ArmReg Rn, ArmReg Rd) override;
+    void LDREXD(Cond cond, ArmReg Rn, ArmReg Rd) override;
+    void LDREXH(Cond cond, ArmReg Rn, ArmReg Rd) override;
+    void STREX(Cond cond, ArmReg Rn, ArmReg Rd, ArmReg Rm) override;
+    void STREXB(Cond cond, ArmReg Rn, ArmReg Rd, ArmReg Rm) override;
+    void STREXD(Cond cond, ArmReg Rn, ArmReg Rd, ArmReg Rm) override;
+    void STREXH(Cond cond, ArmReg Rn, ArmReg Rd, ArmReg Rm) override;
+    void SWP(Cond cond, ArmReg Rn, ArmReg Rd, ArmReg Rm) override;
+    void SWPB(Cond cond, ArmReg Rn, ArmReg Rd, ArmReg Rm) override;
 
     // Status register access instructions
     void CPS() override;

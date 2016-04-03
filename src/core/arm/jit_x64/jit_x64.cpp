@@ -51,7 +51,6 @@ CodePtr JitX64::Compile(u32 pc, bool TFlag, bool EFlag) {
         }
 
         reg_alloc.AssertNoLocked();
-        reg_alloc.FlushEverything();
     } while (!stop_compilation && ((current.arm_pc & 0xFFF) != 0));
 
     if (!stop_compilation) {

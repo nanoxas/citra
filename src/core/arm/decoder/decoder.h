@@ -302,15 +302,16 @@ public:
 
     // Synchronization Primitive instructions
     virtual void CLREX() = 0;
-    virtual void LDREX() = 0;
-    virtual void LDREXB() = 0;
-    virtual void LDREXD() = 0;
-    virtual void LDREXH() = 0;
-    virtual void STREX() = 0;
-    virtual void STREXB() = 0;
-    virtual void STREXD() = 0;
-    virtual void STREXH() = 0;
-    virtual void SWP() = 0;
+    virtual void LDREX(Cond cond, Register Rn, Register Rd) = 0;
+    virtual void LDREXB(Cond cond, Register Rn, Register Rd) = 0;
+    virtual void LDREXD(Cond cond, Register Rn, Register Rd) = 0;
+    virtual void LDREXH(Cond cond, Register Rn, Register Rd) = 0;
+    virtual void STREX(Cond cond, Register Rn, Register Rd, Register Rm) = 0;
+    virtual void STREXB(Cond cond, Register Rn, Register Rd, Register Rm) = 0;
+    virtual void STREXD(Cond cond, Register Rn, Register Rd, Register Rm) = 0;
+    virtual void STREXH(Cond cond, Register Rn, Register Rd, Register Rm) = 0;
+    virtual void SWP(Cond cond, Register Rn, Register Rd, Register Rm) = 0;
+    virtual void SWPB(Cond cond, Register Rn, Register Rd, Register Rm) = 0;
 
     // Status register access instructions
     virtual void CPS() = 0;

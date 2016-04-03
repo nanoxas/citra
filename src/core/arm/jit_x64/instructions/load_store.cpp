@@ -7,11 +7,11 @@
 #include "common/x64/abi.h"
 
 #include "core/arm/jit_x64/jit_x64.h"
-#include "core/memory.h"
+#include "core/arm/jit_x64/instructions/helper/load_store.h"
 
 namespace JitX64 {
 
-// TODO: Loads from constant memory regions can be turned into immediate constant loads.
+// TODO: Optimization: Loads from read-only memory regions can be turned into immediate constant loads.
 
 using namespace Gen;
 
@@ -166,68 +166,6 @@ void JitX64::LoadAndStoreWordOrUnsignedByte_ScaledRegisterPostIndexed(X64Reg des
     LoadAndStoreWordOrUnsignedByte_ScaledRegister_Helper(Rn, U, Rn_index, imm5, shift, Rm_index);
 
     reg_alloc.UnlockArm(Rn_index);
-}
-
-// TODO: Set up an appropriately mapped region of memory to use instead of compiling CALL instructions.
-
-static u64 Load64LE(u32 addr) {
-    // TODO: Improve this.
-    return Memory::Read32(addr) | (static_cast<u64>(Memory::Read32(addr + 4)) << 32);
-}
-
-static u64 Load64BE(u32 addr) {
-    // TODO: Improve this.
-    return Common::swap32(Memory::Read32(addr)) | (static_cast<u64>(Common::swap32(Memory::Read32(addr + 4))) << 32);
-}
-
-static void Store64LE(u32 addr, u32 v1, u32 v2) {
-    Memory::Write32(addr, v1);
-    Memory::Write32(addr + 4, v2);
-}
-
-static void Store64BE(u32 addr, u32 v1, u32 v2) {
-    Memory::Write32(addr, Common::swap32(v1));
-    Memory::Write32(addr+4, Common::swap32(v2));
-}
-
-static u32 Load32LE(u32 addr) {
-    return Memory::Read32(addr);
-}
-
-static u32 Load32BE(u32 addr) {
-    return Common::swap32(Memory::Read32(addr));
-}
-
-static void Store32LE(u32 addr, u32 value) {
-    Memory::Write32(addr, value);
-}
-
-static void Store32BE(u32 addr, u32 value) {
-    Memory::Write32(addr, Common::swap32(value));
-}
-
-static u16 Load16LE(u32 addr) {
-    return Memory::Read16(addr);
-}
-
-static u16 Load16BE(u32 addr) {
-    return Common::swap16(Memory::Read16(addr));
-}
-
-static void Store16LE(u32 addr, u16 value) {
-    Memory::Write16(addr, value);
-}
-
-static void Store16BE(u32 addr, u16 value) {
-    Memory::Write16(addr, Common::swap16(value));
-}
-
-static u32 Load8(u32 addr) {
-    return Memory::Read8(addr);
-}
-
-static void Store8(u32 addr, u8 value) {
-    Memory::Write8(addr, value);
 }
 
 static void GetValueOfRegister(XEmitter* code, RegAlloc& reg_alloc, u32 r15_value, X64Reg x64_reg, ArmReg arm_reg) {
@@ -389,9 +327,6 @@ void JitX64::LDRB_reg(Cond cond, bool P, bool U, bool W, ArmReg Rn_index, ArmReg
 }
 
 void JitX64::STR_imm(Cond cond, bool P, bool U, bool W, ArmReg Rn_index, ArmReg Rd_index, ArmImm12 imm12) {
-    CompileInterpretInstruction();
-    return;
-
     cond_manager.CompileCond((ConditionCode)cond);
 
     // Rd_index == R15 is IMPLEMENTATION DEFINED
@@ -413,16 +348,11 @@ void JitX64::STR_imm(Cond cond, bool P, bool U, bool W, ArmReg Rn_index, ArmReg 
 
     reg_alloc.UnlockX64(ABI_PARAM1);
     reg_alloc.UnlockX64(ABI_PARAM2);
-
-    // TODO: Exclusive stuff
 
     current.arm_pc += GetInstSize();
 }
 
 void JitX64::STR_reg(Cond cond, bool P, bool U, bool W, ArmReg Rn_index, ArmReg Rd_index, ArmImm5 imm5, ShiftType shift, ArmReg Rm_index) {
-    CompileInterpretInstruction();
-    return;
-
     cond_manager.CompileCond((ConditionCode)cond);
 
     // Rd_index == R15 is IMPLEMENTATION DEFINED
@@ -445,15 +375,10 @@ void JitX64::STR_reg(Cond cond, bool P, bool U, bool W, ArmReg Rn_index, ArmReg 
     reg_alloc.UnlockX64(ABI_PARAM1);
     reg_alloc.UnlockX64(ABI_PARAM2);
 
-    // TODO: Exclusive stuff
-
     current.arm_pc += GetInstSize();
 }
 
 void JitX64::STRB_imm(Cond cond, bool P, bool U, bool W, ArmReg Rn_index, ArmReg Rd_index, ArmImm12 imm12) {
-    CompileInterpretInstruction();
-    return;
-
     cond_manager.CompileCond((ConditionCode)cond);
 
     ASSERT_MSG(Rd_index != 15, "UNPREDICTABLE");
@@ -476,15 +401,10 @@ void JitX64::STRB_imm(Cond cond, bool P, bool U, bool W, ArmReg Rn_index, ArmReg
     reg_alloc.UnlockX64(ABI_PARAM1);
     reg_alloc.UnlockX64(ABI_PARAM2);
 
-    //TODO: Exclusive stuff
-
     current.arm_pc += GetInstSize();
 }
 
 void JitX64::STRB_reg(Cond cond, bool P, bool U, bool W, ArmReg Rn_index, ArmReg Rd_index, ArmImm5 imm5, ShiftType shift, ArmReg Rm_index) {
-    CompileInterpretInstruction();
-    return;
-
     cond_manager.CompileCond((ConditionCode)cond);
 
     ASSERT_MSG(Rd_index != 15, "UNPREDICTABLE");
@@ -506,8 +426,6 @@ void JitX64::STRB_reg(Cond cond, bool P, bool U, bool W, ArmReg Rn_index, ArmReg
 
     reg_alloc.UnlockX64(ABI_PARAM1);
     reg_alloc.UnlockX64(ABI_PARAM2);
-
-    //TODO: Exclusive stuff
 
     current.arm_pc += GetInstSize();
 }
@@ -771,9 +689,6 @@ void JitX64::LDRSH_reg(Cond cond, bool P, bool U, bool W, ArmReg Rn_index, ArmRe
 }
 
 void JitX64::STRD_imm(Cond cond, bool P, bool U, bool W, ArmReg Rn_index, ArmReg Rd_index, ArmImm4 imm8a, ArmImm4 imm8b) {
-    CompileInterpretInstruction();
-    return;
-
     cond_manager.CompileCond((ConditionCode)cond);
 
     ASSERT_MSG(Rd_index < 14, "UNPREDICTABLE");
@@ -799,15 +714,10 @@ void JitX64::STRD_imm(Cond cond, bool P, bool U, bool W, ArmReg Rn_index, ArmReg
     reg_alloc.UnlockX64(ABI_PARAM2);
     reg_alloc.UnlockX64(ABI_PARAM3);
 
-    // TODO: Exclusive stuff.
-
     current.arm_pc += GetInstSize();
 }
 
 void JitX64::STRD_reg(Cond cond, bool P, bool U, bool W, ArmReg Rn_index, ArmReg Rd_index, ArmReg Rm_index) {
-    CompileInterpretInstruction();
-    return;
-
     cond_manager.CompileCond((ConditionCode)cond);
 
     ASSERT_MSG(Rd_index < 14, "UNPREDICTABLE");
@@ -835,15 +745,10 @@ void JitX64::STRD_reg(Cond cond, bool P, bool U, bool W, ArmReg Rn_index, ArmReg
     reg_alloc.UnlockX64(ABI_PARAM2);
     reg_alloc.UnlockX64(ABI_PARAM3);
 
-    // TODO: Exclusive stuff.
-
     current.arm_pc += GetInstSize();
 }
 
 void JitX64::STRH_imm(Cond cond, bool P, bool U, bool W, ArmReg Rn_index, ArmReg Rd_index, ArmImm4 imm8a, ArmImm4 imm8b) {
-    CompileInterpretInstruction();
-    return;
-
     cond_manager.CompileCond((ConditionCode)cond);
 
     ASSERT_MSG(Rd_index != 15, "UNPREDICTABLE");
@@ -866,15 +771,10 @@ void JitX64::STRH_imm(Cond cond, bool P, bool U, bool W, ArmReg Rn_index, ArmReg
     reg_alloc.UnlockX64(ABI_PARAM1);
     reg_alloc.UnlockX64(ABI_PARAM2);
 
-    // TODO: Exclusive stuff.
-
     current.arm_pc += GetInstSize();
 }
 
 void JitX64::STRH_reg(Cond cond, bool P, bool U, bool W, ArmReg Rn_index, ArmReg Rd_index, ArmReg Rm_index) {
-    CompileInterpretInstruction();
-    return;
-
     cond_manager.CompileCond((ConditionCode)cond);
 
     ASSERT_MSG(Rd_index != 15, "UNPREDICTABLE");
@@ -896,8 +796,6 @@ void JitX64::STRH_reg(Cond cond, bool P, bool U, bool W, ArmReg Rn_index, ArmReg
 
     reg_alloc.UnlockX64(ABI_PARAM1);
     reg_alloc.UnlockX64(ABI_PARAM2);
-
-    // TODO: Exclusive stuff.
 
     current.arm_pc += GetInstSize();
 }
@@ -1114,9 +1012,6 @@ static void ExecuteSTMBE(u32 start_address, u16 reg_list, JitState* jit_state) {
 }
 
 void JitX64::STM(Cond cond, bool P, bool U, bool W, ArmReg Rn_index, ArmRegList list) {
-    CompileInterpretInstruction();
-    return;
-
     cond_manager.CompileCond((ConditionCode)cond);
 
     ASSERT_MSG(Rn_index != 15, "UNPREDICTABLE");
@@ -1128,8 +1023,6 @@ void JitX64::STM(Cond cond, bool P, bool U, bool W, ArmReg Rn_index, ArmRegList 
 
     LoadAndStoreMultiple_Helper(code, reg_alloc, P, U, W, Rn_index, list,
         [this](){ CompileCallHost(reinterpret_cast<const void* const>(!current.EFlag ? &ExecuteSTMLE : &ExecuteSTMBE)); });
-
-    // TODO: Exclusive stuff
 
     current.arm_pc += GetInstSize();
 }

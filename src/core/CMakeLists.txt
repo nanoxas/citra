@@ -295,6 +295,7 @@ if(ARCHITECTURE_x86_64)
 
     set(HEADERS ${HEADERS}
             arm/jit_x64/common.h
+            arm/jit_x64/instructions/helper/load_store.h
             arm/jit_x64/interface.h
             arm/jit_x64/jit_x64.h
             arm/jit_x64/reg_alloc.h
