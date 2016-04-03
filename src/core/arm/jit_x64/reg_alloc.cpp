@@ -32,7 +32,7 @@ static const std::map<Gen::X64Reg, size_t> x64_reg_to_index = {
 
 constexpr Gen::X64Reg jit_state_reg = Gen::R15;
 
-Gen::X64Reg RegAlloc::JitStateReg() {
+Gen::X64Reg RegAlloc::JitStateReg() const {
     return jit_state_reg;
 }
 
@@ -44,10 +44,6 @@ static Gen::OpArg MJitStateCpuReg(ArmReg arm_reg) {
     ASSERT(arm_reg >= 0 && arm_reg <= 15);
 
     return Gen::MDisp(jit_state_reg, offsetof(JitState, cpu_state) + offsetof(ARMul_State, Reg) + (arm_reg) * sizeof(u32));
-}
-
-static Gen::OpArg MJitStateMemoryMap() {
-    return Gen::MDisp(jit_state_reg, offsetof(JitState, page_table));
 }
 
 void RegAlloc::Init(Gen::XEmitter* emitter) {
@@ -72,7 +68,6 @@ void RegAlloc::FlushX64(Gen::X64Reg x64_reg) {
 
     switch (state.state) {
     case X64State::State::Free:
-    case X64State::State::MemoryMap:
     case X64State::State::Temp:
         state.state = X64State::State::Free;
         break;
@@ -328,38 +323,6 @@ void RegAlloc::UnlockTemp(Gen::X64Reg x64_reg) {
 
     x64_state.locked = false;
     x64_state.state = X64State::State::Free;
-}
-
-Gen::X64Reg RegAlloc::LoadMemoryMap() {
-    // First check to see if it exists.
-    for (auto i : x64_reg_to_index) {
-        X64State& x64_state = x64_gpr[i.second];
-
-        if (x64_state.state == X64State::State::MemoryMap) {
-            ASSERT(!x64_state.locked);
-            x64_state.locked = true;
-            return i.first;
-        }
-    }
-
-    // Otherwise allocate it.
-    const Gen::X64Reg x64_reg = AllocReg();
-    X64State& x64_state = x64_gpr[x64_reg_to_index.at(x64_reg)];
-    x64_state.locked = true;
-    x64_state.state = X64State::State::MemoryMap;
-
-    code->MOV(64, R(x64_reg), MJitStateMemoryMap());
-
-    return x64_reg;
-}
-
-void RegAlloc::UnlockMemoryMap(Gen::X64Reg x64_reg) {
-    X64State& x64_state = x64_gpr[x64_reg_to_index.at(x64_reg)];
-
-    ASSERT(x64_state.locked);
-    ASSERT(x64_state.state == X64State::State::MemoryMap);
-
-    x64_state.locked = false;
 }
 
 void RegAlloc::AssertNoLocked() {

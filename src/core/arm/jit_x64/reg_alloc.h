@@ -42,7 +42,6 @@ private:
      * CleanArmReg (arm_reg is valid): This x64 reg is bound to an ARM reg.
      *                                 It hasn't been written to (i.e.: value is still the same as the in-memory version).
      *                                 This value WILL NOT be flushed back to memory.
-     * MemoryMap:                      This value holds a pointer to the ARM page table (currently unimplemented).
      * UserManuallyLocked:             User has called LockX64 on this register. User must call UnlockX64 to unlock.
      */
     struct X64State {
@@ -51,7 +50,6 @@ private:
             Temp,
             DirtyArmReg,
             CleanArmReg,
-            MemoryMap,
             UserManuallyLocked
         };
 
@@ -142,17 +140,10 @@ public:
     /// Releases a temporary register
     void UnlockTemp(Gen::X64Reg x64_reg);
 
-    // Page table:
-
-    /// Gets the x64 register with the address of the memory map in it. Allocates one if one doesn't already exist.
-    Gen::X64Reg LoadMemoryMap();
-    /// Releases the memory map register.
-    void UnlockMemoryMap(Gen::X64Reg x64_reg);
-
     // JitState pointer:
 
     /// Returns the register in which the JitState pointer is stored.
-    Gen::X64Reg JitStateReg();
+    Gen::X64Reg JitStateReg() const;
 
     // Flush:
 

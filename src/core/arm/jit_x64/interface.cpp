@@ -161,8 +161,6 @@ void ARM_Jit::ExecuteInstructions(int num_instructions) {
     reschedule = false;
 
     do {
-        //state->page_table = reinterpret_cast<void*>(Memory::current_page_table->pointers.data());
-
         bool EFlag = (state->cpu_state.Cpsr >> 9) & 1;
         state->cpu_state.TFlag = (state->cpu_state.Cpsr >> 5) & 1;
 

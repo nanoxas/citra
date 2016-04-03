@@ -34,7 +34,6 @@ struct JitState {
     u64 save_host_RSP;
     u64 return_RIP;
 
-    void* page_table;
     s32 cycles_remaining;
 };
 
