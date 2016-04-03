@@ -95,6 +95,7 @@ static JitX64 compiler { &block_of_code };
 ARM_Jit::ARM_Jit(PrivilegeMode initial_mode) {
     ASSERT_MSG(initial_mode == PrivilegeMode::USER32MODE, "Unimplemented");
     state = Common::make_unique<JitState>();
+    ClearCache();
 }
 
 ARM_Jit::~ARM_Jit() {
