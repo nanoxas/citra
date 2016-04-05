@@ -5,6 +5,7 @@
 #pragma once
 
 #include <array>
+#include <map>
 
 #include "common/common_types.h"
 #include "common/common_funcs.h"
@@ -20,49 +21,6 @@ namespace JitX64 {
 //       (Designed so it should be simple to implement later.)
 
 class RegAlloc final {
-private:
-    struct ArmState {
-        /**
-         * Where is the current value of this register? There are two cases:
-         * - In an x64 register, in which case location.IsSimpleReg() == true.
-         * - In memory in ARMul_State, in which case location == MJitStateCpuReg(arm_reg).
-         */
-        Gen::OpArg location = { 0, 0, Gen::INVALID_REG, Gen::INVALID_REG };
-        bool locked = false;
-    };
-
-    /**
-     * Possible states of X64State:
-     *
-     * Free (locked must be false):    This x64 reg is free to be allocated for any purpose.
-     * Temp (locked must be true):     This x64 reg is being used as a temporary in a calculation.
-     * DirtyArmReg (arm_reg is valid): This x64 reg is bound to an ARM reg.
-     *                                 It is marked as dirty (value has changed).
-     *                                 This value MUST be flushed back to memory.
-     * CleanArmReg (arm_reg is valid): This x64 reg is bound to an ARM reg.
-     *                                 It hasn't been written to (i.e.: value is still the same as the in-memory version).
-     *                                 This value WILL NOT be flushed back to memory.
-     * UserManuallyLocked:             User has called LockX64 on this register. User must call UnlockX64 to unlock.
-     */
-    struct X64State {
-        enum class State {
-            Free,
-            Temp,
-            DirtyArmReg,
-            CleanArmReg,
-            UserManuallyLocked
-        };
-
-        bool locked = false;
-        State state = State::Free;
-        ArmReg arm_reg = ArmReg::INVALID_REG; ///< Only holds a valid value when state == DirtyArmReg / CleanArmReg
-    };
-
-    std::array<ArmState, 16> arm_gpr;
-    std::array<X64State, 16> x64_gpr;
-
-    Gen::XEmitter* code = nullptr;
-
 public:
     RegAlloc() { Init(nullptr); }
 
@@ -95,7 +53,7 @@ public:
      */
     Gen::OpArg LockArmForReadWrite(ArmReg arm_reg) {
         Gen::OpArg ret = LockArmForRead(arm_reg);
-        if (IsBoundToX64(arm_reg)) {
+        if (GetState(arm_reg).IsInX64Register()) {
             MarkDirty(arm_reg);
         }
         return ret;
@@ -171,13 +129,78 @@ public:
 
     // Debug:
 
-    void AssertNoLocked();
+    void AssertNoLocked() const;
 
 private:
+    struct ArmState {
+        ArmState() = default;
+        ArmState(ArmReg arm_reg, Gen::OpArg location, bool locked) : arm_reg(arm_reg), location(location), locked(locked) {}
+
+        /// Which register is this?
+        ArmReg arm_reg = ArmReg::INVALID_REG;
+
+        /**
+         * Where is the current value of this register? There are two cases:
+         * - In an x64 register, in which case location.IsSimpleReg() == true.
+         * - In memory in ARMul_State, in which case location == MJitStateCpuReg(arm_reg).
+         */
+        Gen::OpArg location = { 0, 0, Gen::INVALID_REG, Gen::INVALID_REG };
+
+        /// Are we currently in-use?
+        bool locked = false;
+
+        bool IsInX64Register() const { return location.IsSimpleReg(); }
+    };
+
+    /**
+     * Possible states of X64State:
+     *
+     * Free (locked must be false):    This x64 reg is free to be allocated for any purpose.
+     * Temp (locked must be true):     This x64 reg is being used as a temporary in a calculation.
+     * DirtyArmReg (arm_reg is valid): This x64 reg is bound to an ARM reg.
+     *                                 It is marked as dirty (value has changed).
+     *                                 This value MUST be flushed back to memory.
+     * CleanArmReg (arm_reg is valid): This x64 reg is bound to an ARM reg.
+     *                                 It hasn't been written to (i.e.: value is still the same as the in-memory version).
+     *                                 This value WILL NOT be flushed back to memory.
+     * UserManuallyLocked:             User has called LockX64 on this register. User must call UnlockX64 to unlock.
+     */
+    struct X64State {
+        enum class State {
+            Free,
+            Temp,
+            DirtyArmReg,
+            CleanArmReg,
+            UserManuallyLocked
+        };
+
+        X64State() = default;
+        X64State(Gen::X64Reg x64_reg, bool locked, State state, ArmReg arm_reg) : x64_reg(x64_reg), locked(locked), state(state), arm_reg(arm_reg) {}
+
+        Gen::X64Reg x64_reg = Gen::INVALID_REG;
+        bool locked = false;
+        State state = State::Free;
+        ArmReg arm_reg = ArmReg::INVALID_REG; ///< Only holds a valid value when state == DirtyArmReg / CleanArmReg
+    };
+
+    std::array<ArmState, 16> arm_gpr;
+    std::array<X64State, 15> x64_gpr;
+
+    Gen::XEmitter* code = nullptr;
+
+private:
+    static const std::map<Gen::X64Reg, size_t> x64_reg_to_index;
+
+    /// INTERNAL: Gets the X64State that corresponds to x64_reg.
+    X64State& GetState(Gen::X64Reg x64_reg);
+    const X64State& GetState(Gen::X64Reg x64_reg) const;
+    /// INTERNAL: Gets the ArmState that corresponds to arm_reg.
+    ArmState& GetState(ArmReg x64_reg);
+    const ArmState& GetState(ArmReg x64_reg) const;
+    /// INTERNAL: Checks consistency of the two states
+    void AssertStatesConsistent(const X64State& x64_state, const ArmState& arm_state) const;
     /// INTERNAL: Gets the x64 register this ArmReg is currently bound to.
-    Gen::X64Reg GetX64For(ArmReg arm_reg);
-    /// INTERNAL: Is this ARM register currently in an x64 register?
-    bool IsBoundToX64(ArmReg arm_reg);
+    Gen::X64Reg GetX64For(ArmReg arm_reg) const;
     /// INTERNAL: Marks register as dirty. Ensures that it is written back to memory if it's in a x64 register.
     void MarkDirty(ArmReg arm_reg);
     /// INTERNAL: Allocates a register that is free. Flushes registers that are not locked if necessary.

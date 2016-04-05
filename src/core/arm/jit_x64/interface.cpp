@@ -88,13 +88,14 @@ struct BlockOfCode : Gen::XCodeBlock {
 
 namespace JitX64 {
 
-static Gen::RunJittedCode run_jit = {};
-static Gen::BlockOfCode block_of_code = {};
-static JitX64 compiler { &block_of_code };
+struct ARM_Jit::Impl {
+    Gen::RunJittedCode run_jit = {};
+    Gen::BlockOfCode block_of_code = {};
+    JitX64 compiler{ &block_of_code };
+};
 
-ARM_Jit::ARM_Jit(PrivilegeMode initial_mode) {
+ARM_Jit::ARM_Jit(PrivilegeMode initial_mode) : impl(std::make_unique<Impl>()), state(Common::make_unique<JitState>()) {
     ASSERT_MSG(initial_mode == PrivilegeMode::USER32MODE, "Unimplemented");
-    state = Common::make_unique<JitState>();
     ClearCache();
 }
 
@@ -173,9 +174,9 @@ void ARM_Jit::ExecuteInstructions(int num_instructions) {
         else
             state->cpu_state.Reg[15] &= 0xfffffffc;
 
-        u8 *ptr = compiler.GetBB(state->cpu_state.Reg[15], state->cpu_state.TFlag, EFlag);
+        u8 *ptr = impl->compiler.GetBB(state->cpu_state.Reg[15], state->cpu_state.TFlag, EFlag);
 
-        unsigned ticks_executed = run_jit.CallCode(state.get(), ptr, num_instructions, state->cpu_state.Reg[15]);
+        unsigned ticks_executed = impl->run_jit.CallCode(state.get(), ptr, num_instructions, state->cpu_state.Reg[15]);
         num_instructions -= ticks_executed;
         AddTicks(ticks_executed);
     } while (!reschedule && num_instructions > 0);
@@ -223,14 +224,14 @@ void ARM_Jit::PrepareReschedule() {
 }
 
 void ARM_Jit::ClearCache() {
-    compiler.ClearCache();
-    block_of_code.ClearCodeSpace();
+    impl->compiler.ClearCache();
+    impl->block_of_code.ClearCodeSpace();
     state->cpu_state.instruction_cache.clear();
 }
 
 void ARM_Jit::FastClearCache() {
-    compiler.ClearCache();
-    block_of_code.ResetCodePtr();
+    impl->compiler.ClearCache();
+    impl->block_of_code.ResetCodePtr();
     state->cpu_state.instruction_cache.clear();
 }
 

@@ -44,7 +44,10 @@ public:
     void FastClearCache();
 
 private:
-    bool reschedule;
+    struct Impl;
+
+    std::unique_ptr<Impl> impl;
+    bool reschedule = false;
     std::unique_ptr<JitState> state;
 };
 
