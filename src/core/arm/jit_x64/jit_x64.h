@@ -140,7 +140,7 @@ private:
         void CompileCond(Cond cond);
         void Always();
         void FlagsDirty();
-        Cond CurrentCond();
+        Cond CurrentCond() const;
     } cond_manager;
 
 private:

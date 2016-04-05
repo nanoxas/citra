@@ -140,7 +140,7 @@ void JitX64::CondManager::FlagsDirty() {
     flags_dirty = true;
 }
 
-Cond JitX64::CondManager::CurrentCond() {
+Cond JitX64::CondManager::CurrentCond() const {
     return current_cond;
 }
 
