@@ -22,22 +22,19 @@ ThumbMatcher MakeMatcher(const char* const str, std::function<void(Visitor* v, u
     u16 mask = 0;
     u16 expect = 0;
 
-    for (int i = 0; i < 16; i++) {
-        mask <<= 1;
-        expect <<= 1;
+    for (size_t i = 0; i < 16; i++) {
+        const size_t bit_position = 15 - i;
+        const u16 bit = 1 << bit_position;
 
         switch (str[i]) {
         case '0':
-            mask |= 1;
-            expect |= 0;
+            mask |= bit;
             break;
         case '1':
-            mask |= 1;
-            expect |= 1;
+            mask |= bit;
+            expect |= bit;
             break;
         default:
-            mask |= 0;
-            expect |= 0;
             break;
         }
     }

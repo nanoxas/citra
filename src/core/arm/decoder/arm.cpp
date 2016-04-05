@@ -44,18 +44,19 @@ namespace Impl {
         std::array<u32, NumArgs> masks = {};
         std::array<size_t, NumArgs> shifts = {};
         Function fn = nullptr;
-        virtual void visit(Visitor *v, u32 inst) override {
+        void visit(Visitor *v, u32 inst) override {
             std::array<u32, NumArgs> values;
-            for (size_t i = 0; i < NumArgs; i++) {
-                values[i] = (inst & masks[i]) >> shifts[i];
-            }
+            std::transform(masks.begin(), masks.begin() + NumArgs, shifts.begin(), values.begin(),
+                [inst](u32 mask, size_t shift) { return (inst & mask) >> shift; });
             call<NumArgs>(v, fn, values);
         }
     };
 }
 
 template<size_t NumArgs, typename Function>
-static std::unique_ptr<ArmMatcher> MakeMatcher(const char format[32], Function fn) {
+static std::unique_ptr<ArmMatcher> MakeMatcher(const char* const format, Function fn) {
+    ASSERT(strlen(format) == 32);
+
     auto ret = Common::make_unique<Impl::MatcherImpl<NumArgs, Function>>();
     ret->fn = fn;
     ret->masks.fill(0);
@@ -64,19 +65,23 @@ static std::unique_ptr<ArmMatcher> MakeMatcher(const char format[32], Function f
     char ch = 0;
     int arg = -1;
 
-    for (int i = 0; i < 32; i++) {
-        const u32 bit = 1 << (31 - i);
+    for (size_t i = 0; i < 32; i++) {
+        const size_t bit_position = 31 - i;
+        const u32 bit = 1 << bit_position;
 
         if (format[i] == '0') {
+            // 0: A zero must be found here
             ret->bit_mask |= bit;
             ch = 0;
             continue;
         } else if (format[i] == '1') {
+            // 1: A one must be found here
             ret->bit_mask |= bit;
             ret->expected |= bit;
             ch = 0;
             continue;
         } else if (format[i] == '-') {
+            // -: Ignore this bit
             ch = 0;
             continue;
         }
@@ -86,14 +91,17 @@ static std::unique_ptr<ArmMatcher> MakeMatcher(const char format[32], Function f
         ASSERT(format[i] != 'l');
         ASSERT(format[i] != 'O');
 
-        if (format[i] != ch){
+        // otherwise: This bit is part of a field to extract
+
+        // strings of the same character make up a field
+        if (format[i] != ch) {
             arg++;
             ASSERT(arg < NumArgs);
             ch = format[i];
         }
 
         ret->masks[arg] |= bit;
-        ret->shifts[arg] = 31 - i;
+        ret->shifts[arg] = bit_position;
     }
 
     ASSERT(arg == NumArgs - 1);

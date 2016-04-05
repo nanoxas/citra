@@ -23,14 +23,14 @@ class ThumbInstruction;
 class Visitor;
 
 /**
- * This funtion identifies an ARM instruction and returns the relevant ArmInstruction.
- * Returns boost::none if the instruction could not be deocoded.
+ * This function identifies an ARM instruction and returns the relevant ArmInstruction.
+ * Returns boost::none if the instruction was not recognised.
  */
 boost::optional<const ArmInstruction&> DecodeArm(u32 instruction);
 
 /**
-* This funtion identifies a Thumb instruction and returns the relevant ThumbInstruction.
-* Returns boost::none if the instruction could not be deocoded.
+* This function identifies a Thumb instruction and returns the relevant ThumbInstruction.
+* Returns boost::none if the instruction was not recognised.
 */
 boost::optional<const ThumbInstruction&> DecodeThumb(u16 instruction);
 
@@ -91,7 +91,7 @@ public:
         return name;
     }
 
-    bool Match(u32 instruction) const {
+    bool Match(u16 instruction) const {
         return matcher.Match(instruction);
     }
 
