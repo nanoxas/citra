@@ -47,7 +47,7 @@ private:
 
 public:
     JitX64() = delete;
-    explicit JitX64(Gen::XEmitter* code_);
+    explicit JitX64(Gen::XEmitter* code);
     ~JitX64() override {}
 
     void ClearCache();
@@ -58,9 +58,9 @@ public:
     CodePtr Compile(u32 pc, bool TFlag, bool EFlag);
 
 private:
-    LocationDescriptor current;
-    unsigned instructions_compiled;
-    bool stop_compilation;
+    LocationDescriptor current = { 0, false, false };
+    unsigned instructions_compiled = 0;
+    bool stop_compilation = false;
 
     size_t GetInstSize() const { return current.TFlag ? 2 : 4; }
     void CompileSingleArmInstruction();

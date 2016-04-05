@@ -10,7 +10,7 @@ namespace JitX64 {
 
 using namespace Gen;
 
-JitX64::JitX64(XEmitter* code_) : code(code_), current(0, false, false) {}
+JitX64::JitX64(XEmitter* code) : code(code) {}
 
 void JitX64::ClearCache() {
     basic_blocks.clear();
