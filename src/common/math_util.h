@@ -21,18 +21,6 @@ inline T Clamp(const T val, const T& min, const T& max) {
     return std::max(min, std::min(max, val));
 }
 
-/// Sign-extends a val of type T that has NBits bits.
-template<size_t NBits, typename T>
-inline T SignExtend(const T val) {
-    static_assert(std::numeric_limits<T>::is_signed, "T must be signed");
-    static_assert(NBits <= 8 * sizeof(T), "NBits larger that bitsize of T");
-
-    using unsignedT = typename std::make_unsigned<T>::type;
-
-    constexpr size_t shift = 8 * sizeof(T) - NBits;
-    return static_cast<T>(static_cast<unsignedT>(val) << shift) >> shift;
-}
-
 template<class T>
 struct Rectangle {
     T left;

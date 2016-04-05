@@ -2,7 +2,7 @@
 // Licensed under GPLv2 or any later version
 // Refer to the license.txt file included.
 
-#include "common/math_util.h"
+#include "common/bit_util.h"
 
 #include "core/arm/jit_x64/jit_x64.h"
 
@@ -13,7 +13,7 @@ using namespace Gen;
 void JitX64::B(Cond cond, ArmImm24 imm24) {
     cond_manager.CompileCond(cond);
 
-    const u32 new_pc = GetReg15Value() + MathUtil::SignExtend<26, s32>(imm24 << 2);
+    const u32 new_pc = GetReg15Value() + BitUtil::SignExtend<26, s32>(imm24 << 2);
 
     reg_alloc.FlushEverything();
     current.arm_pc += GetInstSize();
@@ -28,7 +28,7 @@ void JitX64::B(Cond cond, ArmImm24 imm24) {
 void JitX64::BL(Cond cond, ArmImm24 imm24) {
     cond_manager.CompileCond(cond);
 
-    const u32 new_pc = GetReg15Value() + MathUtil::SignExtend<26, s32>(imm24 << 2);
+    const u32 new_pc = GetReg15Value() + BitUtil::SignExtend<26, s32>(imm24 << 2);
 
     ASSERT(!current.TFlag);
     const u32 link_pc = current.arm_pc + GetInstSize();
@@ -49,7 +49,7 @@ void JitX64::BL(Cond cond, ArmImm24 imm24) {
 void JitX64::BLX_imm(bool H, ArmImm24 imm24) {
     cond_manager.Always();
 
-    const u32 new_pc = GetReg15Value() + MathUtil::SignExtend<26, s32>(imm24 << 2) + (H ? 2 : 0);
+    const u32 new_pc = GetReg15Value() + BitUtil::SignExtend<26, s32>(imm24 << 2) + (H ? 2 : 0);
 
     ASSERT(!current.TFlag);
     const u32 link_pc = current.arm_pc + GetInstSize();

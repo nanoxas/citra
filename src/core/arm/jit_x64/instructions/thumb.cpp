@@ -3,7 +3,7 @@
 // Refer to the license.txt file included.
 
 #include "common/assert.h"
-#include "common/math_util.h"
+#include "common/bit_util.h"
 
 #include "core/arm/jit_x64/jit_x64.h"
 
@@ -16,7 +16,7 @@ void JitX64::thumb_B(Cond cond, ArmImm8 imm8) {
 
     ASSERT_MSG(current.TFlag, "thumb_B may only be called in thumb mode");
 
-    const u32 new_pc = GetReg15Value() + MathUtil::SignExtend<9, s32>(imm8 << 1);
+    const u32 new_pc = GetReg15Value() + BitUtil::SignExtend<9, s32>(imm8 << 1);
 
     reg_alloc.FlushEverything();
     current.arm_pc += GetInstSize();
@@ -33,7 +33,7 @@ void JitX64::thumb_B(ArmImm11 imm11) {
 
     ASSERT_MSG(current.TFlag, "thumb_B may only be called in thumb mode");
 
-    const u32 new_pc = GetReg15Value() + MathUtil::SignExtend<12, s32>(imm11 << 1);
+    const u32 new_pc = GetReg15Value() + BitUtil::SignExtend<12, s32>(imm11 << 1);
 
     reg_alloc.FlushEverything();
     current.arm_pc += GetInstSize();
@@ -73,7 +73,7 @@ void JitX64::thumb_BLX_suffix(bool X, ArmImm11 imm11) {
     ASSERT_MSG(current.TFlag, "thumb_BLX_suffix should only be called in thumb mode, pc = %u", current.arm_pc);
 
     u32 new_pc = (current.arm_pc + 2) +
-        MathUtil::SignExtend<23, s32>(thumb_BLX_prefix_imm11 << 12) +
+        BitUtil::SignExtend<23, s32>(thumb_BLX_prefix_imm11 << 12) +
         (imm11 << 1);
     u32 new_lr = (current.arm_pc + 2) | 1;
 

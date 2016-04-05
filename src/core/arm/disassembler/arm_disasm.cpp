@@ -4,8 +4,8 @@
 #include <unordered_set>
 
 #include "common/assert.h"
+#include "common/bit_util.h"
 #include "common/common_types.h"
-#include "common/math_util.h"
 #include "common/string_util.h"
 
 #include "core/arm/disassembler/arm_disasm.h"
@@ -519,7 +519,7 @@ std::string ARM_Disasm::DisassembleBLX(u32 insn)
     if ((insn & 0xFE000000) == 0xFA000000) {
         u32 imm24 = insn & 0xFFFFFF;
         u32 H = (insn >> 24) & 1;
-        s32 offset = MathUtil::SignExtend<26, s32>((imm24 << 2) + (H << 1)) + 8;
+        s32 offset = BitUtil::SignExtend<26, s32>((imm24 << 2) + (H << 1)) + 8;
         return Common::StringFromFormat("blx\t#+%d", offset);
     } else if ((insn & 0x0FFFFFF0) == 0x012FFF30) {
         u8 cond = (insn >> 28) & 0xf;
