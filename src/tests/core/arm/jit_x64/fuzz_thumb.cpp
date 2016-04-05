@@ -83,6 +83,21 @@ public:
     void Write64(VAddr addr, u64 data) override { recording.emplace_back(8, addr, data); }
 };
 
+static bool DoesBehaviorMatch(const ARM_DynCom& interp, const JitX64::ARM_Jit& jit, std::vector<TestMemory::WriteRecord> interp_mem_recording, std::vector<TestMemory::WriteRecord> jit_mem_recording) {
+    if (interp.GetCPSR() != jit.GetCPSR())
+        return false;
+
+    for (int i = 0; i <= 15; i++) {
+        if (interp.GetReg(i) != jit.GetReg(i))
+            return false;
+    }
+
+    if (interp_mem_recording != jit_mem_recording)
+        return false;
+
+    return true;
+}
+
 void FuzzJitThumb(const int instruction_count, const int instructions_to_execute_count, const int run_count, const std::function<u16(int)> instruction_generator) {
     // Init core
     Core::Init();
@@ -141,15 +156,7 @@ void FuzzJitThumb(const int instruction_count, const int instructions_to_execute
         jit.ExecuteInstructions(instructions_to_execute_count + 1);
         auto jit_mem_recording = test_mem->recording;
 
-        bool pass = true;
-
-        if (interp.GetCPSR() != jit.GetCPSR()) pass = false;
-        for (int i = 0; i <= 15; i++) {
-            if (interp.GetReg(i) != jit.GetReg(i)) pass = false;
-        }
-        if (interp_mem_recording != jit_mem_recording) pass = false;
-
-        if (!pass) {
+        if (!DoesBehaviorMatch(interp, jit, interp_mem_recording, jit_mem_recording)) {
             printf("Failed at execution number %i\n", run_number);
 
             printf("\nInstruction Listing: \n");
@@ -207,7 +214,6 @@ void FuzzJitThumb(const int instruction_count, const int instructions_to_execute
 // Things not yet tested:
 //
 // FromBitString16("10111110xxxxxxxx"), // BKPT
-// FromBitString16("10110110011x0xxx"), // CPS
 // FromBitString16("11011111xxxxxxxx"), // SWI
 // FromBitString16("1011x101xxxxxxxx"), // PUSH/POP (R = 1)
 
@@ -273,7 +279,7 @@ TEST_CASE("Fuzz Thumb instructions set 1", "[JitX64][Thumb]") {
 }
 
 TEST_CASE("Fuzz Thumb instructions set 2 (affects PC)", "[JitX64][Thumb]") {
-    const std::array<std::pair<u16, u16>, 18> instructions = {{
+    const std::array<std::pair<u16, u16>, 19> instructions = {{
         FromBitString16("01000111xxxxx000"), // BLX/BX
         FromBitString16("1010oxxxxxxxxxxx"), // add to pc/sp
         FromBitString16("11100xxxxxxxxxxx"), // B
@@ -292,6 +298,7 @@ TEST_CASE("Fuzz Thumb instructions set 2 (affects PC)", "[JitX64][Thumb]") {
         FromBitString16("11011010xxxxxxxx"), // B<cond>
         FromBitString16("11011011xxxxxxxx"), // B<cond>
         FromBitString16("11011100xxxxxxxx"), // B<cond>
+        FromBitString16("10110110011x0xxx"), // CPS
     }};
 
     auto instruction_select = [&](int) -> u16 {

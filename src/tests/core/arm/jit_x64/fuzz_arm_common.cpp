@@ -80,12 +80,27 @@ public:
     void Write64(VAddr addr, u64 data) override { recording.emplace_back(8, addr, data); }
 };
 
+static bool DoesBehaviorMatch(const ARM_DynCom& interp, const JitX64::ARM_Jit& jit, std::vector<TestMemory::WriteRecord> interp_mem_recording, std::vector<TestMemory::WriteRecord> jit_mem_recording) {
+    if (interp.GetCPSR() != jit.GetCPSR())
+        return false;
+
+    for (int i = 0; i <= 15; i++) {
+        if (interp.GetReg(i) != jit.GetReg(i))
+            return false;
+    }
+
+    if (interp_mem_recording != jit_mem_recording)
+        return false;
+
+    return true;
+}
+
 void FuzzJit(const int instruction_count, const int instructions_to_execute_count, const int run_count, const std::function<u32()> instruction_generator) {
     // Init core
     Core::Init();
     SCOPE_EXIT({ Core::Shutdown(); });
 
-    // Prepare memory
+    // Prepare memory (we take over the entire address space)
     std::shared_ptr<TestMemory> test_mem = std::make_shared<TestMemory>();
     Memory::MapIoRegion(0x00000000, 0x80000000, test_mem);
     Memory::MapIoRegion(0x80000000, 0x80000000, test_mem);
@@ -120,10 +135,7 @@ void FuzzJit(const int instruction_count, const int instructions_to_execute_coun
         interp.SetPC(0);
         jit.SetPC(0);
 
-        for (int i = 0; i < instruction_count; i++) {
-            u32 inst = instruction_generator();
-            test_mem->code_mem[i] = inst;
-        }
+        std::generate_n(test_mem->code_mem.begin(), instruction_count, instruction_generator);
 
         test_mem->code_mem[instruction_count] = 0xEAFFFFFE; // b +#0 // busy wait loop
 
@@ -135,15 +147,7 @@ void FuzzJit(const int instruction_count, const int instructions_to_execute_coun
         jit.ExecuteInstructions(instructions_to_execute_count);
         auto jit_mem_recording = test_mem->recording;
 
-        bool pass = true;
-
-        if (interp.GetCPSR() != jit.GetCPSR()) pass = false;
-        for (int i = 0; i <= 15; i++) {
-            if (interp.GetReg(i) != jit.GetReg(i)) pass = false;
-        }
-        if (interp_mem_recording != jit_mem_recording) pass = false;
-
-        if (!pass) {
+        if (!DoesBehaviorMatch(interp, jit, interp_mem_recording, jit_mem_recording)) {
             printf("Failed at execution number %i\n", run_number);
 
             printf("\nInstruction Listing: \n");
