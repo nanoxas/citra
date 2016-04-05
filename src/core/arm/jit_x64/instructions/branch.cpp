@@ -11,7 +11,7 @@ namespace JitX64 {
 using namespace Gen;
 
 void JitX64::B(Cond cond, ArmImm24 imm24) {
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
     const u32 new_pc = GetReg15Value() + MathUtil::SignExtend<26, s32>(imm24 << 2);
 
@@ -20,28 +20,28 @@ void JitX64::B(Cond cond, ArmImm24 imm24) {
     CompileUpdateCycles(false);
     CompileJumpToBB(new_pc);
 
-    if (cond == ConditionCode::AL) {
+    if (cond == Cond::AL) {
         stop_compilation = true;
     }
 }
 
 void JitX64::BL(Cond cond, ArmImm24 imm24) {
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
     const u32 new_pc = GetReg15Value() + MathUtil::SignExtend<26, s32>(imm24 << 2);
 
     ASSERT(!current.TFlag);
     const u32 link_pc = current.arm_pc + GetInstSize();
-    Gen::OpArg LR = reg_alloc.LockArmForWrite(14);
+    Gen::OpArg LR = reg_alloc.LockArmForWrite(ArmReg::LR);
     code->MOV(32, LR, Imm32(link_pc));
-    reg_alloc.UnlockArm(14);
+    reg_alloc.UnlockArm(ArmReg::LR);
 
     reg_alloc.FlushEverything();
     current.arm_pc += GetInstSize();
     CompileUpdateCycles(false);
     CompileJumpToBB(new_pc);
 
-    if (cond == ConditionCode::AL) {
+    if (cond == Cond::AL) {
         stop_compilation = true;
     }
 }
@@ -53,9 +53,9 @@ void JitX64::BLX_imm(bool H, ArmImm24 imm24) {
 
     ASSERT(!current.TFlag);
     const u32 link_pc = current.arm_pc + GetInstSize();
-    Gen::OpArg LR = reg_alloc.LockArmForWrite(14);
+    Gen::OpArg LR = reg_alloc.LockArmForWrite(ArmReg::LR);
     code->MOV(32, LR, Imm32(link_pc));
-    reg_alloc.UnlockArm(14);
+    reg_alloc.UnlockArm(ArmReg::LR);
 
     current.TFlag = true;
     code->MOV(32, MJitStateTFlag(), Imm32(1));
@@ -69,26 +69,21 @@ void JitX64::BLX_imm(bool H, ArmImm24 imm24) {
 }
 
 void JitX64::BLX_reg(Cond cond, ArmReg Rm_index) {
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
+
+    ASSERT_MSG(Rm_index != ArmReg::PC, "UNPREDICTABLE");
 
     const u32 link_pc = current.arm_pc + GetInstSize() + (current.TFlag ? 1 : 0);
-    Gen::OpArg LR = reg_alloc.LockArmForWrite(14);
+    Gen::OpArg LR = reg_alloc.LockArmForWrite(ArmReg::LR);
     code->MOV(32, LR, Imm32(link_pc));
-    reg_alloc.UnlockArm(14);
+    reg_alloc.UnlockArm(ArmReg::LR);
 
-    if (Rm_index == 15) {
-        // This is what the interpreter does. This effectively hangs the cpu.
-        // blx r15 is marked as UNPREDICTABLE in ARM ARM.
-        code->MOV(32, MJitStateArmPC(), Imm32(current.arm_pc));
-        code->MOV(32, MJitStateTFlag(), Imm32(0));
-    } else {
-        Gen::X64Reg Rm = reg_alloc.BindArmForRead(Rm_index);
-        code->MOV(32, MJitStateArmPC(), R(Rm));
-        code->AND(32, MJitStateArmPC(), Imm32(0xFFFFFFFE));
-        code->BT(32, R(Rm), Imm8(0));
-        code->SETcc(CC_C, MJitStateTFlag()); // NOTE: current.TFlag is now inaccurate
-        reg_alloc.UnlockArm(Rm_index);
-    }
+    Gen::X64Reg Rm = reg_alloc.BindArmForRead(Rm_index);
+    code->MOV(32, MJitStateArmPC(), R(Rm));
+    code->AND(32, MJitStateArmPC(), Imm32(0xFFFFFFFE));
+    code->BT(32, R(Rm), Imm8(0));
+    code->SETcc(CC_C, MJitStateTFlag()); // NOTE: current.TFlag is now inaccurate
+    reg_alloc.UnlockArm(Rm_index);
 
     current.arm_pc += GetInstSize();
     CompileReturnToDispatch();
@@ -97,9 +92,9 @@ void JitX64::BLX_reg(Cond cond, ArmReg Rm_index) {
 }
 
 void JitX64::BX(Cond cond, ArmReg Rm_index) {
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
-    if (Rm_index == 15) {
+    if (Rm_index == ArmReg::PC) {
         code->MOV(32, MJitStateArmPC(), Imm32(GetReg15Value()));
         code->MOV(32, MJitStateTFlag(), Imm32(0));
     } else {

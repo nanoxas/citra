@@ -132,15 +132,15 @@ private:
     struct CondManager {
     private:
         JitX64* jit;
-        ConditionCode current_cond;
+        Cond current_cond;
         bool flags_dirty;
         Gen::FixupBranch current_cond_fixup;
     public:
         void Init(JitX64* jit_);
-        void CompileCond(ConditionCode cond);
+        void CompileCond(Cond cond);
         void Always();
         void FlagsDirty();
-        ConditionCode CurrentCond();
+        Cond CurrentCond();
     } cond_manager;
 
 private:

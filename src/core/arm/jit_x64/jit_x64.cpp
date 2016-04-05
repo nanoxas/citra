@@ -79,7 +79,7 @@ void JitX64::CompileUpdateCycles(bool reset_cycles) {
 }
 
 void JitX64::CompileReturnToDispatch() {
-    if (cond_manager.CurrentCond() == ConditionCode::AL) {
+    if (cond_manager.CurrentCond() == Cond::AL) {
         reg_alloc.FlushEverything();
         CompileUpdateCycles();
         code->JMPptr(MJitStateHostReturnRIP());

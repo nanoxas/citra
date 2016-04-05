@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include <type_traits>
+
 #include "common/common_types.h"
 
 #include "core/arm/decoder/decoder.h"
@@ -36,5 +38,19 @@ struct JitState {
 
     s32 cycles_remaining;
 };
+
+constexpr bool IsValidArmReg(ArmReg arm_reg) {
+    return static_cast<unsigned>(arm_reg) <= 15;
+}
+
+static bool IsEvenArmReg(ArmReg arm_reg) {
+    ASSERT(IsValidArmReg(arm_reg));
+    return static_cast<unsigned>(arm_reg) % 2 == 0;
+}
+
+/// Turns a ArmReg into an ArmRegList bitmap.
+constexpr ArmRegList MakeRegList(ArmReg arm_reg) {
+    return 1 << static_cast<unsigned>(arm_reg);
+}
 
 }

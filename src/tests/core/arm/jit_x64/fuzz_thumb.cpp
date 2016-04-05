@@ -297,9 +297,13 @@ TEST_CASE("Fuzz Thumb instructions set 2 (affects PC)", "[JitX64][Thumb]") {
     auto instruction_select = [&](int) -> u16 {
         size_t inst_index = RandInt<size_t>(0, instructions.size() - 1);
 
-        u16 random = RandInt<u16>(0, 0xFFFF);
-
-        return instructions[inst_index].first | (random &~ instructions[inst_index].second);
+        if (inst_index == 0) {
+            u16 Rm = RandInt<u16>(0, 14) << 3;
+            return instructions[inst_index].first | (Rm &~instructions[inst_index].second);
+        } else {
+            u16 random = RandInt<u16>(0, 0xFFFF);
+            return instructions[inst_index].first | (random &~instructions[inst_index].second);
+        }
     };
 
     FuzzJitThumb(1, 1, 10000, instruction_select);

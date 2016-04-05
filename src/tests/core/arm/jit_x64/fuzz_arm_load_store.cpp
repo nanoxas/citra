@@ -133,11 +133,18 @@ TEST_CASE("Fuzz ARM load/store multiple instructions", "[JitX64]") {
         u32 Rn = RandInt<u32>(0, 14);
         u32 flags = RandInt<u32>(0, 0xF);
 
-        if (inst_index == 1 && (flags & 2)) {
-            if (reg_list & (1 << Rn))
-                reg_list &= ~((1 << Rn) - 1);
-        } else if (inst_index == 0 && (flags & 2)) {
-            reg_list &= ~(1 << Rn);
+        while (true) {
+            if (inst_index == 1 && (flags & 2)) {
+                if (reg_list & (1 << Rn))
+                    reg_list &= ~((1 << Rn) - 1);
+            } else if (inst_index == 0 && (flags & 2)) {
+                reg_list &= ~(1 << Rn);
+            }
+
+            if (reg_list)
+                break;
+
+            reg_list = RandInt<u32>(1, 0xFFFF);
         }
 
         u32 assemble_randoms = (reg_list << 0) | (Rn << 16) | (flags << 24) | (cond << 28);

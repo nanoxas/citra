@@ -24,9 +24,12 @@ TEST_CASE("Fuzz ARM branch instructions", "[JitX64]") {
     auto instruction_select = [&]() -> u32 {
         size_t inst_index = RandInt<size_t>(0, instructions.size() - 1);
 
-        u32 random = RandInt<u32>(0, 0xFFFFFFFF);
+        u32 random = RandInt<u32>(0, 0xFFFFFFF);
+        u32 Rm = RandInt<u32>(0, 14);
 
-        return instructions[inst_index].first | (random & (~instructions[inst_index].second));
+        u32 assemble_randoms = (random << 4) | Rm;
+
+        return instructions[inst_index].first | (assemble_randoms & (~instructions[inst_index].second));
     };
 
     SECTION("R15") {

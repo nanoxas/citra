@@ -55,7 +55,7 @@ private:
 
         bool locked = false;
         State state = State::Free;
-        ArmReg arm_reg = -1; ///< Only holds a valid value when state == DirtyArmReg / CleanArmReg
+        ArmReg arm_reg = ArmReg::INVALID_REG; ///< Only holds a valid value when state == DirtyArmReg / CleanArmReg
     };
 
     std::array<ArmState, 16> arm_gpr;

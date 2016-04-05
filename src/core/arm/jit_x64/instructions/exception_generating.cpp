@@ -18,7 +18,7 @@ static void Breakpoint(u32 imm) {
 }
 
 void JitX64::BKPT(Cond cond, ArmImm12 imm12, ArmImm4 imm4) {
-    cond_manager.CompileCond((ConditionCode) cond);
+    cond_manager.CompileCond(cond);
 
     ASSERT_MSG(false, "BKPT instruction @ pc=0x%08X", current.arm_pc);
 
@@ -38,7 +38,7 @@ static void ServiceCall(u64 imm) {
 }
 
 void JitX64::SVC(Cond cond, ArmImm24 imm24) {
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
     // Flush and write out absolutely everything.
     code->MOV(32, MJitStateArmPC(), Imm32(current.arm_pc));

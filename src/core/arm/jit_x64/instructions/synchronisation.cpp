@@ -24,7 +24,7 @@ void JitX64::CLREX() {
 }
 
 void ExclusiveLoadCommon(XEmitter* code, RegAlloc& reg_alloc, OpArg exclusive_state, OpArg exclusive_tag, ArmReg Rn_index, ArmReg Rd_index) {
-    ASSERT_MSG(Rn_index != 15 && Rd_index != 15, "UNPREDICTABLE");
+    ASSERT_MSG(Rn_index != ArmReg::PC && Rd_index != ArmReg::PC, "UNPREDICTABLE");
 
     code->MOV(8, exclusive_state, Imm8(1));
 
@@ -42,9 +42,9 @@ void ExclusiveLoadCommon(XEmitter* code, RegAlloc& reg_alloc, OpArg exclusive_st
 }
 
 void JitX64::LDREX(Cond cond, ArmReg Rn_index, ArmReg Rd_index) {
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
-    ASSERT_MSG(Rn_index != 15 && Rd_index != 15, "UNPREDICTABLE");
+    ASSERT_MSG(Rn_index != ArmReg::PC && Rd_index != ArmReg::PC, "UNPREDICTABLE");
 
     ExclusiveLoadCommon(code, reg_alloc, MJitStateExclusiveState(), MJitStateExclusiveTag(), Rn_index, Rd_index);
     CompileCallHost(reinterpret_cast<const void* const>(!current.EFlag ? &Load32LE : &Load32BE));
@@ -61,9 +61,9 @@ void JitX64::LDREX(Cond cond, ArmReg Rn_index, ArmReg Rd_index) {
 }
 
 void JitX64::LDREXB(Cond cond, ArmReg Rn_index, ArmReg Rd_index) {
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
-    ASSERT_MSG(Rn_index != 15 && Rd_index != 15, "UNPREDICTABLE");
+    ASSERT_MSG(Rn_index != ArmReg::PC && Rd_index != ArmReg::PC, "UNPREDICTABLE");
 
     ExclusiveLoadCommon(code, reg_alloc, MJitStateExclusiveState(), MJitStateExclusiveTag(), Rn_index, Rd_index);
     CompileCallHost(reinterpret_cast<const void* const>(&Load8));
@@ -80,11 +80,11 @@ void JitX64::LDREXB(Cond cond, ArmReg Rn_index, ArmReg Rd_index) {
 }
 
 void JitX64::LDREXD(Cond cond, ArmReg Rn_index, ArmReg Rd_index) {
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
-    ASSERT_MSG(Rd_index % 2 == 0, "UNPREDICTABLE");
-    ASSERT_MSG(Rd_index < 14, "UNPREDICTABLE");
-    ASSERT_MSG(Rn_index != 15, "UNPREDICTABLE");
+    ASSERT_MSG(IsEvenArmReg(Rd_index), "UNPREDICTABLE");
+    ASSERT_MSG(Rd_index < ArmReg::R14, "UNPREDICTABLE");
+    ASSERT_MSG(Rn_index != ArmReg::PC, "UNPREDICTABLE");
 
     ExclusiveLoadCommon(code, reg_alloc, MJitStateExclusiveState(), MJitStateExclusiveTag(), Rn_index, Rd_index);
     CompileCallHost(reinterpret_cast<const void* const>(!current.EFlag ? Load64LE : Load64BE));
@@ -105,9 +105,9 @@ void JitX64::LDREXD(Cond cond, ArmReg Rn_index, ArmReg Rd_index) {
 }
 
 void JitX64::LDREXH(Cond cond, ArmReg Rn_index, ArmReg Rd_index) {
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
-    ASSERT_MSG(Rn_index != 15 && Rd_index != 15, "UNPREDICTABLE");
+    ASSERT_MSG(Rn_index != ArmReg::PC && Rd_index != ArmReg::PC, "UNPREDICTABLE");
 
     ExclusiveLoadCommon(code, reg_alloc, MJitStateExclusiveState(), MJitStateExclusiveTag(), Rn_index, Rd_index);
     CompileCallHost(reinterpret_cast<const void* const>(!current.EFlag ? Load16LE : Load16BE));
@@ -157,9 +157,9 @@ void JitX64::STREX(Cond cond, ArmReg Rn_index, ArmReg Rd_index, ArmReg Rm_index)
     CompileInterpretInstruction();
     return;
 
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
-    ASSERT_MSG(Rn_index != 15 && Rd_index != 15 && Rm_index != 15, "UNPREDICTABLE");
+    ASSERT_MSG(Rn_index != ArmReg::PC && Rd_index != ArmReg::PC && Rm_index != ArmReg::PC, "UNPREDICTABLE");
     ASSERT_MSG(Rd_index != Rn_index && Rd_index != Rm_index, "UNPREDICTABLE");
 
     reg_alloc.FlushX64(ABI_PARAM1);
@@ -188,9 +188,9 @@ void JitX64::STREXB(Cond cond, ArmReg Rn_index, ArmReg Rd_index, ArmReg Rm_index
     CompileInterpretInstruction();
     return;
 
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
-    ASSERT_MSG(Rn_index != 15 && Rd_index != 15 && Rm_index != 15, "UNPREDICTABLE");
+    ASSERT_MSG(Rn_index != ArmReg::PC && Rd_index != ArmReg::PC && Rm_index != ArmReg::PC, "UNPREDICTABLE");
     ASSERT_MSG(Rd_index != Rn_index && Rd_index != Rm_index, "UNPREDICTABLE");
 
     reg_alloc.FlushX64(ABI_PARAM1);
@@ -219,13 +219,13 @@ void JitX64::STREXD(Cond cond, ArmReg Rn_index, ArmReg Rd_index, ArmReg Rm_index
     CompileInterpretInstruction();
     return;
 
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
-    ASSERT_MSG(Rn_index != 15 && Rd_index != 15 && Rm_index != 15, "UNPREDICTABLE");
-    ASSERT_MSG(Rm_index != 14, "UNPREDICTABLE");
+    ASSERT_MSG(Rn_index != ArmReg::PC && Rd_index != ArmReg::PC && Rm_index != ArmReg::PC, "UNPREDICTABLE");
+    ASSERT_MSG(Rm_index != ArmReg::R14, "UNPREDICTABLE");
     ASSERT_MSG(Rd_index != Rn_index && Rd_index != Rm_index, "UNPREDICTABLE");
     ASSERT_MSG(Rd_index != Rm_index + 1, "UNPREDICTABLE");
-    ASSERT_MSG(Rm_index % 2 == 0, "UNPREDICTABLE");
+    ASSERT_MSG(IsEvenArmReg(Rm_index), "UNPREDICTABLE");
 
     reg_alloc.FlushX64(ABI_PARAM1);
     reg_alloc.LockX64(ABI_PARAM1);
@@ -259,9 +259,9 @@ void JitX64::STREXH(Cond cond, ArmReg Rn_index, ArmReg Rd_index, ArmReg Rm_index
     CompileInterpretInstruction();
     return;
 
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
-    ASSERT_MSG(Rn_index != 15 && Rd_index != 15 && Rm_index != 15, "UNPREDICTABLE");
+    ASSERT_MSG(Rn_index != ArmReg::PC && Rd_index != ArmReg::PC && Rm_index != ArmReg::PC, "UNPREDICTABLE");
     ASSERT_MSG(Rd_index != Rn_index && Rd_index != Rm_index, "UNPREDICTABLE");
 
     reg_alloc.FlushX64(ABI_PARAM1);

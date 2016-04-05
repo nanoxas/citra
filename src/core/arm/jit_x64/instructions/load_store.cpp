@@ -19,7 +19,7 @@ using namespace Gen;
 void JitX64::LoadAndStoreWordOrUnsignedByte_Immediate_Helper(X64Reg dest, bool U, ArmReg Rn_index, ArmImm12 imm12) {
     // address = Rn +/- imm12
 
-    if (Rn_index == 15) {
+    if (Rn_index == ArmReg::PC) {
         u32 address;
         if (U) {
             address = GetReg15Value_WordAligned() + imm12;
@@ -37,7 +37,7 @@ void JitX64::LoadAndStoreWordOrUnsignedByte_Immediate_Helper(X64Reg dest, bool U
 }
 
 void JitX64::LoadAndStoreWordOrUnsignedByte_ImmediateOffset(X64Reg dest, bool U, ArmReg Rn_index, ArmImm12 imm12) {
-    if (Rn_index != 15) {
+    if (Rn_index != ArmReg::PC) {
         OpArg Rn = reg_alloc.LockArmForRead(Rn_index);
         code->MOV(32, R(dest), Rn);
         reg_alloc.UnlockArm(Rn_index);
@@ -47,7 +47,7 @@ void JitX64::LoadAndStoreWordOrUnsignedByte_ImmediateOffset(X64Reg dest, bool U,
 }
 
 void JitX64::LoadAndStoreWordOrUnsignedByte_ImmediatePreIndexed(X64Reg dest, bool U, ArmReg Rn_index, ArmImm12 imm12) {
-    ASSERT_MSG(Rn_index != 15, "UNPREDICTABLE");
+    ASSERT_MSG(Rn_index != ArmReg::PC, "UNPREDICTABLE");
 
     X64Reg Rn = reg_alloc.BindArmForReadWrite(Rn_index);
 
@@ -58,7 +58,7 @@ void JitX64::LoadAndStoreWordOrUnsignedByte_ImmediatePreIndexed(X64Reg dest, boo
 }
 
 void JitX64::LoadAndStoreWordOrUnsignedByte_ImmediatePostIndexed(X64Reg dest, bool U, ArmReg Rn_index, ArmImm12 imm12) {
-    ASSERT_MSG(Rn_index != 15, "UNPREDICTABLE");
+    ASSERT_MSG(Rn_index != ArmReg::PC, "UNPREDICTABLE");
 
     X64Reg Rn = reg_alloc.BindArmForReadWrite(Rn_index);
     code->MOV(32, R(dest), R(Rn));
@@ -72,7 +72,7 @@ void JitX64::LoadAndStoreWordOrUnsignedByte_ImmediatePostIndexed(X64Reg dest, bo
 void JitX64::LoadAndStoreWordOrUnsignedByte_Register_Helper(X64Reg dest, bool U, ArmReg Rn_index, ArmReg Rm_index) {
     // address = Rn +/- Rm
 
-    ASSERT_MSG(Rm_index != 15, "UNPREDICTABLE");
+    ASSERT_MSG(Rm_index != ArmReg::PC, "UNPREDICTABLE");
 
     if (Rm_index == Rn_index) {
         if (U) {
@@ -100,7 +100,7 @@ void JitX64::LoadAndStoreWordOrUnsignedByte_Register_Helper(X64Reg dest, bool U,
 
 /// This function assumes that the value of Rn is already in dest.
 void JitX64::LoadAndStoreWordOrUnsignedByte_ScaledRegister_Helper(X64Reg dest, bool U, ArmReg Rn_index, ArmImm5 imm5, ShiftType shift, ArmReg Rm_index) {
-    if (imm5 == 0 && shift == 0) {
+    if (imm5 == 0 && shift == ShiftType::LSL) {
         LoadAndStoreWordOrUnsignedByte_Register_Helper(dest, U, Rn_index, Rm_index);
         return;
     }
@@ -108,7 +108,7 @@ void JitX64::LoadAndStoreWordOrUnsignedByte_ScaledRegister_Helper(X64Reg dest, b
     // index = Rm LSL imm5 / Rm LSR imm5 / Rm ASR imm5 / Rm ROR imm5 / Rm RRX
     // address = Rn +/- index
 
-    ASSERT_MSG(Rm_index != 15, "UNPREDICTABLE");
+    ASSERT_MSG(Rm_index != ArmReg::PC, "UNPREDICTABLE");
 
     // TODO: Optimizations when Rn_index == Rm_index maybe.
 
@@ -135,7 +135,7 @@ void JitX64::LoadAndStoreWordOrUnsignedByte_ScaledRegister_Helper(X64Reg dest, b
 }
 
 void JitX64::LoadAndStoreWordOrUnsignedByte_ScaledRegisterOffset(X64Reg dest, bool U, ArmReg Rn_index, ArmImm5 imm5, ShiftType shift, ArmReg Rm_index) {
-    if (Rn_index != 15) {
+    if (Rn_index != ArmReg::PC) {
         OpArg Rn = reg_alloc.LockArmForRead(Rn_index);
         code->MOV(32, R(dest), Rn);
         reg_alloc.UnlockArm(Rn_index);
@@ -147,7 +147,7 @@ void JitX64::LoadAndStoreWordOrUnsignedByte_ScaledRegisterOffset(X64Reg dest, bo
 }
 
 void JitX64::LoadAndStoreWordOrUnsignedByte_ScaledRegisterPreIndexed(X64Reg dest, bool U, ArmReg Rn_index, ArmImm5 imm5, ShiftType shift, ArmReg Rm_index) {
-    ASSERT_MSG(Rn_index != 15, "UNPREDICTABLE");
+    ASSERT_MSG(Rn_index != ArmReg::PC, "UNPREDICTABLE");
 
     X64Reg Rn = reg_alloc.BindArmForReadWrite(Rn_index);
 
@@ -158,7 +158,7 @@ void JitX64::LoadAndStoreWordOrUnsignedByte_ScaledRegisterPreIndexed(X64Reg dest
 }
 
 void JitX64::LoadAndStoreWordOrUnsignedByte_ScaledRegisterPostIndexed(X64Reg dest, bool U, ArmReg Rn_index, ArmImm5 imm5, ShiftType shift, ArmReg Rm_index) {
-    ASSERT_MSG(Rn_index != 15, "UNPREDICTABLE");
+    ASSERT_MSG(Rn_index != ArmReg::PC, "UNPREDICTABLE");
 
     X64Reg Rn = reg_alloc.BindArmForReadWrite(Rn_index);
     code->MOV(32, R(dest), R(Rn));
@@ -168,14 +168,14 @@ void JitX64::LoadAndStoreWordOrUnsignedByte_ScaledRegisterPostIndexed(X64Reg des
     reg_alloc.UnlockArm(Rn_index);
 }
 
-static void GetValueOfRegister(XEmitter* code, RegAlloc& reg_alloc, u32 r15_value, X64Reg x64_reg, ArmReg arm_reg) {
-    if (arm_reg != 15) {
-        OpArg Rd = reg_alloc.LockArmForRead(arm_reg);
-        code->MOV(32, R(x64_reg), Rd);
-        reg_alloc.UnlockArm(arm_reg);
+static void GetValueOfRegister(XEmitter* code, RegAlloc& reg_alloc, u32 r15_value, X64Reg dest_x64_reg, ArmReg src_arm_reg) {
+    if (src_arm_reg != ArmReg::PC) {
+        OpArg Rd = reg_alloc.LockArmForRead(src_arm_reg);
+        code->MOV(32, R(dest_x64_reg), Rd);
+        reg_alloc.UnlockArm(src_arm_reg);
     } else {
         // The following is IMPLEMENTATION DEFINED
-        code->MOV(32, R(x64_reg), Imm32(r15_value));
+        code->MOV(32, R(dest_x64_reg), Imm32(r15_value));
     }
 }
 
@@ -207,7 +207,7 @@ static void LoadStoreCommon_AddrMode2(JitX64* jit, RegAlloc& reg_alloc, bool P, 
 // Load/Store Instructions: Addressing Mode 2
 
 void JitX64::LDR_imm(Cond cond, bool P, bool U, bool W, ArmReg Rn_index, ArmReg Rd_index, ArmImm12 imm12) {
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
     // Rd == R15 is UNPREDICTABLE only if address[1:0] is not 0b00 or if value loaded into R15[1:0] is 0b10.
     if (W)
@@ -232,7 +232,7 @@ void JitX64::LDR_imm(Cond cond, bool P, bool U, bool W, ArmReg Rn_index, ArmReg 
     reg_alloc.UnlockX64(ABI_RETURN);
 
     current.arm_pc += GetInstSize();
-    if (Rd_index == 15) {
+    if (Rd_index == ArmReg::PC) {
         code->AND(32, MJitStateArmPC(), Imm32(0xFFFFFFFE));
         code->BT(32, R(ABI_RETURN), Imm8(0));
         code->SETcc(CC_C, MJitStateTFlag());
@@ -241,7 +241,7 @@ void JitX64::LDR_imm(Cond cond, bool P, bool U, bool W, ArmReg Rn_index, ArmReg 
 }
 
 void JitX64::LDR_reg(Cond cond, bool P, bool U, bool W, ArmReg Rn_index, ArmReg Rd_index, ArmImm5 imm5, ShiftType shift, ArmReg Rm_index) {
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
     LoadStoreCommon_AddrMode2(this, reg_alloc, P, W,
         &JitX64::LoadAndStoreWordOrUnsignedByte_ScaledRegisterOffset,
@@ -262,7 +262,7 @@ void JitX64::LDR_reg(Cond cond, bool P, bool U, bool W, ArmReg Rn_index, ArmReg 
     reg_alloc.UnlockX64(ABI_RETURN);
 
     current.arm_pc += GetInstSize();
-    if (Rd_index == 15) {
+    if (Rd_index == ArmReg::PC) {
         code->AND(32, MJitStateArmPC(), Imm32(0xFFFFFFFE));
         code->BT(32, R(ABI_RETURN), Imm8(0));
         code->SETcc(CC_C, MJitStateTFlag());
@@ -271,9 +271,9 @@ void JitX64::LDR_reg(Cond cond, bool P, bool U, bool W, ArmReg Rn_index, ArmReg 
 }
 
 void JitX64::LDRB_imm(Cond cond, bool P, bool U, bool W, ArmReg Rn_index, ArmReg Rd_index, ArmImm12 imm12) {
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
-    ASSERT_MSG(Rd_index != 15, "UNPREDICTABLE");
+    ASSERT_MSG(Rd_index != ArmReg::PC, "UNPREDICTABLE");
     if (W)
         ASSERT_MSG(Rn_index != Rd_index, "UNPREDICTABLE");
 
@@ -299,9 +299,9 @@ void JitX64::LDRB_imm(Cond cond, bool P, bool U, bool W, ArmReg Rn_index, ArmReg
 }
 
 void JitX64::LDRB_reg(Cond cond, bool P, bool U, bool W, ArmReg Rn_index, ArmReg Rd_index, ArmImm5 imm5, ShiftType shift, ArmReg Rm_index) {
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
-    ASSERT_MSG(Rd_index != 15, "UNPREDICTABLE");
+    ASSERT_MSG(Rd_index != ArmReg::PC, "UNPREDICTABLE");
     if (W)
         ASSERT_MSG(Rn_index != Rd_index, "UNPREDICTABLE");
 
@@ -327,7 +327,7 @@ void JitX64::LDRB_reg(Cond cond, bool P, bool U, bool W, ArmReg Rn_index, ArmReg
 }
 
 void JitX64::STR_imm(Cond cond, bool P, bool U, bool W, ArmReg Rn_index, ArmReg Rd_index, ArmImm12 imm12) {
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
     // Rd_index == R15 is IMPLEMENTATION DEFINED
     if (W)
@@ -353,7 +353,7 @@ void JitX64::STR_imm(Cond cond, bool P, bool U, bool W, ArmReg Rn_index, ArmReg 
 }
 
 void JitX64::STR_reg(Cond cond, bool P, bool U, bool W, ArmReg Rn_index, ArmReg Rd_index, ArmImm5 imm5, ShiftType shift, ArmReg Rm_index) {
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
     // Rd_index == R15 is IMPLEMENTATION DEFINED
     if (W)
@@ -379,9 +379,9 @@ void JitX64::STR_reg(Cond cond, bool P, bool U, bool W, ArmReg Rn_index, ArmReg 
 }
 
 void JitX64::STRB_imm(Cond cond, bool P, bool U, bool W, ArmReg Rn_index, ArmReg Rd_index, ArmImm12 imm12) {
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
-    ASSERT_MSG(Rd_index != 15, "UNPREDICTABLE");
+    ASSERT_MSG(Rd_index != ArmReg::PC, "UNPREDICTABLE");
     if (W)
         ASSERT_MSG(Rn_index != Rd_index, "UNPREDICTABLE");
 
@@ -405,9 +405,9 @@ void JitX64::STRB_imm(Cond cond, bool P, bool U, bool W, ArmReg Rn_index, ArmReg
 }
 
 void JitX64::STRB_reg(Cond cond, bool P, bool U, bool W, ArmReg Rn_index, ArmReg Rd_index, ArmImm5 imm5, ShiftType shift, ArmReg Rm_index) {
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
-    ASSERT_MSG(Rd_index != 15, "UNPREDICTABLE");
+    ASSERT_MSG(Rd_index != ArmReg::PC, "UNPREDICTABLE");
     if (W)
         ASSERT_MSG(Rn_index != Rd_index, "UNPREDICTABLE");
 
@@ -462,10 +462,10 @@ static ArmImm8 CombineImm8ab(ArmImm4 imm8a, ArmImm4 imm8b) {
 // Load/Store Instructions: Addressing Mode 3
 
 void JitX64::LDRD_imm(Cond cond, bool P, bool U, bool W, ArmReg Rn_index, ArmReg Rd_index, ArmImm4 imm8a, ArmImm4 imm8b) {
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
-    ASSERT_MSG(Rd_index < 14, "UNPREDICTABLE");
-    ASSERT_MSG(Rd_index % 2 == 0, "UNDEFINED");
+    ASSERT_MSG(Rd_index < ArmReg::R14, "UNPREDICTABLE");
+    ASSERT_MSG(IsEvenArmReg(Rd_index), "UNDEFINED");
     if (W)
         ASSERT_MSG(Rn_index != Rd_index && Rn_index != Rd_index + 1, "UNPREDICTABLE");
 
@@ -494,10 +494,10 @@ void JitX64::LDRD_imm(Cond cond, bool P, bool U, bool W, ArmReg Rn_index, ArmReg
 }
 
 void JitX64::LDRD_reg(Cond cond, bool P, bool U, bool W, ArmReg Rn_index, ArmReg Rd_index, ArmReg Rm_index) {
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
-    ASSERT_MSG(Rd_index < 14, "UNPREDICTABLE");
-    ASSERT_MSG(Rd_index % 2 == 0, "UNDEFINED");
+    ASSERT_MSG(Rd_index < ArmReg::R14, "UNPREDICTABLE");
+    ASSERT_MSG(IsEvenArmReg(Rd_index), "UNDEFINED");
     ASSERT_MSG(Rm_index != Rd_index && Rm_index != Rd_index + 1, "UNPREDICTABLE");
     if (W)
         ASSERT_MSG(Rn_index != Rd_index && Rn_index != Rd_index + 1, "UNPREDICTABLE");
@@ -506,7 +506,7 @@ void JitX64::LDRD_reg(Cond cond, bool P, bool U, bool W, ArmReg Rn_index, ArmReg
         &JitX64::LoadAndStoreWordOrUnsignedByte_ScaledRegisterOffset,
         &JitX64::LoadAndStoreWordOrUnsignedByte_ScaledRegisterPreIndexed,
         &JitX64::LoadAndStoreWordOrUnsignedByte_ScaledRegisterPostIndexed,
-        U, Rn_index, 0, 0, Rm_index);
+        U, Rn_index, 0, ShiftType::LSL, Rm_index);
 
     CompileCallHost(reinterpret_cast<const void* const>(!current.EFlag ? &Load64LE : &Load64BE));
 
@@ -527,9 +527,9 @@ void JitX64::LDRD_reg(Cond cond, bool P, bool U, bool W, ArmReg Rn_index, ArmReg
 }
 
 void JitX64::LDRH_imm(Cond cond, bool P, bool U, bool W, ArmReg Rn_index, ArmReg Rd_index, ArmImm4 imm8a, ArmImm4 imm8b) {
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
-    ASSERT_MSG(Rd_index != 15, "UNPREDICTABLE");
+    ASSERT_MSG(Rd_index != ArmReg::PC, "UNPREDICTABLE");
     if (W)
         ASSERT_MSG(Rn_index != Rd_index, "UNPREDICTABLE");
 
@@ -554,9 +554,9 @@ void JitX64::LDRH_imm(Cond cond, bool P, bool U, bool W, ArmReg Rn_index, ArmReg
 }
 
 void JitX64::LDRH_reg(Cond cond, bool P, bool U, bool W, ArmReg Rn_index, ArmReg Rd_index, ArmReg Rm_index) {
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
-    ASSERT_MSG(Rd_index != 15, "UNPREDICTABLE");
+    ASSERT_MSG(Rd_index != ArmReg::PC, "UNPREDICTABLE");
     if (W)
         ASSERT_MSG(Rn_index != Rd_index, "UNPREDICTABLE");
 
@@ -564,7 +564,7 @@ void JitX64::LDRH_reg(Cond cond, bool P, bool U, bool W, ArmReg Rn_index, ArmReg
         &JitX64::LoadAndStoreWordOrUnsignedByte_ScaledRegisterOffset,
         &JitX64::LoadAndStoreWordOrUnsignedByte_ScaledRegisterPreIndexed,
         &JitX64::LoadAndStoreWordOrUnsignedByte_ScaledRegisterPostIndexed,
-        U, Rn_index, 0, 0, Rm_index);
+        U, Rn_index, 0, ShiftType::LSL, Rm_index);
 
     CompileCallHost(reinterpret_cast<const void* const>(!current.EFlag ? &Load16LE : &Load16BE));
 
@@ -581,9 +581,9 @@ void JitX64::LDRH_reg(Cond cond, bool P, bool U, bool W, ArmReg Rn_index, ArmReg
 }
 
 void JitX64::LDRSB_imm(Cond cond, bool P, bool U, bool W, ArmReg Rn_index, ArmReg Rd_index, ArmImm4 imm8a, ArmImm4 imm8b) {
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
-    ASSERT_MSG(Rd_index != 15, "UNPREDICTABLE");
+    ASSERT_MSG(Rd_index != ArmReg::PC, "UNPREDICTABLE");
     if (W)
         ASSERT_MSG(Rn_index != Rd_index, "UNPREDICTABLE");
 
@@ -608,9 +608,9 @@ void JitX64::LDRSB_imm(Cond cond, bool P, bool U, bool W, ArmReg Rn_index, ArmRe
 }
 
 void JitX64::LDRSB_reg(Cond cond, bool P, bool U, bool W, ArmReg Rn_index, ArmReg Rd_index, ArmReg Rm_index) {
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
-    ASSERT_MSG(Rd_index != 15, "UNPREDICTABLE");
+    ASSERT_MSG(Rd_index != ArmReg::PC, "UNPREDICTABLE");
     if (W)
         ASSERT_MSG(Rn_index != Rd_index, "UNPREDICTABLE");
 
@@ -618,7 +618,7 @@ void JitX64::LDRSB_reg(Cond cond, bool P, bool U, bool W, ArmReg Rn_index, ArmRe
         &JitX64::LoadAndStoreWordOrUnsignedByte_ScaledRegisterOffset,
         &JitX64::LoadAndStoreWordOrUnsignedByte_ScaledRegisterPreIndexed,
         &JitX64::LoadAndStoreWordOrUnsignedByte_ScaledRegisterPostIndexed,
-        U, Rn_index, 0, 0, Rm_index);
+        U, Rn_index, 0, ShiftType::LSL, Rm_index);
 
     CompileCallHost(reinterpret_cast<const void* const>(&Load8));
 
@@ -635,9 +635,9 @@ void JitX64::LDRSB_reg(Cond cond, bool P, bool U, bool W, ArmReg Rn_index, ArmRe
 }
 
 void JitX64::LDRSH_imm(Cond cond, bool P, bool U, bool W, ArmReg Rn_index, ArmReg Rd_index, ArmImm4 imm8a, ArmImm4 imm8b) {
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
-    ASSERT_MSG(Rd_index != 15, "UNPREDICTABLE");
+    ASSERT_MSG(Rd_index != ArmReg::PC, "UNPREDICTABLE");
     if (W)
         ASSERT_MSG(Rn_index != Rd_index, "UNPREDICTABLE");
 
@@ -662,9 +662,9 @@ void JitX64::LDRSH_imm(Cond cond, bool P, bool U, bool W, ArmReg Rn_index, ArmRe
 }
 
 void JitX64::LDRSH_reg(Cond cond, bool P, bool U, bool W, ArmReg Rn_index, ArmReg Rd_index, ArmReg Rm_index) {
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
-    ASSERT_MSG(Rd_index != 15, "UNPREDICTABLE");
+    ASSERT_MSG(Rd_index != ArmReg::PC, "UNPREDICTABLE");
     if (W)
         ASSERT_MSG(Rn_index != Rd_index, "UNPREDICTABLE");
 
@@ -672,7 +672,7 @@ void JitX64::LDRSH_reg(Cond cond, bool P, bool U, bool W, ArmReg Rn_index, ArmRe
         &JitX64::LoadAndStoreWordOrUnsignedByte_ScaledRegisterOffset,
         &JitX64::LoadAndStoreWordOrUnsignedByte_ScaledRegisterPreIndexed,
         &JitX64::LoadAndStoreWordOrUnsignedByte_ScaledRegisterPostIndexed,
-        U, Rn_index, 0, 0, Rm_index);
+        U, Rn_index, 0, ShiftType::LSL, Rm_index);
 
     CompileCallHost(reinterpret_cast<const void* const>(!current.EFlag ? &Load16LE : &Load16BE));
 
@@ -689,10 +689,10 @@ void JitX64::LDRSH_reg(Cond cond, bool P, bool U, bool W, ArmReg Rn_index, ArmRe
 }
 
 void JitX64::STRD_imm(Cond cond, bool P, bool U, bool W, ArmReg Rn_index, ArmReg Rd_index, ArmImm4 imm8a, ArmImm4 imm8b) {
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
-    ASSERT_MSG(Rd_index < 14, "UNPREDICTABLE");
-    ASSERT_MSG(Rd_index % 2 == 0, "UNDEFINED");
+    ASSERT_MSG(Rd_index < ArmReg::R14, "UNPREDICTABLE");
+    ASSERT_MSG(IsEvenArmReg(Rd_index), "UNDEFINED");
 
     LoadStoreCommon_AddrMode3(this, reg_alloc, P, W,
         &JitX64::LoadAndStoreWordOrUnsignedByte_ImmediateOffset,
@@ -718,10 +718,10 @@ void JitX64::STRD_imm(Cond cond, bool P, bool U, bool W, ArmReg Rn_index, ArmReg
 }
 
 void JitX64::STRD_reg(Cond cond, bool P, bool U, bool W, ArmReg Rn_index, ArmReg Rd_index, ArmReg Rm_index) {
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
-    ASSERT_MSG(Rd_index < 14, "UNPREDICTABLE");
-    ASSERT_MSG(Rd_index % 2 == 0, "UNDEFINED");
+    ASSERT_MSG(Rd_index < ArmReg::R14, "UNPREDICTABLE");
+    ASSERT_MSG(IsEvenArmReg(Rd_index), "UNDEFINED");
     if (W)
         ASSERT_MSG(Rn_index != Rd_index && Rn_index != Rd_index + 1, "UNPREDICTABLE");
 
@@ -729,7 +729,7 @@ void JitX64::STRD_reg(Cond cond, bool P, bool U, bool W, ArmReg Rn_index, ArmReg
         &JitX64::LoadAndStoreWordOrUnsignedByte_ScaledRegisterOffset,
         &JitX64::LoadAndStoreWordOrUnsignedByte_ScaledRegisterPreIndexed,
         &JitX64::LoadAndStoreWordOrUnsignedByte_ScaledRegisterPostIndexed,
-        U, Rn_index, 0, 0, Rm_index);
+        U, Rn_index, 0, ShiftType::LSL, Rm_index);
 
     reg_alloc.FlushX64(ABI_PARAM2);
     reg_alloc.LockX64(ABI_PARAM2);
@@ -749,9 +749,9 @@ void JitX64::STRD_reg(Cond cond, bool P, bool U, bool W, ArmReg Rn_index, ArmReg
 }
 
 void JitX64::STRH_imm(Cond cond, bool P, bool U, bool W, ArmReg Rn_index, ArmReg Rd_index, ArmImm4 imm8a, ArmImm4 imm8b) {
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
-    ASSERT_MSG(Rd_index != 15, "UNPREDICTABLE");
+    ASSERT_MSG(Rd_index != ArmReg::PC, "UNPREDICTABLE");
     if (W)
         ASSERT_MSG(Rd_index != Rn_index, "UNPREDICTABLE");
 
@@ -775,9 +775,9 @@ void JitX64::STRH_imm(Cond cond, bool P, bool U, bool W, ArmReg Rn_index, ArmReg
 }
 
 void JitX64::STRH_reg(Cond cond, bool P, bool U, bool W, ArmReg Rn_index, ArmReg Rd_index, ArmReg Rm_index) {
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
-    ASSERT_MSG(Rd_index != 15, "UNPREDICTABLE");
+    ASSERT_MSG(Rd_index != ArmReg::PC, "UNPREDICTABLE");
     if (W)
         ASSERT_MSG(Rd_index != Rn_index, "UNPREDICTABLE");
 
@@ -785,7 +785,7 @@ void JitX64::STRH_reg(Cond cond, bool P, bool U, bool W, ArmReg Rn_index, ArmReg
         &JitX64::LoadAndStoreWordOrUnsignedByte_ScaledRegisterOffset,
         &JitX64::LoadAndStoreWordOrUnsignedByte_ScaledRegisterPreIndexed,
         &JitX64::LoadAndStoreWordOrUnsignedByte_ScaledRegisterPostIndexed,
-        U, Rn_index, 0, 0, Rm_index);
+        U, Rn_index, 0, ShiftType::LSL, Rm_index);
 
     reg_alloc.FlushX64(ABI_PARAM2);
     reg_alloc.LockX64(ABI_PARAM2);
@@ -873,7 +873,7 @@ static void LoadAndStoreMultiple_DecrementAfter(XEmitter* code, RegAlloc& reg_al
 }
 
 static void LoadAndStoreMultiple_DecrementBefore(XEmitter* code, RegAlloc& reg_alloc, bool W, ArmReg Rn_index, ArmRegList list, std::function<void()> call) {
-    if (W && !(list & (1 << Rn_index))) {
+    if (W && !(list & MakeRegList(Rn_index))) {
         X64Reg Rn = reg_alloc.BindArmForReadWrite(Rn_index);
         code->SUB(32, R(Rn), Imm32(4 * Common::CountSetBits(list)));
         code->MOV(32, R(ABI_PARAM1), R(Rn));
@@ -909,7 +909,7 @@ static void LoadAndStoreMultiple_Helper(XEmitter* code, RegAlloc& reg_alloc, boo
 
     for (int i = 0; i < 15; i++) {
         if (list & (1 << i)) {
-            reg_alloc.FlushArm(i);
+            reg_alloc.FlushArm(static_cast<ArmReg>(i));
         }
     }
 
@@ -954,11 +954,11 @@ static void ExecuteLDMBE(u32 start_address, u16 reg_list, JitState* jit_state) {
 }
 
 void JitX64::LDM(Cond cond, bool P, bool U, bool W, ArmReg Rn_index, ArmRegList list) {
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
-    ASSERT_MSG(Rn_index != 15, "UNPREDICTABLE");
+    ASSERT_MSG(Rn_index != ArmReg::PC, "UNPREDICTABLE");
     ASSERT_MSG(list != 0, "UNPREDICTABLE");
-    if (W && (list & (1 << Rn_index)))
+    if (W && (list & MakeRegList(Rn_index)))
         ASSERT_MSG(false, "UNPREDICTABLE");
 
     // TODO: Optimize
@@ -1012,12 +1012,12 @@ static void ExecuteSTMBE(u32 start_address, u16 reg_list, JitState* jit_state) {
 }
 
 void JitX64::STM(Cond cond, bool P, bool U, bool W, ArmReg Rn_index, ArmRegList list) {
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
-    ASSERT_MSG(Rn_index != 15, "UNPREDICTABLE");
+    ASSERT_MSG(Rn_index != ArmReg::PC, "UNPREDICTABLE");
     ASSERT_MSG(list != 0, "UNPREDICTABLE");
-    if (W && (list & (1 << Rn_index)))
-        ASSERT_MSG((list & ((1 << Rn_index) - 1)) == 0, "UNPREDICTABLE");
+    if (W && (list & MakeRegList(Rn_index)))
+        ASSERT_MSG((list & (MakeRegList(Rn_index) - 1)) == 0, "UNPREDICTABLE");
 
     // TODO: Optimize
 

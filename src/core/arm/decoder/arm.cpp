@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstring>
+#include <utility>
 
 #include <boost/optional.hpp>
 
@@ -17,21 +18,13 @@
 namespace ArmDecoder {
 
 namespace Impl {
-    // std::integer_sequence and std::make_integer_sequence are only available in C++14
-
-    /// This type represents a sequence of integers
-    template<size_t ...>
-    struct integer_sequence {};
-
-    /// This metafunction generates a sequence of integers from 0..N
-    template<size_t N, size_t ...seq>
-    struct make_integer_sequence : make_integer_sequence<N - 1, N - 1, seq...> {};
-
-    // Internal implementation for make_integer_sequence
-    template<size_t ...seq>
-    struct make_integer_sequence<0, seq...> {
-        typedef integer_sequence<seq...> type;
-    };
+    // Internal implementation for call
+    template<size_t ...seq, typename Container, typename ...Args>
+    void call_impl(std::integer_sequence<size_t, seq...>, Visitor* v, void (Visitor::*fn)(Args...), const Container& list) {
+        using FunctionArgTypes = typename std::tuple<Args...>;
+        // Here we static_cast each element in list to the corresponding argument type for fn.
+        (v->*fn)(static_cast<typename std::tuple_element<seq, FunctionArgTypes>::type>(std::get<seq>(list))...);
+    }
 
     /**
      * This function takes a member function of Visitor and calls it with the parameters specified in list.
@@ -40,20 +33,14 @@ namespace Impl {
      * @param fn Member function to call on v.
      * @param list List of arguments that will be splatted.
      */
-    template<size_t NumArgs, typename Function, typename Container>
-    void call(Visitor* v, Function fn, const Container& list) {
-        call_impl(typename make_integer_sequence<NumArgs>::type(), v, fn, list);
-    }
-
-    // Internal implementation for call
-    template<size_t ...seq, typename Function, typename Container>
-    void call_impl(integer_sequence<seq...>, Visitor* v, Function fn, const Container& list) {
-        (v->*fn)(std::get<seq>(list)...);
+    template<size_t NumArgs, typename Container, typename ...Args>
+    void call(Visitor* v, void (Visitor::*fn)(Args...), const Container& list) {
+        call_impl(typename std::index_sequence_for<Args...>{}, v, fn, list);
     }
 
     /// Function has NumArgs arguments
     template<size_t NumArgs, typename Function>
-    struct MatcherImpl : Matcher {
+    struct MatcherImpl : ArmMatcher {
         std::array<u32, NumArgs> masks = {};
         std::array<size_t, NumArgs> shifts = {};
         Function fn = nullptr;
@@ -68,7 +55,7 @@ namespace Impl {
 }
 
 template<size_t NumArgs, typename Function>
-static std::unique_ptr<Matcher> MakeMatcher(const char format[32], Function fn) {
+static std::unique_ptr<ArmMatcher> MakeMatcher(const char format[32], Function fn) {
     auto ret = Common::make_unique<Impl::MatcherImpl<NumArgs, Function>>();
     ret->fn = fn;
     ret->masks.fill(0);
@@ -111,10 +98,10 @@ static std::unique_ptr<Matcher> MakeMatcher(const char format[32], Function fn) 
 
     ASSERT(arg == NumArgs - 1);
 
-    return std::unique_ptr<Matcher>(std::move(ret));
+    return std::unique_ptr<ArmMatcher>(std::move(ret));
 }
 
-static const std::array<Instruction, 221> arm_instruction_table = {{
+static const std::array<ArmInstruction, 221> arm_instruction_table = {{
     // Branch instructions
     { "BLX (immediate)",     MakeMatcher<2>("1111101hvvvvvvvvvvvvvvvvvvvvvvvv", &Visitor::BLX_imm)   }, // ARMv5
     { "BLX (register)",      MakeMatcher<2>("cccc000100101111111111110011mmmm", &Visitor::BLX_reg)   }, // ARMv5
@@ -387,12 +374,11 @@ static const std::array<Instruction, 221> arm_instruction_table = {{
     { "SRS",                 MakeMatcher<0>("0000011--0-00000000000000001----", &Visitor::SRS)       }, // ARMv6
 }};
 
-boost::optional<const Instruction&> DecodeArm(u32 i) {
-    auto iterator = std::find_if(arm_instruction_table.cbegin(), arm_instruction_table.cend(), [i](const Instruction& instruction) {
-        return instruction.Match(i);
-    });
+boost::optional<const ArmInstruction&> DecodeArm(u32 i) {
+    auto iterator = std::find_if(arm_instruction_table.cbegin(), arm_instruction_table.cend(),
+        [i](const auto& instruction) { return instruction.Match(i); });
 
-    return iterator != arm_instruction_table.cend() ? boost::make_optional<const Instruction&>(*iterator) : boost::none;
+    return iterator != arm_instruction_table.cend() ? boost::make_optional<const ArmInstruction&>(*iterator) : boost::none;
 }
 
 } // namespace ArmDecoder

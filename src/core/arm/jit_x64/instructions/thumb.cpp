@@ -12,7 +12,7 @@ namespace JitX64 {
 using namespace Gen;
 
 void JitX64::thumb_B(Cond cond, ArmImm8 imm8) {
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
     ASSERT_MSG(current.TFlag, "thumb_B may only be called in thumb mode");
 
@@ -23,7 +23,7 @@ void JitX64::thumb_B(Cond cond, ArmImm8 imm8) {
     CompileUpdateCycles(false);
     CompileJumpToBB(new_pc);
 
-    if (cond == ConditionCode::AL) {
+    if (cond == Cond::AL) {
         stop_compilation = true;
     }
 }
@@ -77,9 +77,9 @@ void JitX64::thumb_BLX_suffix(bool X, ArmImm11 imm11) {
         (imm11 << 1);
     u32 new_lr = (current.arm_pc + 2) | 1;
 
-    Gen::OpArg LR = reg_alloc.LockArmForWrite(14);
+    Gen::OpArg LR = reg_alloc.LockArmForWrite(ArmReg::LR);
     code->MOV(32, LR, Imm32(new_lr));
-    reg_alloc.UnlockArm(14);
+    reg_alloc.UnlockArm(ArmReg::LR);
 
     if (X) {
         current.TFlag = false;

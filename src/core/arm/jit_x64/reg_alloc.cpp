@@ -41,9 +41,9 @@ static Gen::OpArg MJitStateCpuReg(ArmReg arm_reg) {
     static_assert(std::is_same<decltype(JitState::cpu_state), ARMul_State>::value, "JitState::cpu_state must be ARMul_State");
     static_assert(std::is_same<decltype(ARMul_State::Reg), std::array<u32, 16>>::value, "ARMul_State::Reg must be std::array<u32, 16>");
 
-    ASSERT(arm_reg >= 0 && arm_reg <= 15);
+    ASSERT(IsValidArmReg(arm_reg));
 
-    return Gen::MDisp(jit_state_reg, offsetof(JitState, cpu_state) + offsetof(ARMul_State, Reg) + (arm_reg) * sizeof(u32));
+    return Gen::MDisp(jit_state_reg, offsetof(JitState, cpu_state) + offsetof(ARMul_State, Reg) + static_cast<unsigned>(arm_reg) * sizeof(u32));
 }
 
 void RegAlloc::Init(Gen::XEmitter* emitter) {
@@ -51,12 +51,13 @@ void RegAlloc::Init(Gen::XEmitter* emitter) {
 
     for (size_t i = 0; i < arm_gpr.size(); i++) {
         arm_gpr[i].locked = false;
-        arm_gpr[i].location = MJitStateCpuReg(i);
+        arm_gpr[i].location = MJitStateCpuReg(static_cast<ArmReg>(i));
     }
 
     for (size_t i = 0; i < x64_gpr.size(); i++) {
         x64_gpr[i].locked = false;
         x64_gpr[i].state = X64State::State::Free;
+        x64_gpr[i].arm_reg = ArmReg::INVALID_REG;
     }
 }
 
@@ -73,12 +74,12 @@ void RegAlloc::FlushX64(Gen::X64Reg x64_reg) {
         break;
     case X64State::State::CleanArmReg: {
         state.state = X64State::State::Free;
-        ArmState& arm_state = arm_gpr[state.arm_reg];
+        ArmState& arm_state = arm_gpr[static_cast<unsigned>(state.arm_reg)];
         arm_state.location = MJitStateCpuReg(state.arm_reg);
         break;
     }
     case X64State::State::DirtyArmReg: {
-        ArmState& arm_state = arm_gpr[state.arm_reg];
+        ArmState& arm_state = arm_gpr[static_cast<unsigned>(state.arm_reg)];
         ASSERT(arm_state.location.IsSimpleReg());
         ASSERT(arm_state.location.GetSimpleReg() == x64_reg);
         FlushArm(state.arm_reg);
@@ -113,9 +114,9 @@ void RegAlloc::UnlockX64(Gen::X64Reg x64_reg) {
 }
 
 void RegAlloc::FlushArm(ArmReg arm_reg) {
-    ASSERT(arm_reg >= 0 && arm_reg <= 15);
+    ASSERT(IsValidArmReg(arm_reg));
 
-    ArmState& arm_state = arm_gpr[arm_reg];
+    ArmState& arm_state = arm_gpr[static_cast<unsigned>(arm_reg)];
     ASSERT(!arm_state.locked);
     if (!arm_state.location.IsSimpleReg()) {
         return;
@@ -136,9 +137,9 @@ void RegAlloc::FlushArm(ArmReg arm_reg) {
 }
 
 Gen::OpArg RegAlloc::LockArmForRead(ArmReg arm_reg) {
-    ASSERT(arm_reg >= 0 && arm_reg <= 14); // Not valid for R15 (cannot read from it)
+    ASSERT(IsValidArmReg(arm_reg) && arm_reg != ArmReg::PC); // Not valid for R15 (cannot read from it)
 
-    ArmState& arm_state = arm_gpr[arm_reg];
+    ArmState& arm_state = arm_gpr[static_cast<unsigned>(arm_reg)];
 
     ASSERT(!arm_state.locked);
     arm_state.locked = true;
@@ -157,9 +158,9 @@ Gen::OpArg RegAlloc::LockArmForRead(ArmReg arm_reg) {
 }
 
 Gen::OpArg RegAlloc::LockArmForWrite(ArmReg arm_reg) {
-    ASSERT(arm_reg >= 0 && arm_reg <= 15); // Valid for R15 (write-only)
+    ASSERT(IsValidArmReg(arm_reg)); // Valid for R15 (write-only)
 
-    ArmState& arm_state = arm_gpr[arm_reg];
+    ArmState& arm_state = arm_gpr[static_cast<unsigned>(arm_reg)];
 
     ASSERT(!arm_state.locked);
     arm_state.locked = true;
@@ -179,7 +180,7 @@ Gen::OpArg RegAlloc::LockArmForWrite(ArmReg arm_reg) {
 }
 
 Gen::X64Reg RegAlloc::BindArmToX64(ArmReg arm_reg, bool load) {
-    ArmState& arm_state = arm_gpr[arm_reg];
+    ArmState& arm_state = arm_gpr[static_cast<unsigned>(arm_reg)];
 
     ASSERT(!arm_state.locked);
     arm_state.locked = true;
@@ -210,7 +211,7 @@ Gen::X64Reg RegAlloc::BindArmToX64(ArmReg arm_reg, bool load) {
 }
 
 Gen::X64Reg RegAlloc::BindArmForRead(ArmReg arm_reg) {
-    ASSERT(arm_reg >= 0 && arm_reg <= 14); // Not valid for R15 (cannot read from it)
+    ASSERT(IsValidArmReg(arm_reg) && arm_reg != ArmReg::PC); // Not valid for R15 (cannot read from it)
 
     const Gen::X64Reg x64_reg = BindArmToX64(arm_reg, true);
 
@@ -218,7 +219,7 @@ Gen::X64Reg RegAlloc::BindArmForRead(ArmReg arm_reg) {
 }
 
 Gen::X64Reg RegAlloc::BindArmForWrite(ArmReg arm_reg) {
-    ASSERT(arm_reg >= 0 && arm_reg <= 15); // Valid for R15 (we're not reading from it)
+    ASSERT(IsValidArmReg(arm_reg)); // Valid for R15 (we're not reading from it)
 
     const Gen::X64Reg x64_reg = BindArmToX64(arm_reg, false);
 
@@ -228,9 +229,9 @@ Gen::X64Reg RegAlloc::BindArmForWrite(ArmReg arm_reg) {
 }
 
 void RegAlloc::UnlockArm(ArmReg arm_reg) {
-    ASSERT(arm_reg >= 0 && arm_reg <= 15);
+    ASSERT(IsValidArmReg(arm_reg));
 
-    ArmState& arm_state = arm_gpr[arm_reg];
+    ArmState& arm_state = arm_gpr[static_cast<unsigned>(arm_reg)];
 
     ASSERT(arm_state.locked);
     arm_state.locked = false;
@@ -247,7 +248,7 @@ void RegAlloc::UnlockArm(ArmReg arm_reg) {
 }
 
 void RegAlloc::MarkDirty(ArmReg arm_reg) {
-    const ArmState& arm_state = arm_gpr[arm_reg];
+    const ArmState& arm_state = arm_gpr[static_cast<unsigned>(arm_reg)];
 
     ASSERT(arm_state.locked);
     ASSERT(arm_state.location.IsSimpleReg());
@@ -287,7 +288,7 @@ void RegAlloc::FlushABICallerSaved() {
 }
 
 Gen::X64Reg RegAlloc::GetX64For(ArmReg arm_reg) {
-    const ArmState& arm_state = arm_gpr[arm_reg];
+    const ArmState& arm_state = arm_gpr[static_cast<unsigned>(arm_reg)];
 
     ASSERT(arm_state.location.IsSimpleReg());
 
@@ -301,7 +302,7 @@ Gen::X64Reg RegAlloc::GetX64For(ArmReg arm_reg) {
 }
 
 bool RegAlloc::IsBoundToX64(ArmReg arm_reg) {
-    const ArmState& arm_state = arm_gpr[arm_reg];
+    const ArmState& arm_state = arm_gpr[static_cast<unsigned>(arm_reg)];
 
     return arm_state.location.IsSimpleReg();
 }
@@ -326,13 +327,13 @@ void RegAlloc::UnlockTemp(Gen::X64Reg x64_reg) {
 }
 
 void RegAlloc::AssertNoLocked() {
-    for (ArmReg arm_reg = 0; arm_reg < arm_gpr.size(); arm_reg++) {
-        ArmState& arm_state = arm_gpr[arm_reg];
+    for (size_t i = 0; i < arm_gpr.size(); i++) {
+        ArmState& arm_state = arm_gpr[i];
         ASSERT(!arm_state.locked);
         if (arm_state.location.IsSimpleReg()) {
             X64State& x64_state = x64_gpr[x64_reg_to_index.at(arm_state.location.GetSimpleReg())];
             ASSERT(x64_state.state == X64State::State::CleanArmReg || x64_state.state == X64State::State::DirtyArmReg);
-            ASSERT(x64_state.arm_reg == arm_reg);
+            ASSERT(x64_state.arm_reg == static_cast<ArmReg>(i));
         }
     }
 

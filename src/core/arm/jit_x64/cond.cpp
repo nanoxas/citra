@@ -13,16 +13,16 @@ using namespace Gen;
 
 void JitX64::CondManager::Init(JitX64* jit_) {
     jit = jit_;
-    current_cond = ConditionCode::AL;
+    current_cond = Cond::AL;
     flags_dirty = false;
     current_cond_fixup = {};
 }
 
-void JitX64::CondManager::CompileCond(const ConditionCode new_cond) {
+void JitX64::CondManager::CompileCond(const Cond new_cond) {
     if (current_cond == new_cond && !flags_dirty)
         return;
 
-    if (current_cond != ConditionCode::AL && current_cond != ConditionCode::NV) {
+    if (current_cond != Cond::AL && current_cond != Cond::NV) {
         jit->reg_alloc.FlushEverything();
         jit->reg_alloc.AssertNoLocked();
         ASSERT(current_cond_fixup.ptr);
@@ -30,43 +30,43 @@ void JitX64::CondManager::CompileCond(const ConditionCode new_cond) {
         current_cond_fixup.ptr = nullptr;
     }
 
-    if (new_cond != ConditionCode::AL && new_cond != ConditionCode::NV) {
+    if (new_cond != Cond::AL && new_cond != Cond::NV) {
         CCFlags cc;
 
         switch (new_cond) {
-        case ConditionCode::EQ: //z
+        case Cond::EQ: //z
             jit->code->CMP(8, jit->MJitStateZFlag(), Imm8(0));
             cc = CC_E;
             break;
-        case ConditionCode::NE: //!z
+        case Cond::NE: //!z
             jit->code->CMP(8, jit->MJitStateZFlag(), Imm8(0));
             cc = CC_NE;
             break;
-        case ConditionCode::CS: //c
+        case Cond::CS: //c
             jit->code->CMP(8, jit->MJitStateCFlag(), Imm8(0));
             cc = CC_E;
             break;
-        case ConditionCode::CC: //!c
+        case Cond::CC: //!c
             jit->code->CMP(8, jit->MJitStateCFlag(), Imm8(0));
             cc = CC_NE;
             break;
-        case ConditionCode::MI: //n
+        case Cond::MI: //n
             jit->code->CMP(8, jit->MJitStateNFlag(), Imm8(0));
             cc = CC_E;
             break;
-        case ConditionCode::PL: //!n
+        case Cond::PL: //!n
             jit->code->CMP(8, jit->MJitStateNFlag(), Imm8(0));
             cc = CC_NE;
             break;
-        case ConditionCode::VS: //v
+        case Cond::VS: //v
             jit->code->CMP(8, jit->MJitStateVFlag(), Imm8(0));
             cc = CC_E;
             break;
-        case ConditionCode::VC: //!v
+        case Cond::VC: //!v
             jit->code->CMP(8, jit->MJitStateVFlag(), Imm8(0));
             cc = CC_NE;
             break;
-        case ConditionCode::HI: { //c & !z
+        case Cond::HI: { //c & !z
             const X64Reg tmp = jit->reg_alloc.AllocTemp();
             jit->code->MOVZX(64, 8, tmp, jit->MJitStateZFlag());
             jit->code->CMP(8, jit->MJitStateCFlag(), R(tmp));
@@ -74,7 +74,7 @@ void JitX64::CondManager::CompileCond(const ConditionCode new_cond) {
             jit->reg_alloc.UnlockTemp(tmp);
             break;
         }
-        case ConditionCode::LS: { //!c | z
+        case Cond::LS: { //!c | z
             const X64Reg tmp = jit->reg_alloc.AllocTemp();
             jit->code->MOVZX(64, 8, tmp, jit->MJitStateZFlag());
             jit->code->CMP(8, jit->MJitStateCFlag(), R(tmp));
@@ -82,7 +82,7 @@ void JitX64::CondManager::CompileCond(const ConditionCode new_cond) {
             jit->reg_alloc.UnlockTemp(tmp);
             break;
         }
-        case ConditionCode::GE: { // n == v
+        case Cond::GE: { // n == v
             const X64Reg tmp = jit->reg_alloc.AllocTemp();
             jit->code->MOVZX(64, 8, tmp, jit->MJitStateVFlag());
             jit->code->CMP(8, jit->MJitStateNFlag(), R(tmp));
@@ -90,7 +90,7 @@ void JitX64::CondManager::CompileCond(const ConditionCode new_cond) {
             jit->reg_alloc.UnlockTemp(tmp);
             break;
         }
-        case ConditionCode::LT: { // n != v
+        case Cond::LT: { // n != v
             const X64Reg tmp = jit->reg_alloc.AllocTemp();
             jit->code->MOVZX(64, 8, tmp, jit->MJitStateVFlag());
             jit->code->CMP(8, jit->MJitStateNFlag(), R(tmp));
@@ -98,7 +98,7 @@ void JitX64::CondManager::CompileCond(const ConditionCode new_cond) {
             jit->reg_alloc.UnlockTemp(tmp);
             break;
         }
-        case ConditionCode::GT: { // !z & (n == v)
+        case Cond::GT: { // !z & (n == v)
             const X64Reg tmp = jit->reg_alloc.AllocTemp();
             jit->code->MOVZX(64, 8, tmp, jit->MJitStateNFlag());
             jit->code->XOR(8, R(tmp), jit->MJitStateVFlag());
@@ -108,7 +108,7 @@ void JitX64::CondManager::CompileCond(const ConditionCode new_cond) {
             jit->reg_alloc.UnlockTemp(tmp);
             break;
         }
-        case ConditionCode::LE: { // z | (n != v)
+        case Cond::LE: { // z | (n != v)
             X64Reg tmp = jit->reg_alloc.AllocTemp();
             jit->code->MOVZX(64, 8, tmp, jit->MJitStateNFlag());
             jit->code->XOR(8, R(tmp), jit->MJitStateVFlag());
@@ -133,14 +133,14 @@ void JitX64::CondManager::CompileCond(const ConditionCode new_cond) {
 }
 
 void JitX64::CondManager::Always() {
-    CompileCond(ConditionCode::AL);
+    CompileCond(Cond::AL);
 }
 
 void JitX64::CondManager::FlagsDirty() {
     flags_dirty = true;
 }
 
-ConditionCode JitX64::CondManager::CurrentCond() {
+Cond JitX64::CondManager::CurrentCond() {
     return current_cond;
 }
 

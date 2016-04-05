@@ -11,7 +11,7 @@ namespace JitX64 {
 using namespace Gen;
 
 void JitX64::CompileDataProcessingHelper(ArmReg Rn_index, ArmReg Rd_index, std::function<void(X64Reg)> body) {
-    if (Rn_index == 15) {
+    if (Rn_index == ArmReg::PC) {
         X64Reg Rd = reg_alloc.BindArmForWrite(Rd_index);
 
         code->MOV(32, R(Rd), Imm32(GetReg15Value()));
@@ -48,7 +48,7 @@ void JitX64::CompileDataProcessingHelper_Reverse(ArmReg Rn_index, ArmReg Rd_inde
 
         body(tmp);
 
-        if (Rd_index != 15) {
+        if (Rd_index != ArmReg::PC) {
             // TODO: Efficiency: Could implement this as a register rebind instead of needing to MOV.
             OpArg Rd = reg_alloc.LockArmForReadWrite(Rd_index);
             code->MOV(32, Rd, R(tmp));
@@ -67,7 +67,7 @@ void JitX64::CompileShifter_imm(X64Reg dest, ArmImm5 imm5, ShiftType shift, bool
     //    we output code that calculates and puts shifter_carry_out into MJitStateCFlag().
 
     switch (shift) {
-    case 0b00: // Logical shift left by immediate
+    case ShiftType::LSL: // Logical shift left by immediate
         if (imm5 != 0) {
             code->SHL(32, R(dest), Imm8(imm5));
             if (do_shifter_carry_out) {
@@ -75,7 +75,7 @@ void JitX64::CompileShifter_imm(X64Reg dest, ArmImm5 imm5, ShiftType shift, bool
             }
         }
         return;
-    case 0b01: // Logical shift right by immediate
+    case ShiftType::LSR: // Logical shift right by immediate
         if (imm5 == 0) {
             if (do_shifter_carry_out) {
                 code->BT(32, R(dest), Imm8(31));
@@ -89,7 +89,7 @@ void JitX64::CompileShifter_imm(X64Reg dest, ArmImm5 imm5, ShiftType shift, bool
             }
         }
         return;
-    case 0b10: // Arithmetic shift right by immediate
+    case ShiftType::ASR: // Arithmetic shift right by immediate
         if (imm5 == 0) {
             if (do_shifter_carry_out) {
                 code->BT(32, R(dest), Imm8(31));
@@ -103,7 +103,7 @@ void JitX64::CompileShifter_imm(X64Reg dest, ArmImm5 imm5, ShiftType shift, bool
             }
         }
         return;
-    case 0b11: // Rotate right by immediate
+    case ShiftType::ROR: // Rotate right by immediate
         if (imm5 == 0) { //RRX
             code->BT(8, MJitStateCFlag(), Imm8(0));
             code->RCR(32, R(dest), Imm8(1));
@@ -125,7 +125,7 @@ void JitX64::CompileShifter_imm(X64Reg dest, ArmImm5 imm5, ShiftType shift, bool
 X64Reg JitX64::CompileDataProcessingHelper_reg(ArmImm5 imm5, ShiftType shift, ArmReg Rm_index, bool do_shifter_carry_out) {
     X64Reg tmp = reg_alloc.AllocTemp();
 
-    if (Rm_index != 15) {
+    if (Rm_index != ArmReg::PC) {
         OpArg Rm = reg_alloc.LockArmForRead(Rm_index);
         code->MOV(32, R(tmp), Rm);
         reg_alloc.UnlockArm(Rm_index);
@@ -152,7 +152,7 @@ X64Reg JitX64::CompileDataProcessingHelper_rsr(ArmReg Rs_index, ShiftType shift,
 
     X64Reg tmp = reg_alloc.AllocTemp();
 
-    if (Rs_index != 15) {
+    if (Rs_index != ArmReg::PC) {
         OpArg Rs = reg_alloc.LockArmForRead(Rs_index);
         code->MOV(32, R(RCX), Rs);
         code->AND(32, R(RCX), Imm32(0xFF));
@@ -161,7 +161,7 @@ X64Reg JitX64::CompileDataProcessingHelper_rsr(ArmReg Rs_index, ShiftType shift,
         code->MOV(32, R(RCX), Imm32(GetReg15Value() & 0xFF));
     }
 
-    if (Rm_index != 15) {
+    if (Rm_index != ArmReg::PC) {
         OpArg Rm = reg_alloc.LockArmForRead(Rm_index);
         code->MOV(32, R(tmp), Rm);
         reg_alloc.UnlockArm(Rm_index);
@@ -170,7 +170,7 @@ X64Reg JitX64::CompileDataProcessingHelper_rsr(ArmReg Rs_index, ShiftType shift,
     }
 
     switch (shift) {
-    case 0b00: { // Logical shift left by register
+    case ShiftType::LSL: { // Logical shift left by register
         if (!do_shifter_carry_out) {
             code->SHL(32, R(tmp), R(CL));
 
@@ -207,7 +207,7 @@ X64Reg JitX64::CompileDataProcessingHelper_rsr(ArmReg Rs_index, ShiftType shift,
         }
         break;
     }
-    case 0b01: { // Logical shift right by register
+    case ShiftType::LSR: { // Logical shift right by register
         if (!do_shifter_carry_out) {
             code->SHR(32, R(tmp), R(RCX));
 
@@ -244,7 +244,7 @@ X64Reg JitX64::CompileDataProcessingHelper_rsr(ArmReg Rs_index, ShiftType shift,
         }
         break;
     }
-    case 0b10: { // Arithmetic shift right by register
+    case ShiftType::ASR: { // Arithmetic shift right by register
         if (!do_shifter_carry_out) {
             code->CMP(32, R(RCX), Imm8(31));
             auto Rs_gt31 = code->J_CC(CC_A);
@@ -277,7 +277,7 @@ X64Reg JitX64::CompileDataProcessingHelper_rsr(ArmReg Rs_index, ShiftType shift,
         }
         break;
     }
-    case 0b11: { // Rotate right by register
+    case ShiftType::ROR: { // Rotate right by register
         if (!do_shifter_carry_out) {
             code->AND(32, R(RCX), Imm32(0x1F));
             code->ROR(32, R(tmp), R(CL));
@@ -313,7 +313,7 @@ X64Reg JitX64::CompileDataProcessingHelper_rsr(ArmReg Rs_index, ShiftType shift,
 }
 
 void JitX64::ADC_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int rotate, ArmImm8 imm8) {
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
     u32 immediate = rotr(imm8, rotate * 2);
 
@@ -327,13 +327,13 @@ void JitX64::ADC_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int ro
     }
 
     current.arm_pc += GetInstSize();
-    if (Rd_index == 15) {
+    if (Rd_index == ArmReg::PC) {
         CompileReturnToDispatch();
     }
 }
 
 void JitX64::ADC_reg(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmImm5 imm5, ShiftType shift, ArmReg Rm_index) {
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
     Gen::X64Reg tmp = CompileDataProcessingHelper_reg(imm5, shift, Rm_index, false);
 
@@ -349,13 +349,13 @@ void JitX64::ADC_reg(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmImm
     }
 
     current.arm_pc += GetInstSize();
-    if (Rd_index == 15) {
+    if (Rd_index == ArmReg::PC) {
         CompileReturnToDispatch();
     }
 }
 
 void JitX64::ADC_rsr(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmReg Rs_index, ShiftType shift, ArmReg Rm_index) {
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
     Gen::X64Reg tmp = CompileDataProcessingHelper_rsr(Rs_index, shift, Rm_index, false);
 
@@ -371,13 +371,13 @@ void JitX64::ADC_rsr(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmReg
     }
 
     current.arm_pc += GetInstSize();
-    if (Rd_index == 15) {
+    if (Rd_index == ArmReg::PC) {
         CompileReturnToDispatch();
     }
 }
 
 void JitX64::ADD_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int rotate, ArmImm8 imm8) {
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
     u32 immediate = rotr(imm8, rotate * 2);
 
@@ -390,13 +390,13 @@ void JitX64::ADD_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int ro
     }
 
     current.arm_pc += GetInstSize();
-    if (Rd_index == 15) {
+    if (Rd_index == ArmReg::PC) {
         CompileReturnToDispatch();
     }
 }
 
 void JitX64::ADD_reg(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmImm5 imm5, ShiftType shift, ArmReg Rm_index) {
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
     Gen::X64Reg tmp = CompileDataProcessingHelper_reg(imm5, shift, Rm_index, false);
 
@@ -411,13 +411,13 @@ void JitX64::ADD_reg(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmImm
     }
 
     current.arm_pc += GetInstSize();
-    if (Rd_index == 15) {
+    if (Rd_index == ArmReg::PC) {
         CompileReturnToDispatch();
     }
 }
 
 void JitX64::ADD_rsr(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmReg Rs_index, ShiftType shift, ArmReg Rm_index) {
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
     Gen::X64Reg tmp = CompileDataProcessingHelper_rsr(Rs_index, shift, Rm_index, false);
 
@@ -432,13 +432,13 @@ void JitX64::ADD_rsr(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmReg
     }
 
     current.arm_pc += GetInstSize();
-    if (Rd_index == 15) {
+    if (Rd_index == ArmReg::PC) {
         CompileReturnToDispatch();
     }
 }
 
 void JitX64::AND_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int rotate, ArmImm8 imm8) {
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
     u32 immediate = rotr(imm8, rotate * 2);
 
@@ -454,13 +454,13 @@ void JitX64::AND_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int ro
     }
 
     current.arm_pc += GetInstSize();
-    if (Rd_index == 15) {
+    if (Rd_index == ArmReg::PC) {
         CompileReturnToDispatch();
     }
 }
 
 void JitX64::AND_reg(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmImm5 imm5, ShiftType shift, ArmReg Rm_index) {
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
     Gen::X64Reg tmp = CompileDataProcessingHelper_reg(imm5, shift, Rm_index, S);
 
@@ -476,13 +476,13 @@ void JitX64::AND_reg(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmImm
     }
 
     current.arm_pc += GetInstSize();
-    if (Rd_index == 15) {
+    if (Rd_index == ArmReg::PC) {
         CompileReturnToDispatch();
     }
 }
 
 void JitX64::AND_rsr(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmReg Rs_index, ShiftType shift, ArmReg Rm_index) {
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
     Gen::X64Reg tmp = CompileDataProcessingHelper_rsr(Rs_index, shift, Rm_index, S);
 
@@ -498,13 +498,13 @@ void JitX64::AND_rsr(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmReg
     }
 
     current.arm_pc += GetInstSize();
-    if (Rd_index == 15) {
+    if (Rd_index == ArmReg::PC) {
         CompileReturnToDispatch();
     }
 }
 
 void JitX64::BIC_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int rotate, ArmImm8 imm8) {
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
     u32 immediate = rotr(imm8, rotate * 2);
 
@@ -520,13 +520,13 @@ void JitX64::BIC_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int ro
     }
 
     current.arm_pc += GetInstSize();
-    if (Rd_index == 15) {
+    if (Rd_index == ArmReg::PC) {
         CompileReturnToDispatch();
     }
 }
 
 void JitX64::BIC_reg(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmImm5 imm5, ShiftType shift, ArmReg Rm_index) {
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
     Gen::X64Reg tmp = CompileDataProcessingHelper_reg(imm5, shift, Rm_index, S);
 
@@ -543,13 +543,13 @@ void JitX64::BIC_reg(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmImm
     }
 
     current.arm_pc += GetInstSize();
-    if (Rd_index == 15) {
+    if (Rd_index == ArmReg::PC) {
         CompileReturnToDispatch();
     }
 }
 
 void JitX64::BIC_rsr(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmReg Rs_index, ShiftType shift, ArmReg Rm_index) {
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
     Gen::X64Reg tmp = CompileDataProcessingHelper_rsr(Rs_index, shift, Rm_index, S);
 
@@ -566,18 +566,18 @@ void JitX64::BIC_rsr(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmReg
     }
 
     current.arm_pc += GetInstSize();
-    if (Rd_index == 15) {
+    if (Rd_index == ArmReg::PC) {
         CompileReturnToDispatch();
     }
 }
 
 void JitX64::CMN_imm(Cond cond, ArmReg Rn_index, int rotate, ArmImm8 imm8) {
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
     u32 immediate = rotr(imm8, rotate * 2);
 
     X64Reg tmp = reg_alloc.AllocTemp();
-    if (Rn_index != 15) {
+    if (Rn_index != ArmReg::PC) {
         OpArg Rn = reg_alloc.LockArmForRead(Rn_index);
         code->MOV(32, R(tmp), Rn);
         reg_alloc.UnlockArm(Rn_index);
@@ -595,11 +595,11 @@ void JitX64::CMN_imm(Cond cond, ArmReg Rn_index, int rotate, ArmImm8 imm8) {
 }
 
 void JitX64::CMN_reg(Cond cond, ArmReg Rn_index, ArmImm5 imm5, ShiftType shift, ArmReg Rm_index) {
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
     Gen::X64Reg tmp = CompileDataProcessingHelper_reg(imm5, shift, Rm_index, false);
 
-    if (Rn_index != 15) {
+    if (Rn_index != ArmReg::PC) {
         OpArg Rn = reg_alloc.LockArmForRead(Rn_index);
         code->ADD(32, R(tmp), Rn);
         reg_alloc.UnlockArm(Rn_index);
@@ -615,11 +615,11 @@ void JitX64::CMN_reg(Cond cond, ArmReg Rn_index, ArmImm5 imm5, ShiftType shift, 
 }
 
 void JitX64::CMN_rsr(Cond cond, ArmReg Rn_index, ArmReg Rs_index, ShiftType shift, ArmReg Rm_index) {
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
     Gen::X64Reg tmp = CompileDataProcessingHelper_rsr(Rs_index, shift, Rm_index, false);
 
-    if (Rn_index != 15) {
+    if (Rn_index != ArmReg::PC) {
         OpArg Rn = reg_alloc.LockArmForRead(Rn_index);
         code->ADD(32, R(tmp), Rn);
         reg_alloc.UnlockArm(Rn_index);
@@ -635,11 +635,11 @@ void JitX64::CMN_rsr(Cond cond, ArmReg Rn_index, ArmReg Rs_index, ShiftType shif
 }
 
 void JitX64::CMP_imm(Cond cond, ArmReg Rn_index, int rotate, ArmImm8 imm8) {
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
     u32 immediate = rotr(imm8, rotate * 2);
 
-    if (Rn_index != 15) {
+    if (Rn_index != ArmReg::PC) {
         OpArg Rn = reg_alloc.LockArmForRead(Rn_index);
         code->CMP(32, Rn, Imm32(immediate));
         reg_alloc.UnlockArm(Rn_index);
@@ -658,11 +658,11 @@ void JitX64::CMP_imm(Cond cond, ArmReg Rn_index, int rotate, ArmImm8 imm8) {
 }
 
 void JitX64::CMP_reg(Cond cond, ArmReg Rn_index, ArmImm5 imm5, ShiftType shift, ArmReg Rm_index) {
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
     Gen::X64Reg tmp = CompileDataProcessingHelper_reg(imm5, shift, Rm_index, false);
 
-    if (Rn_index != 15) {
+    if (Rn_index != ArmReg::PC) {
         OpArg Rn = reg_alloc.LockArmForRead(Rn_index);
         code->CMP(32, Rn, R(tmp));
         reg_alloc.UnlockArm(Rn_index);
@@ -683,11 +683,11 @@ void JitX64::CMP_reg(Cond cond, ArmReg Rn_index, ArmImm5 imm5, ShiftType shift, 
 }
 
 void JitX64::CMP_rsr(Cond cond, ArmReg Rn_index, ArmReg Rs_index, ShiftType shift, ArmReg Rm_index) {
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
     Gen::X64Reg tmp = CompileDataProcessingHelper_rsr(Rs_index, shift, Rm_index, false);
 
-    if (Rn_index != 15) {
+    if (Rn_index != ArmReg::PC) {
         OpArg Rn = reg_alloc.LockArmForRead(Rn_index);
         code->CMP(32, Rn, R(tmp));
         reg_alloc.UnlockArm(Rn_index);
@@ -708,7 +708,7 @@ void JitX64::CMP_rsr(Cond cond, ArmReg Rn_index, ArmReg Rs_index, ShiftType shif
 }
 
 void JitX64::EOR_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int rotate, ArmImm8 imm8) {
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
     u32 immediate = rotr(imm8, rotate * 2);
 
@@ -724,13 +724,13 @@ void JitX64::EOR_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int ro
     }
 
     current.arm_pc += GetInstSize();
-    if (Rd_index == 15) {
+    if (Rd_index == ArmReg::PC) {
         CompileReturnToDispatch();
     }
 }
 
 void JitX64::EOR_reg(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmImm5 imm5, ShiftType shift, ArmReg Rm_index) {
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
     Gen::X64Reg tmp = CompileDataProcessingHelper_reg(imm5, shift, Rm_index, S);
 
@@ -745,13 +745,13 @@ void JitX64::EOR_reg(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmImm
     }
 
     current.arm_pc += GetInstSize();
-    if (Rd_index == 15) {
+    if (Rd_index == ArmReg::PC) {
         CompileReturnToDispatch();
     }
 }
 
 void JitX64::EOR_rsr(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmReg Rs_index, ShiftType shift, ArmReg Rm_index) {
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
     Gen::X64Reg tmp = CompileDataProcessingHelper_rsr(Rs_index, shift, Rm_index, S);
 
@@ -766,13 +766,13 @@ void JitX64::EOR_rsr(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmReg
     }
 
     current.arm_pc += GetInstSize();
-    if (Rd_index == 15) {
+    if (Rd_index == ArmReg::PC) {
         CompileReturnToDispatch();
     }
 }
 
 void JitX64::MOV_imm(Cond cond, bool S, ArmReg Rd_index, int rotate, ArmImm8 imm8) {
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
     u32 immediate = rotr(imm8, rotate * 2);
 
@@ -791,13 +791,13 @@ void JitX64::MOV_imm(Cond cond, bool S, ArmReg Rd_index, int rotate, ArmImm8 imm
     }
 
     current.arm_pc += GetInstSize();
-    if (Rd_index == 15) {
+    if (Rd_index == ArmReg::PC) {
         CompileReturnToDispatch();
     }
 }
 
 void JitX64::MOV_reg(Cond cond, bool S, ArmReg Rd_index, ArmImm5 imm5, ShiftType shift, ArmReg Rm_index) {
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
     Gen::X64Reg tmp = CompileDataProcessingHelper_reg(imm5, shift, Rm_index, S);
 
@@ -813,13 +813,13 @@ void JitX64::MOV_reg(Cond cond, bool S, ArmReg Rd_index, ArmImm5 imm5, ShiftType
     reg_alloc.UnlockTemp(tmp);
 
     current.arm_pc += GetInstSize();
-    if (Rd_index == 15) {
+    if (Rd_index == ArmReg::PC) {
         CompileReturnToDispatch();
     }
 }
 
 void JitX64::MOV_rsr(Cond cond, bool S, ArmReg Rd_index, ArmReg Rs_index, ShiftType shift, ArmReg Rm_index) {
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
     Gen::X64Reg tmp = CompileDataProcessingHelper_rsr(Rs_index, shift, Rm_index, S);
 
@@ -835,13 +835,13 @@ void JitX64::MOV_rsr(Cond cond, bool S, ArmReg Rd_index, ArmReg Rs_index, ShiftT
     reg_alloc.UnlockTemp(tmp);
 
     current.arm_pc += GetInstSize();
-    if (Rd_index == 15) {
+    if (Rd_index == ArmReg::PC) {
         CompileReturnToDispatch();
     }
 }
 
 void JitX64::MVN_imm(Cond cond, bool S, ArmReg Rd_index, int rotate, ArmImm8 imm8) {
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
     u32 immediate = rotr(imm8, rotate * 2);
 
@@ -860,13 +860,13 @@ void JitX64::MVN_imm(Cond cond, bool S, ArmReg Rd_index, int rotate, ArmImm8 imm
     }
 
     current.arm_pc += GetInstSize();
-    if (Rd_index == 15) {
+    if (Rd_index == ArmReg::PC) {
         CompileReturnToDispatch();
     }
 }
 
 void JitX64::MVN_reg(Cond cond, bool S, ArmReg Rd_index, ArmImm5 imm5, ShiftType shift, ArmReg Rm_index) {
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
     Gen::X64Reg tmp = CompileDataProcessingHelper_reg(imm5, shift, Rm_index, S);
     code->NOT(32, R(tmp));
@@ -883,13 +883,13 @@ void JitX64::MVN_reg(Cond cond, bool S, ArmReg Rd_index, ArmImm5 imm5, ShiftType
     reg_alloc.UnlockTemp(tmp);
 
     current.arm_pc += GetInstSize();
-    if (Rd_index == 15) {
+    if (Rd_index == ArmReg::PC) {
         CompileReturnToDispatch();
     }
 }
 
 void JitX64::MVN_rsr(Cond cond, bool S, ArmReg Rd_index, ArmReg Rs_index, ShiftType shift, ArmReg Rm_index) {
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
     Gen::X64Reg tmp = CompileDataProcessingHelper_rsr(Rs_index, shift, Rm_index, S);
     code->NOT(32, R(tmp));
@@ -906,13 +906,13 @@ void JitX64::MVN_rsr(Cond cond, bool S, ArmReg Rd_index, ArmReg Rs_index, ShiftT
     reg_alloc.UnlockTemp(tmp);
 
     current.arm_pc += GetInstSize();
-    if (Rd_index == 15) {
+    if (Rd_index == ArmReg::PC) {
         CompileReturnToDispatch();
     }
 }
 
 void JitX64::ORR_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int rotate, ArmImm8 imm8) {
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
     u32 immediate = rotr(imm8, rotate * 2);
 
@@ -928,13 +928,13 @@ void JitX64::ORR_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int ro
     }
 
     current.arm_pc += GetInstSize();
-    if (Rd_index == 15) {
+    if (Rd_index == ArmReg::PC) {
         CompileReturnToDispatch();
     }
 }
 
 void JitX64::ORR_reg(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmImm5 imm5, ShiftType shift, ArmReg Rm_index) {
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
     Gen::X64Reg tmp = CompileDataProcessingHelper_reg(imm5, shift, Rm_index, S);
 
@@ -949,13 +949,13 @@ void JitX64::ORR_reg(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmImm
     }
 
     current.arm_pc += GetInstSize();
-    if (Rd_index == 15) {
+    if (Rd_index == ArmReg::PC) {
         CompileReturnToDispatch();
     }
 }
 
 void JitX64::ORR_rsr(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmReg Rs_index, ShiftType shift, ArmReg Rm_index) {
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
     Gen::X64Reg tmp = CompileDataProcessingHelper_rsr(Rs_index, shift, Rm_index, S);
 
@@ -970,20 +970,20 @@ void JitX64::ORR_rsr(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmReg
     }
 
     current.arm_pc += GetInstSize();
-    if (Rd_index == 15) {
+    if (Rd_index == ArmReg::PC) {
         CompileReturnToDispatch();
     }
 }
 
 void JitX64::RSB_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int rotate, ArmImm8 imm8) {
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
     u32 immediate = rotr(imm8, rotate * 2);
 
     CompileDataProcessingHelper_Reverse(Rn_index, Rd_index, [&](X64Reg Rd) {
         code->MOV(32, R(Rd), Imm32(immediate));
 
-        if (Rn_index == 15) {
+        if (Rn_index == ArmReg::PC) {
             code->SUB(32, R(Rd), Imm32(GetReg15Value()));
         } else {
             Gen::OpArg Rn = reg_alloc.LockArmForRead(Rn_index);
@@ -998,20 +998,20 @@ void JitX64::RSB_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int ro
     }
 
     current.arm_pc += GetInstSize();
-    if (Rd_index == 15) {
+    if (Rd_index == ArmReg::PC) {
         CompileReturnToDispatch();
     }
 }
 
 void JitX64::RSB_reg(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmImm5 imm5, ShiftType shift, ArmReg Rm_index) {
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
     Gen::X64Reg tmp = CompileDataProcessingHelper_reg(imm5, shift, Rm_index, false);
 
     CompileDataProcessingHelper_Reverse(Rn_index, Rd_index, [&](X64Reg Rd) {
         code->MOV(32, R(Rd), R(tmp));
 
-        if (Rn_index == 15) {
+        if (Rn_index == ArmReg::PC) {
             code->SUB(32, R(Rd), Imm32(GetReg15Value()));
         } else {
             Gen::OpArg Rn = reg_alloc.LockArmForRead(Rn_index);
@@ -1028,20 +1028,20 @@ void JitX64::RSB_reg(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmImm
     }
 
     current.arm_pc += GetInstSize();
-    if (Rd_index == 15) {
+    if (Rd_index == ArmReg::PC) {
         CompileReturnToDispatch();
     }
 }
 
 void JitX64::RSB_rsr(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmReg Rs_index, ShiftType shift, ArmReg Rm_index) {
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
     Gen::X64Reg tmp = CompileDataProcessingHelper_rsr(Rs_index, shift, Rm_index, false);
 
     CompileDataProcessingHelper_Reverse(Rn_index, Rd_index, [&](X64Reg Rd) {
         code->MOV(32, R(Rd), R(tmp));
 
-        if (Rn_index == 15) {
+        if (Rn_index == ArmReg::PC) {
             code->SUB(32, R(Rd), Imm32(GetReg15Value()));
         } else {
             Gen::OpArg Rn = reg_alloc.LockArmForRead(Rn_index);
@@ -1058,13 +1058,13 @@ void JitX64::RSB_rsr(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmReg
     }
 
     current.arm_pc += GetInstSize();
-    if (Rd_index == 15) {
+    if (Rd_index == ArmReg::PC) {
         CompileReturnToDispatch();
     }
 }
 
 void JitX64::RSC_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int rotate, ArmImm8 imm8) {
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
     u32 immediate = rotr(imm8, rotate * 2);
 
@@ -1074,7 +1074,7 @@ void JitX64::RSC_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int ro
         code->BT(32, MJitStateCFlag(), Imm8(0));
         code->CMC();
 
-        if (Rn_index == 15) {
+        if (Rn_index == ArmReg::PC) {
             code->SBB(32, R(Rd), Imm32(GetReg15Value()));
         } else {
             Gen::OpArg Rn = reg_alloc.LockArmForRead(Rn_index);
@@ -1089,13 +1089,13 @@ void JitX64::RSC_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int ro
     }
 
     current.arm_pc += GetInstSize();
-    if (Rd_index == 15) {
+    if (Rd_index == ArmReg::PC) {
         CompileReturnToDispatch();
     }
 }
 
 void JitX64::RSC_reg(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmImm5 imm5, ShiftType shift, ArmReg Rm_index) {
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
     Gen::X64Reg tmp = CompileDataProcessingHelper_reg(imm5, shift, Rm_index, false);
 
@@ -1105,7 +1105,7 @@ void JitX64::RSC_reg(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmImm
         code->BT(32, MJitStateCFlag(), Imm8(0));
         code->CMC();
 
-        if (Rn_index == 15) {
+        if (Rn_index == ArmReg::PC) {
             code->SBB(32, R(Rd), Imm32(GetReg15Value()));
         } else {
             Gen::OpArg Rn = reg_alloc.LockArmForRead(Rn_index);
@@ -1122,13 +1122,13 @@ void JitX64::RSC_reg(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmImm
     }
 
     current.arm_pc += GetInstSize();
-    if (Rd_index == 15) {
+    if (Rd_index == ArmReg::PC) {
         CompileReturnToDispatch();
     }
 }
 
 void JitX64::RSC_rsr(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmReg Rs_index, ShiftType shift, ArmReg Rm_index) {
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
     Gen::X64Reg tmp = CompileDataProcessingHelper_rsr(Rs_index, shift, Rm_index, false);
 
@@ -1138,7 +1138,7 @@ void JitX64::RSC_rsr(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmReg
         code->BT(32, MJitStateCFlag(), Imm8(0));
         code->CMC();
 
-        if (Rn_index == 15) {
+        if (Rn_index == ArmReg::PC) {
             code->SBB(32, R(Rd), Imm32(GetReg15Value()));
         } else {
             Gen::OpArg Rn = reg_alloc.LockArmForRead(Rn_index);
@@ -1155,13 +1155,13 @@ void JitX64::RSC_rsr(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmReg
     }
 
     current.arm_pc += GetInstSize();
-    if (Rd_index == 15) {
+    if (Rd_index == ArmReg::PC) {
         CompileReturnToDispatch();
     }
 }
 
 void JitX64::SBC_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int rotate, ArmImm8 imm8) {
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
     u32 immediate = rotr(imm8, rotate * 2);
 
@@ -1177,13 +1177,13 @@ void JitX64::SBC_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int ro
     }
 
     current.arm_pc += GetInstSize();
-    if (Rd_index == 15) {
+    if (Rd_index == ArmReg::PC) {
         CompileReturnToDispatch();
     }
 }
 
 void JitX64::SBC_reg(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmImm5 imm5, ShiftType shift, ArmReg Rm_index) {
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
     Gen::X64Reg tmp = CompileDataProcessingHelper_reg(imm5, shift, Rm_index, false);
 
@@ -1201,13 +1201,13 @@ void JitX64::SBC_reg(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmImm
     }
 
     current.arm_pc += GetInstSize();
-    if (Rd_index == 15) {
+    if (Rd_index == ArmReg::PC) {
         CompileReturnToDispatch();
     }
 }
 
 void JitX64::SBC_rsr(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmReg Rs_index, ShiftType shift, ArmReg Rm_index) {
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
     Gen::X64Reg tmp = CompileDataProcessingHelper_rsr(Rs_index, shift, Rm_index, false);
 
@@ -1225,13 +1225,13 @@ void JitX64::SBC_rsr(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmReg
     }
 
     current.arm_pc += GetInstSize();
-    if (Rd_index == 15) {
+    if (Rd_index == ArmReg::PC) {
         CompileReturnToDispatch();
     }
 }
 
 void JitX64::SUB_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int rotate, ArmImm8 imm8) {
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
     u32 immediate = rotr(imm8, rotate * 2);
 
@@ -1245,13 +1245,13 @@ void JitX64::SUB_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int ro
     }
 
     current.arm_pc += GetInstSize();
-    if (Rd_index == 15) {
+    if (Rd_index == ArmReg::PC) {
         CompileReturnToDispatch();
     }
 }
 
 void JitX64::SUB_reg(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmImm5 imm5, ShiftType shift, ArmReg Rm_index) {
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
     Gen::X64Reg tmp = CompileDataProcessingHelper_reg(imm5, shift, Rm_index, false);
 
@@ -1267,13 +1267,13 @@ void JitX64::SUB_reg(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmImm
     }
 
     current.arm_pc += GetInstSize();
-    if (Rd_index == 15) {
+    if (Rd_index == ArmReg::PC) {
         CompileReturnToDispatch();
     }
 }
 
 void JitX64::SUB_rsr(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmReg Rs_index, ShiftType shift, ArmReg Rm_index) {
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
     Gen::X64Reg tmp = CompileDataProcessingHelper_rsr(Rs_index, shift, Rm_index, false);
 
@@ -1289,20 +1289,20 @@ void JitX64::SUB_rsr(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmReg
     }
 
     current.arm_pc += GetInstSize();
-    if (Rd_index == 15) {
+    if (Rd_index == ArmReg::PC) {
         CompileReturnToDispatch();
     }
 }
 
 
 void JitX64::TEQ_imm(Cond cond, ArmReg Rn_index, int rotate, ArmImm8 imm8) {
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
     u32 immediate = rotr(imm8, rotate * 2);
 
     X64Reg Rn_tmp = reg_alloc.AllocTemp();
 
-    if (Rn_index == 15) {
+    if (Rn_index == ArmReg::PC) {
         code->MOV(32, R(Rn_tmp), Imm32(GetReg15Value()));
     } else {
         Gen::OpArg Rn_real = reg_alloc.LockArmForRead(Rn_index);
@@ -1323,11 +1323,11 @@ void JitX64::TEQ_imm(Cond cond, ArmReg Rn_index, int rotate, ArmImm8 imm8) {
 }
 
 void JitX64::TEQ_reg(Cond cond, ArmReg Rn_index, ArmImm5 imm5, ShiftType shift, ArmReg Rm_index) {
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
     Gen::X64Reg tmp = CompileDataProcessingHelper_reg(imm5, shift, Rm_index, true);
 
-    if (Rn_index == 15) {
+    if (Rn_index == ArmReg::PC) {
         code->XOR(32, R(tmp), Imm32(GetReg15Value()));
     } else {
         Gen::OpArg Rn = reg_alloc.LockArmForRead(Rn_index);
@@ -1343,11 +1343,11 @@ void JitX64::TEQ_reg(Cond cond, ArmReg Rn_index, ArmImm5 imm5, ShiftType shift, 
 }
 
 void JitX64::TEQ_rsr(Cond cond, ArmReg Rn_index, ArmReg Rs_index, ShiftType shift, ArmReg Rm_index) {
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
     Gen::X64Reg tmp = CompileDataProcessingHelper_rsr(Rs_index, shift, Rm_index, true);
 
-    if (Rn_index == 15) {
+    if (Rn_index == ArmReg::PC) {
         code->XOR(32, R(tmp), Imm32(GetReg15Value()));
     } else {
         Gen::OpArg Rn = reg_alloc.LockArmForRead(Rn_index);
@@ -1363,13 +1363,13 @@ void JitX64::TEQ_rsr(Cond cond, ArmReg Rn_index, ArmReg Rs_index, ShiftType shif
 }
 
 void JitX64::TST_imm(Cond cond, ArmReg Rn_index, int rotate, ArmImm8 imm8) {
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
     u32 immediate = rotr(imm8, rotate * 2);
 
     X64Reg Rn;
 
-    if (Rn_index == 15) {
+    if (Rn_index == ArmReg::PC) {
         Rn = reg_alloc.AllocTemp();
         code->MOV(32, R(Rn), Imm32(GetReg15Value()));
     } else {
@@ -1378,7 +1378,7 @@ void JitX64::TST_imm(Cond cond, ArmReg Rn_index, int rotate, ArmImm8 imm8) {
 
     code->TEST(32, R(Rn), Imm32(immediate));
 
-    if (Rn_index == 15) {
+    if (Rn_index == ArmReg::PC) {
         reg_alloc.UnlockTemp(Rn);
     } else {
         reg_alloc.UnlockArm(Rn_index);
@@ -1393,11 +1393,11 @@ void JitX64::TST_imm(Cond cond, ArmReg Rn_index, int rotate, ArmImm8 imm8) {
 }
 
 void JitX64::TST_reg(Cond cond, ArmReg Rn_index, ArmImm5 imm5, ShiftType shift, ArmReg Rm_index) {
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
     Gen::X64Reg tmp = CompileDataProcessingHelper_reg(imm5, shift, Rm_index, true);
 
-    if (Rn_index == 15) {
+    if (Rn_index == ArmReg::PC) {
         code->TEST(32, R(tmp), Imm32(GetReg15Value()));
     } else {
         OpArg Rn = reg_alloc.LockArmForRead(Rn_index);
@@ -1413,11 +1413,11 @@ void JitX64::TST_reg(Cond cond, ArmReg Rn_index, ArmImm5 imm5, ShiftType shift, 
 }
 
 void JitX64::TST_rsr(Cond cond, ArmReg Rn_index, ArmReg Rs_index, ShiftType shift, ArmReg Rm_index) {
-    cond_manager.CompileCond((ConditionCode)cond);
+    cond_manager.CompileCond(cond);
 
     Gen::X64Reg tmp = CompileDataProcessingHelper_rsr(Rs_index, shift, Rm_index, true);
 
-    if (Rn_index == 15) {
+    if (Rn_index == ArmReg::PC) {
         code->TEST(32, R(tmp), Imm32(GetReg15Value()));
     } else {
         OpArg Rn = reg_alloc.LockArmForRead(Rn_index);

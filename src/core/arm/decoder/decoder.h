@@ -10,57 +10,142 @@
 
 #include <boost/optional.hpp>
 
+#include "common/assert.h"
 #include "common/common_types.h"
 #include "common/common_funcs.h"
 
 namespace ArmDecoder {
 
-// This is a generic ARMv6 decoder using double dispatch.
+// This is a generic ARMv6K decoder using double dispatch.
 
-class Instruction;
+class ArmInstruction;
+class ThumbInstruction;
 class Visitor;
 
-boost::optional<const Instruction&> DecodeArm(u32 instruction);
-boost::optional<const Instruction&> DecodeThumb(u16 instruction);
+/**
+ * This funtion identifies an ARM instruction and returns the relevant ArmInstruction.
+ * Returns boost::none if the instruction could not be deocoded.
+ */
+boost::optional<const ArmInstruction&> DecodeArm(u32 instruction);
 
-struct Matcher {
+/**
+* This funtion identifies a Thumb instruction and returns the relevant ThumbInstruction.
+* Returns boost::none if the instruction could not be deocoded.
+*/
+boost::optional<const ThumbInstruction&> DecodeThumb(u16 instruction);
+
+/// INTERNAL
+struct ArmMatcher {
     u32 bit_mask;
     u32 expected;
-    FORCE_INLINE bool Match(u32 x) const {
+    bool Match(u32 x) const {
         return (x & bit_mask) == expected;
     }
     virtual void visit(Visitor* v, u32 inst) = 0;
 };
 
-class Instruction {
-private:
-    const std::unique_ptr<Matcher> matcher;
-
+/**
+ * This structure represents a decoder for a specific ARM instruction.
+ * Calling Visit calls the relevant function on Visitor.
+ */
+class ArmInstruction final {
 public:
-    Instruction(const char* const name, std::unique_ptr<Matcher> matcher) : matcher(std::move(matcher)), name(name) {}
+    ArmInstruction(const char* const name, std::unique_ptr<ArmMatcher> matcher) : name(name), matcher(std::move(matcher)) {}
 
-    const char* const name;
-
-    FORCE_INLINE bool Match(u32 instruction) const {
-        return (instruction & matcher->bit_mask) == matcher->expected;
+    const char* const Name() const {
+        return name;
     }
 
-    FORCE_INLINE void Visit(Visitor* v, u32 instruction) const {
+    bool Match(u32 instruction) const {
+        return matcher->Match(instruction);
+    }
+
+    void Visit(Visitor* v, u32 instruction) const {
         matcher->visit(v, instruction);
     }
+
+private:
+    const char* const name;
+    const std::unique_ptr<ArmMatcher> matcher;
 };
 
-using Cond = u8;
+/// INTERNAL
+struct ThumbMatcher {
+    u16 bit_mask;
+    u16 expected;
+    bool Match(u16 x) const {
+        return (x & bit_mask) == expected;
+    }
+    std::function<void(Visitor*, u16 inst)> visit;
+};
+
+/**
+ * This structure represents a decoder for a specific Thumb instruction.
+ * Calling Visit calls the relevant function on Visitor.
+ */
+class ThumbInstruction final {
+public:
+    ThumbInstruction(const char* const name, ThumbMatcher&& matcher) : name(name), matcher(std::move(matcher)) {}
+
+    const char* const Name() const {
+        return name;
+    }
+
+    bool Match(u32 instruction) const {
+        return matcher.Match(instruction);
+    }
+
+    void Visit(Visitor* v, u16 instruction) const {
+        matcher.visit(v, instruction);
+    }
+
+private:
+    const char* const name;
+    const ThumbMatcher matcher;
+};
+
+enum class Cond {
+    EQ, NE, CS, CC, MI, PL, VS, VC, HI, LS, GE, LT, GT, LE, AL, NV
+};
+
 using Imm4 = u32;
 using Imm5 = u32;
 using Imm8 = u32;
 using Imm11 = u32;
 using Imm12 = u32;
 using Imm24 = u32;
-using Register = int;
 using RegisterList = u16;
-using ShiftType = int;
-using SignExtendRotation = int;
+
+enum class Register {
+    R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12, R13, R14, R15,
+    SP = R13,
+    LR = R14,
+    PC = R15,
+    INVALID_REG = 99
+};
+
+static Register operator+ (Register arm_reg, int number) {
+    ASSERT(arm_reg != Register::INVALID_REG);
+
+    int value = static_cast<int>(arm_reg) + number;
+    ASSERT(value >= 0 && value <= 15);
+
+    return static_cast<Register>(value);
+}
+
+enum class ShiftType {
+    LSL,
+    LSR,
+    ASR,
+    ROR ///< RRX falls under this too
+};
+
+enum class SignExtendRotation {
+    ROR_0,  ///< ROR #0 or omitted
+    ROR_8,  ///< ROR #8
+    ROR_16, ///< ROR #16
+    ROR_24  ///< ROR #24
+};
 
 class Visitor {
 public:
