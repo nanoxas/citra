@@ -25,7 +25,7 @@ using Cond = ArmDecoder::Cond;
 using ShiftType = ArmDecoder::ShiftType;
 using SignExtendRotation = ArmDecoder::SignExtendRotation;
 
-struct JitState {
+struct JitState final {
     JitState() : cpu_state(PrivilegeMode::USER32MODE) {}
     void Reset() {
         cpu_state.Reset();
@@ -33,10 +33,12 @@ struct JitState {
 
     ARMul_State cpu_state;
 
-    u64 save_host_RSP;
-    u64 return_RIP;
-
-    s32 cycles_remaining;
+    /// This value should always be appropriately aligned for a CALL instruction to be made.
+    u64 save_host_RSP = 0;
+    /// Jitted code will JMP to this value when done. Should contain the an address which returns to the dispatcher.
+    u64 return_RIP = 0;
+    /// If this value becomes <= 0, jitted code will jump to return_RIP.
+    s32 cycles_remaining = 0;
 };
 
 constexpr bool IsValidArmReg(ArmReg arm_reg) {
