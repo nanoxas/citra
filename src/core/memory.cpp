@@ -105,11 +105,11 @@ void UnmapRegion(VAddr base, u32 size) {
     ASSERT_MSG((base & PAGE_MASK) == 0, "non-page aligned base: %08X", base);
     MapPages(base / PAGE_SIZE, size / PAGE_SIZE, nullptr, PageType::Unmapped);
 
-    for (auto iter = current_page_table->special_regions.begin(); iter != current_page_table->special_regions.end(); iter++) {
-        if (base == iter->base && size == iter->size) {
-            current_page_table->special_regions.erase(iter);
-            return;
-        }
+    auto region_iter = std::find_if(current_page_table->special_regions.begin(), current_page_table->special_regions.end(),
+        [base, size] (const auto& region) { return base == region.base && size == region.size; });
+
+    if (region_iter != current_page_table->special_regions.end()) {
+        current_page_table->special_regions.erase(region_iter);
     }
 }
 
