@@ -167,7 +167,7 @@ void JitX64::CompileCallHost(const void* const fn) {
     ASSERT(reg_alloc.JitStateReg() != RSP);
     code->MOV(64, R(RSP), MJitStateHostReturnRSP());
 
-    const u64 distance = reinterpret_cast<const u64>(fn) - (reinterpret_cast<const u64>(code->GetCodePtr()) + 5);
+    const uintptr_t distance = reinterpret_cast<uintptr_t>(fn) - (reinterpret_cast<uintptr_t>(code->GetCodePtr()) + 5);
     if (distance >= 0x0000000080000000ULL && distance < 0xFFFFFFFF80000000ULL) {
         // Far call
         code->MOV(64, R(RAX), ImmPtr(fn));

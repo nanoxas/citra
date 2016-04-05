@@ -421,12 +421,12 @@ private:
     // Thumb specific instructions
     void thumb_B(Cond cond, ArmImm8 imm8) override;
     void thumb_B(ArmImm11 imm11) override;
+    void thumb_BLX_prefix(ArmImm11 imm11) override;
+    void thumb_BLX_suffix(bool L, ArmImm11 imm11) override;
 
     ArmImm11 thumb_BLX_prefix_imm11 = 0;
     bool thumb_BLX_prefix_executed = false;
     bool thumb_BLX_suffix_executed = false;
-    void thumb_BLX_prefix(ArmImm11 imm11) override;
-    void thumb_BLX_suffix(bool L, ArmImm11 imm11) override;
 };
 
 } // namespace JitX64
