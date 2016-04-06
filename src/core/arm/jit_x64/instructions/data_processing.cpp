@@ -323,7 +323,7 @@ void JitX64::ADC_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int ro
     });
 
     if (S) {
-        UpdateFlagsZVCN();
+        UpdateFlagsNZCV();
     }
 
     current.arm_pc += GetInstSize();
@@ -345,7 +345,7 @@ void JitX64::ADC_reg(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmImm
     reg_alloc.UnlockTemp(tmp);
 
     if (S) {
-        UpdateFlagsZVCN();
+        UpdateFlagsNZCV();
     }
 
     current.arm_pc += GetInstSize();
@@ -367,7 +367,7 @@ void JitX64::ADC_rsr(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmReg
     reg_alloc.UnlockTemp(tmp);
 
     if (S) {
-        UpdateFlagsZVCN();
+        UpdateFlagsNZCV();
     }
 
     current.arm_pc += GetInstSize();
@@ -386,7 +386,7 @@ void JitX64::ADD_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int ro
     });
 
     if (S) {
-        UpdateFlagsZVCN();
+        UpdateFlagsNZCV();
     }
 
     current.arm_pc += GetInstSize();
@@ -407,7 +407,7 @@ void JitX64::ADD_reg(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmImm
     reg_alloc.UnlockTemp(tmp);
 
     if (S) {
-        UpdateFlagsZVCN();
+        UpdateFlagsNZCV();
     }
 
     current.arm_pc += GetInstSize();
@@ -428,7 +428,7 @@ void JitX64::ADD_rsr(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmReg
     reg_alloc.UnlockTemp(tmp);
 
     if (S) {
-        UpdateFlagsZVCN();
+        UpdateFlagsNZCV();
     }
 
     current.arm_pc += GetInstSize();
@@ -447,7 +447,7 @@ void JitX64::AND_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int ro
     });
 
     if (S) {
-        UpdateFlagsZN();
+        UpdateFlagsNZ();
         if (rotate != 0) {
             code->MOV(32, MJitStateCFlag(), Imm32(immediate & 0x80000000 ? 1 : 0));
         }
@@ -471,7 +471,7 @@ void JitX64::AND_reg(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmImm
     reg_alloc.UnlockTemp(tmp);
 
     if (S) {
-        UpdateFlagsZN();
+        UpdateFlagsNZ();
         // C updated by CompileDataProcessingHelper_reg
     }
 
@@ -493,7 +493,7 @@ void JitX64::AND_rsr(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmReg
     reg_alloc.UnlockTemp(tmp);
 
     if (S) {
-        UpdateFlagsZN();
+        UpdateFlagsNZ();
         // C updated by CompileDataProcessingHelper_reg
     }
 
@@ -513,7 +513,7 @@ void JitX64::BIC_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int ro
     });
 
     if (S) {
-        UpdateFlagsZN();
+        UpdateFlagsNZ();
         if (rotate != 0) {
             code->MOV(32, MJitStateCFlag(), Imm32(immediate & 0x80000000 ? 1 : 0));
         }
@@ -539,7 +539,7 @@ void JitX64::BIC_reg(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmImm
     reg_alloc.UnlockTemp(tmp);
 
     if (S) {
-        UpdateFlagsZN();
+        UpdateFlagsNZ();
     }
 
     current.arm_pc += GetInstSize();
@@ -562,7 +562,7 @@ void JitX64::BIC_rsr(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmReg
     reg_alloc.UnlockTemp(tmp);
 
     if (S) {
-        UpdateFlagsZN();
+        UpdateFlagsNZ();
     }
 
     current.arm_pc += GetInstSize();
@@ -589,7 +589,7 @@ void JitX64::CMN_imm(Cond cond, ArmReg Rn_index, int rotate, ArmImm8 imm8) {
 
     reg_alloc.UnlockTemp(tmp);
 
-    UpdateFlagsZVCN();
+    UpdateFlagsNZCV();
 
     current.arm_pc += GetInstSize();
 }
@@ -609,7 +609,7 @@ void JitX64::CMN_reg(Cond cond, ArmReg Rn_index, ArmImm5 imm5, ShiftType shift, 
 
     reg_alloc.UnlockTemp(tmp);
 
-    UpdateFlagsZVCN();
+    UpdateFlagsNZCV();
 
     current.arm_pc += GetInstSize();
 }
@@ -629,7 +629,7 @@ void JitX64::CMN_rsr(Cond cond, ArmReg Rn_index, ArmReg Rs_index, ShiftType shif
 
     reg_alloc.UnlockTemp(tmp);
 
-    UpdateFlagsZVCN();
+    UpdateFlagsNZCV();
 
     current.arm_pc += GetInstSize();
 }
@@ -652,7 +652,7 @@ void JitX64::CMP_imm(Cond cond, ArmReg Rn_index, int rotate, ArmImm8 imm8) {
     }
 
     UpdateFlagsC_complement();
-    UpdateFlagsZVN();
+    UpdateFlagsNZV();
 
     current.arm_pc += GetInstSize();
 }
@@ -677,7 +677,7 @@ void JitX64::CMP_reg(Cond cond, ArmReg Rn_index, ArmImm5 imm5, ShiftType shift, 
     reg_alloc.UnlockTemp(tmp);
 
     UpdateFlagsC_complement();
-    UpdateFlagsZVN();
+    UpdateFlagsNZV();
 
     current.arm_pc += GetInstSize();
 }
@@ -702,7 +702,7 @@ void JitX64::CMP_rsr(Cond cond, ArmReg Rn_index, ArmReg Rs_index, ShiftType shif
     reg_alloc.UnlockTemp(tmp);
 
     UpdateFlagsC_complement();
-    UpdateFlagsZVN();
+    UpdateFlagsNZV();
 
     current.arm_pc += GetInstSize();
 }
@@ -717,7 +717,7 @@ void JitX64::EOR_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int ro
     });
 
     if (S) {
-        UpdateFlagsZN();
+        UpdateFlagsNZ();
         if (rotate != 0) {
             code->MOV(32, MJitStateCFlag(), Imm32(immediate & 0x80000000 ? 1 : 0));
         }
@@ -741,7 +741,7 @@ void JitX64::EOR_reg(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmImm
     reg_alloc.UnlockTemp(tmp);
 
     if (S) {
-        UpdateFlagsZN();
+        UpdateFlagsNZ();
     }
 
     current.arm_pc += GetInstSize();
@@ -762,7 +762,7 @@ void JitX64::EOR_rsr(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmReg
     reg_alloc.UnlockTemp(tmp);
 
     if (S) {
-        UpdateFlagsZN();
+        UpdateFlagsNZ();
     }
 
     current.arm_pc += GetInstSize();
@@ -784,7 +784,7 @@ void JitX64::MOV_imm(Cond cond, bool S, ArmReg Rd_index, int rotate, ArmImm8 imm
         Gen::OpArg Rd = reg_alloc.LockArmForRead(Rd_index);
         code->CMP(32, Rd, Imm32(0));
         reg_alloc.UnlockArm(Rd_index);
-        UpdateFlagsZN();
+        UpdateFlagsNZ();
         if (rotate != 0) {
             code->MOV(32, MJitStateCFlag(), Imm32(immediate & 0x80000000 ? 1 : 0));
         }
@@ -807,7 +807,7 @@ void JitX64::MOV_reg(Cond cond, bool S, ArmReg Rd_index, ArmImm5 imm5, ShiftType
 
     if (S) {
         code->CMP(32, R(tmp), Imm32(0));
-        UpdateFlagsZN();
+        UpdateFlagsNZ();
     }
 
     reg_alloc.UnlockTemp(tmp);
@@ -829,7 +829,7 @@ void JitX64::MOV_rsr(Cond cond, bool S, ArmReg Rd_index, ArmReg Rs_index, ShiftT
 
     if (S) {
         code->CMP(32, R(tmp), Imm32(0));
-        UpdateFlagsZN();
+        UpdateFlagsNZ();
     }
 
     reg_alloc.UnlockTemp(tmp);
@@ -853,7 +853,7 @@ void JitX64::MVN_imm(Cond cond, bool S, ArmReg Rd_index, int rotate, ArmImm8 imm
         Gen::OpArg Rd = reg_alloc.LockArmForRead(Rd_index);
         code->CMP(32, Rd, Imm32(0));
         reg_alloc.UnlockArm(Rd_index);
-        UpdateFlagsZN();
+        UpdateFlagsNZ();
         if (rotate != 0) {
             code->MOV(32, MJitStateCFlag(), Imm32(immediate & 0x80000000 ? 1 : 0));
         }
@@ -877,7 +877,7 @@ void JitX64::MVN_reg(Cond cond, bool S, ArmReg Rd_index, ArmImm5 imm5, ShiftType
 
     if (S) {
         code->CMP(32, R(tmp), Imm32(0));
-        UpdateFlagsZN();
+        UpdateFlagsNZ();
     }
 
     reg_alloc.UnlockTemp(tmp);
@@ -900,7 +900,7 @@ void JitX64::MVN_rsr(Cond cond, bool S, ArmReg Rd_index, ArmReg Rs_index, ShiftT
 
     if (S) {
         code->CMP(32, R(tmp), Imm32(0));
-        UpdateFlagsZN();
+        UpdateFlagsNZ();
     }
 
     reg_alloc.UnlockTemp(tmp);
@@ -921,7 +921,7 @@ void JitX64::ORR_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int ro
     });
 
     if (S) {
-        UpdateFlagsZN();
+        UpdateFlagsNZ();
         if (rotate != 0) {
             code->MOV(32, MJitStateCFlag(), Imm32(immediate & 0x80000000 ? 1 : 0));
         }
@@ -945,7 +945,7 @@ void JitX64::ORR_reg(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmImm
     reg_alloc.UnlockTemp(tmp);
 
     if (S) {
-        UpdateFlagsZN();
+        UpdateFlagsNZ();
     }
 
     current.arm_pc += GetInstSize();
@@ -966,7 +966,7 @@ void JitX64::ORR_rsr(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmReg
     reg_alloc.UnlockTemp(tmp);
 
     if (S) {
-        UpdateFlagsZN();
+        UpdateFlagsNZ();
     }
 
     current.arm_pc += GetInstSize();
@@ -993,7 +993,7 @@ void JitX64::RSB_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int ro
     });
 
     if (S) {
-        UpdateFlagsZVN();
+        UpdateFlagsNZV();
         UpdateFlagsC_complement();
     }
 
@@ -1023,7 +1023,7 @@ void JitX64::RSB_reg(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmImm
     reg_alloc.UnlockTemp(tmp);
 
     if (S) {
-        UpdateFlagsZVN();
+        UpdateFlagsNZV();
         UpdateFlagsC_complement();
     }
 
@@ -1053,7 +1053,7 @@ void JitX64::RSB_rsr(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmReg
     reg_alloc.UnlockTemp(tmp);
 
     if (S) {
-        UpdateFlagsZVN();
+        UpdateFlagsNZV();
         UpdateFlagsC_complement();
     }
 
@@ -1084,7 +1084,7 @@ void JitX64::RSC_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int ro
     });
 
     if (S) {
-        UpdateFlagsZVN();
+        UpdateFlagsNZV();
         UpdateFlagsC_complement();
     }
 
@@ -1117,7 +1117,7 @@ void JitX64::RSC_reg(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmImm
     reg_alloc.UnlockTemp(tmp);
 
     if (S) {
-        UpdateFlagsZVN();
+        UpdateFlagsNZV();
         UpdateFlagsC_complement();
     }
 
@@ -1150,7 +1150,7 @@ void JitX64::RSC_rsr(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmReg
     reg_alloc.UnlockTemp(tmp);
 
     if (S) {
-        UpdateFlagsZVN();
+        UpdateFlagsNZV();
         UpdateFlagsC_complement();
     }
 
@@ -1172,7 +1172,7 @@ void JitX64::SBC_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int ro
     });
 
     if (S) {
-        UpdateFlagsZVN();
+        UpdateFlagsNZV();
         UpdateFlagsC_complement();
     }
 
@@ -1196,7 +1196,7 @@ void JitX64::SBC_reg(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmImm
     reg_alloc.UnlockTemp(tmp);
 
     if (S) {
-        UpdateFlagsZVN();
+        UpdateFlagsNZV();
         UpdateFlagsC_complement();
     }
 
@@ -1220,7 +1220,7 @@ void JitX64::SBC_rsr(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmReg
     reg_alloc.UnlockTemp(tmp);
 
     if (S) {
-        UpdateFlagsZVN();
+        UpdateFlagsNZV();
         UpdateFlagsC_complement();
     }
 
@@ -1240,7 +1240,7 @@ void JitX64::SUB_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int ro
     });
 
     if (S) {
-        UpdateFlagsZVN();
+        UpdateFlagsNZV();
         UpdateFlagsC_complement();
     }
 
@@ -1262,7 +1262,7 @@ void JitX64::SUB_reg(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmImm
     reg_alloc.UnlockTemp(tmp);
 
     if (S) {
-        UpdateFlagsZVN();
+        UpdateFlagsNZV();
         UpdateFlagsC_complement();
     }
 
@@ -1284,7 +1284,7 @@ void JitX64::SUB_rsr(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmReg
     reg_alloc.UnlockTemp(tmp);
 
     if (S) {
-        UpdateFlagsZVN();
+        UpdateFlagsNZV();
         UpdateFlagsC_complement();
     }
 
@@ -1314,7 +1314,7 @@ void JitX64::TEQ_imm(Cond cond, ArmReg Rn_index, int rotate, ArmImm8 imm8) {
 
     reg_alloc.UnlockTemp(Rn_tmp);
 
-    UpdateFlagsZN();
+    UpdateFlagsNZ();
     if (rotate != 0) {
         code->MOV(32, MJitStateCFlag(), Imm32(immediate & 0x80000000 ? 1 : 0));
     }
@@ -1337,7 +1337,7 @@ void JitX64::TEQ_reg(Cond cond, ArmReg Rn_index, ArmImm5 imm5, ShiftType shift, 
 
     reg_alloc.UnlockTemp(tmp);
 
-    UpdateFlagsZN();
+    UpdateFlagsNZ();
 
     current.arm_pc += GetInstSize();
 }
@@ -1357,7 +1357,7 @@ void JitX64::TEQ_rsr(Cond cond, ArmReg Rn_index, ArmReg Rs_index, ShiftType shif
 
     reg_alloc.UnlockTemp(tmp);
 
-    UpdateFlagsZN();
+    UpdateFlagsNZ();
 
     current.arm_pc += GetInstSize();
 }
@@ -1384,7 +1384,7 @@ void JitX64::TST_imm(Cond cond, ArmReg Rn_index, int rotate, ArmImm8 imm8) {
         reg_alloc.UnlockArm(Rn_index);
     }
 
-    UpdateFlagsZN();
+    UpdateFlagsNZ();
     if (rotate != 0) {
         code->MOV(32, MJitStateCFlag(), Imm32(immediate & 0x80000000 ? 1 : 0));
     }
@@ -1407,7 +1407,7 @@ void JitX64::TST_reg(Cond cond, ArmReg Rn_index, ArmImm5 imm5, ShiftType shift, 
 
     reg_alloc.UnlockTemp(tmp);
 
-    UpdateFlagsZN();
+    UpdateFlagsNZ();
 
     current.arm_pc += GetInstSize();
 }
@@ -1427,7 +1427,7 @@ void JitX64::TST_rsr(Cond cond, ArmReg Rn_index, ArmReg Rs_index, ShiftType shif
 
     reg_alloc.UnlockTemp(tmp);
 
-    UpdateFlagsZN();
+    UpdateFlagsNZ();
 
     current.arm_pc += GetInstSize();
 }

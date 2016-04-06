@@ -102,25 +102,25 @@ private:
         return (current.arm_pc & ~0x3) + static_cast<u32>(GetInstSize() * 2);
     }
 
-    void UpdateFlagsZVCN() {
+    void UpdateFlagsNZCV() {
         cond_manager.FlagsDirty();
+        code->SETcc(Gen::CC_S, MJitStateNFlag());
         code->SETcc(Gen::CC_Z, MJitStateZFlag());
         code->SETcc(Gen::CC_C, MJitStateCFlag());
         code->SETcc(Gen::CC_O, MJitStateVFlag());
-        code->SETcc(Gen::CC_S, MJitStateNFlag());
     }
 
-    void UpdateFlagsZVN() {
+    void UpdateFlagsNZV() {
         cond_manager.FlagsDirty();
+        code->SETcc(Gen::CC_S, MJitStateNFlag());
         code->SETcc(Gen::CC_Z, MJitStateZFlag());
         code->SETcc(Gen::CC_O, MJitStateVFlag());
-        code->SETcc(Gen::CC_S, MJitStateNFlag());
     }
 
-    void UpdateFlagsZN() {
+    void UpdateFlagsNZ() {
         cond_manager.FlagsDirty();
-        code->SETcc(Gen::CC_Z, MJitStateZFlag());
         code->SETcc(Gen::CC_S, MJitStateNFlag());
+        code->SETcc(Gen::CC_Z, MJitStateZFlag());
     }
 
     void UpdateFlagsC_complement() {
