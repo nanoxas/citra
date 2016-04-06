@@ -181,81 +181,81 @@ void JitX64::CompileCallHost(const void* const fn) {
 // We static_assert types because anything that calls these functions makes those assumptions.
 // If the types of the variables are changed please update all code that calls these functions.
 
-Gen::OpArg JitX64::MJitStateCycleCount() {
+Gen::OpArg JitX64::MJitStateCycleCount() const {
     static_assert(std::is_same<decltype(JitState::cycles_remaining), s32>::value, "JitState::cycles_remaining must be s32");
 
     return Gen::MDisp(reg_alloc.JitStateReg(), offsetof(JitState, cycles_remaining));
 }
 
-Gen::OpArg JitX64::MJitStateArmPC() {
+Gen::OpArg JitX64::MJitStateArmPC() const {
     static_assert(std::is_same<decltype(JitState::cpu_state), ARMul_State>::value, "JitState::cpu_state must be ARMul_State");
     static_assert(std::is_same<decltype(ARMul_State::Reg), std::array<u32, 16>>::value, "ARMul_State::Reg must be std::array<u32, 16>");
 
     return Gen::MDisp(reg_alloc.JitStateReg(), offsetof(JitState, cpu_state) + offsetof(ARMul_State, Reg) + 15 * sizeof(u32));
 }
 
-Gen::OpArg JitX64::MJitStateTFlag() {
+Gen::OpArg JitX64::MJitStateTFlag() const {
     static_assert(std::is_same<decltype(JitState::cpu_state), ARMul_State>::value, "JitState::cpu_state must be ARMul_State");
     static_assert(std::is_same<decltype(ARMul_State::TFlag), u32>::value, "TFlag must be u32");
 
     return Gen::MDisp(reg_alloc.JitStateReg(), offsetof(JitState, cpu_state) + offsetof(ARMul_State, TFlag));
 }
 
-Gen::OpArg JitX64::MJitStateHostReturnRIP() {
+Gen::OpArg JitX64::MJitStateHostReturnRIP() const {
     static_assert(std::is_same<decltype(JitState::return_RIP), u64>::value, "JitState::return_RIP must be u64");
 
     return Gen::MDisp(reg_alloc.JitStateReg(), offsetof(JitState, return_RIP));
 }
 
-Gen::OpArg JitX64::MJitStateHostReturnRSP() {
+Gen::OpArg JitX64::MJitStateHostReturnRSP() const {
     static_assert(std::is_same<decltype(JitState::save_host_RSP), u64>::value, "JitState::save_host_RSP must be u64");
 
     return Gen::MDisp(reg_alloc.JitStateReg(), offsetof(JitState, save_host_RSP));
 }
 
-Gen::OpArg JitX64::MJitStateZFlag() {
+Gen::OpArg JitX64::MJitStateZFlag() const {
     static_assert(std::is_same<decltype(JitState::cpu_state), ARMul_State>::value, "JitState::cpu_state must be ARMul_State");
     static_assert(std::is_same<decltype(ARMul_State::ZFlag), u32>::value, "ZFlag must be u32");
 
     return Gen::MDisp(reg_alloc.JitStateReg(), offsetof(JitState, cpu_state) + offsetof(ARMul_State, ZFlag));
 }
 
-Gen::OpArg JitX64::MJitStateCFlag() {
+Gen::OpArg JitX64::MJitStateCFlag() const {
     static_assert(std::is_same<decltype(JitState::cpu_state), ARMul_State>::value, "JitState::cpu_state must be ARMul_State");
     static_assert(std::is_same<decltype(ARMul_State::CFlag), u32>::value, "CFlag must be u32");
 
     return Gen::MDisp(reg_alloc.JitStateReg(), offsetof(JitState, cpu_state) + offsetof(ARMul_State, CFlag));
 }
 
-Gen::OpArg JitX64::MJitStateNFlag() {
+Gen::OpArg JitX64::MJitStateNFlag() const {
     static_assert(std::is_same<decltype(JitState::cpu_state), ARMul_State>::value, "JitState::cpu_state must be ARMul_State");
     static_assert(std::is_same<decltype(ARMul_State::NFlag), u32>::value, "NFlag must be u32");
 
     return Gen::MDisp(reg_alloc.JitStateReg(), offsetof(JitState, cpu_state) + offsetof(ARMul_State, NFlag));
 }
 
-Gen::OpArg JitX64::MJitStateVFlag() {
+Gen::OpArg JitX64::MJitStateVFlag() const {
     static_assert(std::is_same<decltype(JitState::cpu_state), ARMul_State>::value, "JitState::cpu_state must be ARMul_State");
     static_assert(std::is_same<decltype(ARMul_State::VFlag), u32>::value, "VFlag must be u32");
 
     return Gen::MDisp(reg_alloc.JitStateReg(), offsetof(JitState, cpu_state) + offsetof(ARMul_State, VFlag));
 }
 
-Gen::OpArg JitX64::MJitStateCpsr() {
+Gen::OpArg JitX64::MJitStateCpsr() const {
     static_assert(std::is_same<decltype(JitState::cpu_state), ARMul_State>::value, "JitState::cpu_state must be ARMul_State");
     static_assert(std::is_same<decltype(ARMul_State::Cpsr), u32>::value, "Cpsr must be u32");
 
     return Gen::MDisp(reg_alloc.JitStateReg(), offsetof(JitState, cpu_state) + offsetof(ARMul_State, Cpsr));
 }
 
-Gen::OpArg JitX64::MJitStateExclusiveTag() {
+Gen::OpArg JitX64::MJitStateExclusiveTag() const {
     static_assert(std::is_same<decltype(JitState::cpu_state), ARMul_State>::value, "JitState::cpu_state must be ARMul_State");
     static_assert(std::is_same<decltype(ARMul_State::exclusive_tag), u32>::value, "exclusive_tag must be u32");
 
     return Gen::MDisp(reg_alloc.JitStateReg(), offsetof(JitState, cpu_state) + offsetof(ARMul_State, exclusive_tag));
 }
 
-Gen::OpArg JitX64::MJitStateExclusiveState() {
+Gen::OpArg JitX64::MJitStateExclusiveState() const {
     static_assert(std::is_same<decltype(JitState::cpu_state), ARMul_State>::value, "JitState::cpu_state must be ARMul_State");
     static_assert(std::is_same<decltype(ARMul_State::exclusive_state), bool>::value, "exclusive_state must be bool");
 

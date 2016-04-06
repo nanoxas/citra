@@ -82,18 +82,18 @@ private:
 private:
     /// Convenience functions
 
-    Gen::OpArg MJitStateCycleCount();
-    Gen::OpArg MJitStateArmPC();
-    Gen::OpArg MJitStateTFlag();
-    Gen::OpArg MJitStateHostReturnRIP();
-    Gen::OpArg MJitStateHostReturnRSP();
-    Gen::OpArg MJitStateZFlag();
-    Gen::OpArg MJitStateCFlag();
-    Gen::OpArg MJitStateNFlag();
-    Gen::OpArg MJitStateVFlag();
-    Gen::OpArg MJitStateCpsr();
-    Gen::OpArg MJitStateExclusiveTag();
-    Gen::OpArg MJitStateExclusiveState();
+    Gen::OpArg MJitStateCycleCount() const;
+    Gen::OpArg MJitStateArmPC() const;
+    Gen::OpArg MJitStateTFlag() const;
+    Gen::OpArg MJitStateHostReturnRIP() const;
+    Gen::OpArg MJitStateHostReturnRSP() const;
+    Gen::OpArg MJitStateZFlag() const;
+    Gen::OpArg MJitStateCFlag() const;
+    Gen::OpArg MJitStateNFlag() const;
+    Gen::OpArg MJitStateVFlag() const;
+    Gen::OpArg MJitStateCpsr() const;
+    Gen::OpArg MJitStateExclusiveTag() const;
+    Gen::OpArg MJitStateExclusiveState() const;
 
     u32 GetReg15Value() const {
         return (current.arm_pc & ~0x1) + static_cast<u32>(GetInstSize() * 2);
@@ -131,10 +131,10 @@ private:
 private:
     struct CondManager {
     private:
-        JitX64* jit;
-        Cond current_cond;
-        bool flags_dirty;
-        Gen::FixupBranch current_cond_fixup;
+        JitX64* jit = nullptr;
+        Cond current_cond = Cond::AL;
+        bool flags_dirty = true;
+        Gen::FixupBranch current_cond_fixup = {};
     public:
         void Init(JitX64* jit_);
         void CompileCond(Cond cond);
