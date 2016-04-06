@@ -37,14 +37,6 @@ struct LocationDescriptorHash {
 };
 
 class JitX64 final : private ArmDecoder::Visitor {
-private:
-    Gen::XEmitter* code = nullptr;
-
-    RegAlloc reg_alloc;
-
-    /// ARM pc -> x64 code block
-    std::unordered_map<LocationDescriptor, CodePtr, LocationDescriptorHash> basic_blocks;
-
 public:
     JitX64() = delete;
     explicit JitX64(Gen::XEmitter* code);
@@ -56,6 +48,14 @@ public:
 
     /// Returns a pointer to the compiled basic block.
     CodePtr Compile(u32 pc, bool TFlag, bool EFlag);
+
+private:
+    Gen::XEmitter* code = nullptr;
+
+    RegAlloc reg_alloc;
+
+    /// ARM pc -> x64 code block
+    std::unordered_map<LocationDescriptor, CodePtr, LocationDescriptorHash> basic_blocks;
 
 private:
     LocationDescriptor current = { 0, false, false };
