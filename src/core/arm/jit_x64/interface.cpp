@@ -20,14 +20,15 @@ namespace Gen {
 
 struct RunJittedCode final : private Gen::XCodeBlock {
 private:
-    const u8* run_jit;
-    const u8* return_from_run_jit;
+    using RunJitFuncType = void(*)(JitX64::JitState*, void*);
+    RunJitFuncType run_jit;
+    u64 return_from_run_jit;
 
 public:
     RunJittedCode() {
         AllocCodeSpace(1024);
 
-        run_jit = this->GetCodePtr();
+        run_jit = RunJitFuncType(this->GetCodePtr());
 
         // This serves two purposes:
         // 1. It saves all the registers we as a callee need to save.
@@ -39,7 +40,7 @@ public:
         MOV(64, R(R15), R(ABI_PARAM1));
 
         JMPptr(R(ABI_PARAM2));
-        return_from_run_jit = this->GetCodePtr();
+        return_from_run_jit = reinterpret_cast<u64>(this->GetCodePtr());
 
         MOV(64, R(RSP), MDisp(R15, offsetof(JitX64::JitState, save_host_RSP)));
         ABI_PopRegistersAndAdjustStack(ABI_ALL_CALLEE_SAVED, 8);
@@ -56,10 +57,9 @@ public:
         cpu->TFlag = (cpu->Cpsr >> 5) & 1;
 
         jit_state->cycles_remaining = cycles_to_run;
-        jit_state->return_RIP = (u64)CallCodeReturnAddress();
+        jit_state->return_RIP = CallCodeReturnAddress();
 
-        auto fn = (void(*)(u64, void*))run_jit;
-        fn((u64)jit_state, bb);
+        run_jit(jit_state, bb);
 
         new_pc = cpu->Reg[15];
 
@@ -73,7 +73,7 @@ public:
         return cycles_to_run - jit_state->cycles_remaining;
     }
 
-    const u8* CallCodeReturnAddress() {
+    u64 CallCodeReturnAddress() const {
         return return_from_run_jit;
     }
 };
@@ -174,7 +174,7 @@ void ARM_Jit::ExecuteInstructions(int num_instructions) {
         else
             state->cpu_state.Reg[15] &= 0xfffffffc;
 
-        u8 *ptr = impl->compiler.GetBB(state->cpu_state.Reg[15], state->cpu_state.TFlag, EFlag);
+        u8* ptr = impl->compiler.GetBB(state->cpu_state.Reg[15], state->cpu_state.TFlag, EFlag);
 
         unsigned ticks_executed = impl->run_jit.CallCode(state.get(), ptr, num_instructions, state->cpu_state.Reg[15]);
         num_instructions -= ticks_executed;
