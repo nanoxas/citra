@@ -49,7 +49,7 @@ void JitX64::CompileInterpretInstruction() {
     code->MOV(64, R(ABI_PARAM3), Imm64(current.TFlag));
     code->MOV(64, R(ABI_PARAM4), Imm64(current.EFlag));
 
-    CompileCallHost(reinterpret_cast<const void* const>(&CallInterpreter));
+    CompileCallHost(reinterpret_cast<const void*>(&CallInterpreter));
 
     code->MOV(64, R(reg_alloc.JitStateReg()), R(ABI_RETURN));
 

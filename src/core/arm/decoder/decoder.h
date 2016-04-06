@@ -50,7 +50,7 @@ class ArmInstruction final {
 public:
     ArmInstruction(const char* const name, std::unique_ptr<ArmMatcher> matcher) : name(name), matcher(std::move(matcher)) {}
 
-    const char* const Name() const {
+    const char* Name() const {
         return name;
     }
 
@@ -85,7 +85,7 @@ class ThumbInstruction final {
 public:
     ThumbInstruction(const char* const name, ThumbMatcher&& matcher) : name(name), matcher(std::move(matcher)) {}
 
-    const char* const Name() const {
+    const char* Name() const {
         return name;
     }
 

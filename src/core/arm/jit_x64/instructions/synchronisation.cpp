@@ -47,7 +47,7 @@ void JitX64::LDREX(Cond cond, ArmReg Rn_index, ArmReg Rd_index) {
     ASSERT_MSG(Rn_index != ArmReg::PC && Rd_index != ArmReg::PC, "UNPREDICTABLE");
 
     ExclusiveLoadCommon(code, reg_alloc, MJitStateExclusiveState(), MJitStateExclusiveTag(), Rn_index, Rd_index);
-    CompileCallHost(reinterpret_cast<const void* const>(!current.EFlag ? &Load32LE : &Load32BE));
+    CompileCallHost(reinterpret_cast<const void*>(!current.EFlag ? &Load32LE : &Load32BE));
 
     reg_alloc.LockX64(ABI_RETURN);
 
@@ -66,7 +66,7 @@ void JitX64::LDREXB(Cond cond, ArmReg Rn_index, ArmReg Rd_index) {
     ASSERT_MSG(Rn_index != ArmReg::PC && Rd_index != ArmReg::PC, "UNPREDICTABLE");
 
     ExclusiveLoadCommon(code, reg_alloc, MJitStateExclusiveState(), MJitStateExclusiveTag(), Rn_index, Rd_index);
-    CompileCallHost(reinterpret_cast<const void* const>(&Load8));
+    CompileCallHost(reinterpret_cast<const void*>(&Load8));
 
     reg_alloc.LockX64(ABI_RETURN);
 
@@ -87,7 +87,7 @@ void JitX64::LDREXD(Cond cond, ArmReg Rn_index, ArmReg Rd_index) {
     ASSERT_MSG(Rn_index != ArmReg::PC, "UNPREDICTABLE");
 
     ExclusiveLoadCommon(code, reg_alloc, MJitStateExclusiveState(), MJitStateExclusiveTag(), Rn_index, Rd_index);
-    CompileCallHost(reinterpret_cast<const void* const>(!current.EFlag ? Load64LE : Load64BE));
+    CompileCallHost(reinterpret_cast<const void*>(!current.EFlag ? Load64LE : Load64BE));
 
     reg_alloc.LockX64(ABI_RETURN);
 
@@ -110,7 +110,7 @@ void JitX64::LDREXH(Cond cond, ArmReg Rn_index, ArmReg Rd_index) {
     ASSERT_MSG(Rn_index != ArmReg::PC && Rd_index != ArmReg::PC, "UNPREDICTABLE");
 
     ExclusiveLoadCommon(code, reg_alloc, MJitStateExclusiveState(), MJitStateExclusiveTag(), Rn_index, Rd_index);
-    CompileCallHost(reinterpret_cast<const void* const>(!current.EFlag ? Load16LE : Load16BE));
+    CompileCallHost(reinterpret_cast<const void*>(!current.EFlag ? Load16LE : Load16BE));
 
     reg_alloc.LockX64(ABI_RETURN);
 
@@ -173,7 +173,7 @@ void JitX64::STREX(Cond cond, ArmReg Rn_index, ArmReg Rd_index, ArmReg Rm_index)
         Rn_index, Rd_index,
         [&](){
             code->MOV(32, R(ABI_PARAM2), Rm);
-            CompileCallHost(reinterpret_cast<const void* const>(!current.EFlag ? &Store32LE : &Store32BE));
+            CompileCallHost(reinterpret_cast<const void*>(!current.EFlag ? &Store32LE : &Store32BE));
         });
 
     reg_alloc.UnlockArm(Rm_index);
@@ -204,7 +204,7 @@ void JitX64::STREXB(Cond cond, ArmReg Rn_index, ArmReg Rd_index, ArmReg Rm_index
         Rn_index, Rd_index,
         [&]() {
         code->MOV(32, R(ABI_PARAM2), Rm);
-        CompileCallHost(reinterpret_cast<const void* const>(&Store8));
+        CompileCallHost(reinterpret_cast<const void*>(&Store8));
     });
 
     reg_alloc.UnlockArm(Rm_index);
@@ -242,7 +242,7 @@ void JitX64::STREXD(Cond cond, ArmReg Rn_index, ArmReg Rd_index, ArmReg Rm_index
         [&]() {
         code->MOV(32, R(ABI_PARAM2), Rm0);
         code->MOV(32, R(ABI_PARAM3), Rm1);
-        CompileCallHost(reinterpret_cast<const void* const>(!current.EFlag ? &Store64LE : &Store64BE));
+        CompileCallHost(reinterpret_cast<const void*>(!current.EFlag ? &Store64LE : &Store64BE));
     });
 
     reg_alloc.UnlockArm(Rm_index + 1);
@@ -275,7 +275,7 @@ void JitX64::STREXH(Cond cond, ArmReg Rn_index, ArmReg Rd_index, ArmReg Rm_index
         Rn_index, Rd_index,
         [&]() {
         code->MOV(32, R(ABI_PARAM2), Rm);
-        CompileCallHost(reinterpret_cast<const void* const>(!current.EFlag ? &Store16LE : &Store16BE));
+        CompileCallHost(reinterpret_cast<const void*>(!current.EFlag ? &Store16LE : &Store16BE));
     });
 
     reg_alloc.UnlockArm(Rm_index);

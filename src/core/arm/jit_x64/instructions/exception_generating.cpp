@@ -26,7 +26,7 @@ void JitX64::BKPT(Cond cond, ArmImm12 imm12, ArmImm4 imm4) {
     reg_alloc.LockX64(ABI_PARAM1);
 
     code->MOV(32, R(ABI_PARAM1), Imm32((imm12 << 4) | imm4));
-    CompileCallHost(reinterpret_cast<const void* const>(&Breakpoint));
+    CompileCallHost(reinterpret_cast<const void*>(&Breakpoint));
 
     reg_alloc.UnlockX64(ABI_PARAM1);
 
@@ -46,7 +46,7 @@ void JitX64::SVC(Cond cond, ArmImm24 imm24) {
 
     reg_alloc.LockX64(ABI_PARAM1);
     code->MOV(64, R(ABI_PARAM1), Imm32(imm24));
-    CompileCallHost(reinterpret_cast<const void* const>(&ServiceCall));
+    CompileCallHost(reinterpret_cast<const void*>(&ServiceCall));
     reg_alloc.UnlockX64(ABI_PARAM1);
 
     // Some service calls require a task switch, so go back to the dispatcher to check.
