@@ -5,7 +5,6 @@
 #include "common/assert.h"
 
 #include "core/arm/jit_x64/jit_x64.h"
-#include "core/memory.h"
 
 namespace JitX64 {
 

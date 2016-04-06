@@ -2,6 +2,7 @@
 // Licensed under GPLv2 or any later version
 // Refer to the license.txt file included.
 
+#include <array>
 #include <algorithm>
 #include <cstddef>
 #include <cstring>
@@ -11,7 +12,6 @@
 #include "common/assert.h"
 #include "common/bit_util.h"
 #include "common/common_types.h"
-#include "common/make_unique.h"
 
 #include "core/arm/decoder/decoder.h"
 

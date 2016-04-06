@@ -7,8 +7,6 @@
 #include <array>
 #include <map>
 
-#include "common/common_types.h"
-#include "common/common_funcs.h"
 #include "common/x64/emitter.h"
 
 #include "core/arm/decoder/decoder.h"

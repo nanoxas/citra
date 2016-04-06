@@ -4,8 +4,6 @@
 
 #pragma once
 
-#include <type_traits>
-
 #include "common/common_types.h"
 
 #include "core/arm/decoder/decoder.h"
