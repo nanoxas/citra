@@ -8,6 +8,7 @@
 
 #include "core/arm/jit_x64/jit_x64.h"
 #include "core/arm/jit_x64/instructions/helper/load_store.h"
+#include "core/memory.h"
 
 namespace JitX64 {
 

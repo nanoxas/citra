@@ -2,10 +2,9 @@
 // Licensed under GPLv2 or any later version
 // Refer to the license.txt file included.
 
-#include "common/common_types.h"
-#include "common/swap.h"
+#pragma once
 
-#include "core/memory.h"
+#include "common/common_types.h"
 
 namespace JitX64 {
 
@@ -13,64 +12,22 @@ namespace JitX64 {
 
 constexpr u32 RESERVATION_GRANULE_MASK = 0xFFFFFFF8;
 
-static u64 Load64LE(u32 addr) {
-    // TODO: Improve this.
-    return Memory::Read32(addr) | (static_cast<u64>(Memory::Read32(addr + 4)) << 32);
-}
+u64 Load64LE(u32 addr);
+u64 Load64BE(u32 addr);
+void Store64LE(u32 addr, u32 v1, u32 v2);
+void Store64BE(u32 addr, u32 v1, u32 v2);
 
-static u64 Load64BE(u32 addr) {
-    // TODO: Improve this.
-    return Common::swap32(Memory::Read32(addr)) | (static_cast<u64>(Common::swap32(Memory::Read32(addr + 4))) << 32);
-}
+u32 Load32LE(u32 addr);
+u32 Load32BE(u32 addr);
+void Store32LE(u32 addr, u32 value);
+void Store32BE(u32 addr, u32 value);
 
-static void Store64LE(u32 addr, u32 v1, u32 v2) {
-    Memory::Write32(addr, v1);
-    Memory::Write32(addr + 4, v2);
-}
+u16 Load16LE(u32 addr);
+u16 Load16BE(u32 addr);
+void Store16LE(u32 addr, u16 value);
+void Store16BE(u32 addr, u16 value);
 
-static void Store64BE(u32 addr, u32 v1, u32 v2) {
-    Memory::Write32(addr, Common::swap32(v2));
-    Memory::Write32(addr + 4, Common::swap32(v1));
-}
-
-static u32 Load32LE(u32 addr) {
-    return Memory::Read32(addr);
-}
-
-static u32 Load32BE(u32 addr) {
-    return Common::swap32(Memory::Read32(addr));
-}
-
-static void Store32LE(u32 addr, u32 value) {
-    Memory::Write32(addr, value);
-}
-
-static void Store32BE(u32 addr, u32 value) {
-    Memory::Write32(addr, Common::swap32(value));
-}
-
-static u16 Load16LE(u32 addr) {
-    return Memory::Read16(addr);
-}
-
-static u16 Load16BE(u32 addr) {
-    return Common::swap16(Memory::Read16(addr));
-}
-
-static void Store16LE(u32 addr, u16 value) {
-    Memory::Write16(addr, value);
-}
-
-static void Store16BE(u32 addr, u16 value) {
-    Memory::Write16(addr, Common::swap16(value));
-}
-
-static u32 Load8(u32 addr) {
-    return Memory::Read8(addr);
-}
-
-static void Store8(u32 addr, u8 value) {
-    Memory::Write8(addr, value);
-}
+u32 Load8(u32 addr);
+void Store8(u32 addr, u8 value);
 
 } // namespace JitX64

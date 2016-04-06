@@ -287,6 +287,7 @@ if(ARCHITECTURE_x86_64)
             arm/jit_x64/instructions/synchronisation.cpp
             arm/jit_x64/instructions/status_register.cpp
             arm/jit_x64/instructions/thumb.cpp
+            arm/jit_x64/instructions/helper/load_store.cpp
             arm/jit_x64/interface.cpp
             arm/jit_x64/interpret.cpp
             arm/jit_x64/jit_x64.cpp

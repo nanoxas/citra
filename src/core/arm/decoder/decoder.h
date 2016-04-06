@@ -122,7 +122,7 @@ enum class Register {
     INVALID_REG = 99
 };
 
-static Register operator+ (Register arm_reg, int number) {
+inline Register operator+ (Register arm_reg, int number) {
     ASSERT(arm_reg != Register::INVALID_REG);
 
     int value = static_cast<int>(arm_reg) + number;

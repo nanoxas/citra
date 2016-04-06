@@ -43,7 +43,7 @@ constexpr bool IsValidArmReg(ArmReg arm_reg) {
     return static_cast<unsigned>(arm_reg) <= 15;
 }
 
-static bool IsEvenArmReg(ArmReg arm_reg) {
+inline bool IsEvenArmReg(ArmReg arm_reg) {
     ASSERT(IsValidArmReg(arm_reg));
     return static_cast<unsigned>(arm_reg) % 2 == 0;
 }
