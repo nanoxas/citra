@@ -8,7 +8,6 @@
 
 #include <catch.hpp>
 
-#include "common/make_unique.h"
 #include "common/scope_exit.h"
 
 #include "core/arm/dyncom/arm_dyncom.h"

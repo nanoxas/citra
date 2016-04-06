@@ -6,13 +6,13 @@
 #include <array>
 #include <cstddef>
 #include <cstring>
+#include <memory>
 #include <utility>
 
 #include <boost/optional.hpp>
 
 #include "common/assert.h"
 #include "common/common_types.h"
-#include "common/make_unique.h"
 
 #include "core/arm/decoder/decoder.h"
 
@@ -58,7 +58,7 @@ template<size_t NumArgs, typename Function>
 static std::unique_ptr<ArmMatcher> MakeMatcher(const char* const format, Function fn) {
     ASSERT(strlen(format) == 32);
 
-    auto ret = Common::make_unique<Impl::MatcherImpl<NumArgs, Function>>();
+    auto ret = std::make_unique<Impl::MatcherImpl<NumArgs, Function>>();
     ret->fn = fn;
     ret->masks.fill(0);
     ret->shifts.fill(0);

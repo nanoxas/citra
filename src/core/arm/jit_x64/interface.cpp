@@ -4,9 +4,9 @@
 // Refer to the license.txt file included.
 
 #include <cstring>
+#include <memory>
 
 #include "common/assert.h"
-#include "common/make_unique.h"
 #include "common/x64/abi.h"
 #include "common/x64/emitter.h"
 
@@ -94,7 +94,7 @@ struct ARM_Jit::Impl {
     JitX64 compiler{ &block_of_code };
 };
 
-ARM_Jit::ARM_Jit(PrivilegeMode initial_mode) : impl(std::make_unique<Impl>()), state(Common::make_unique<JitState>()) {
+ARM_Jit::ARM_Jit(PrivilegeMode initial_mode) : impl(std::make_unique<Impl>()), state(std::make_unique<JitState>()) {
     ASSERT_MSG(initial_mode == PrivilegeMode::USER32MODE, "Unimplemented");
     ClearCache();
 }
