@@ -13,29 +13,31 @@ constexpr size_t BitSize() {
     return sizeof(T) * CHAR_BIT;
 }
 
-/// Extract bits [begin_bit, end_bit] inclusive from val of type T.
+/// Extract bits [begin_bit, end_bit] inclusive from value of type T.
 template<size_t begin_bit, size_t end_bit, typename T>
 constexpr T Bits(const T value) {
-    static_assert(begin_bit <= end_bit, "bit range must begin before it ends");
+    static_assert(begin_bit < end_bit, "invalid bit range (position of beginning bit cannot be greater than that of end bit)");
     static_assert(begin_bit < BitSize<T>(), "begin_bit must be smaller than size of T");
     static_assert(end_bit < BitSize<T>(), "begin_bit must be smaller than size of T");
 
     return (value >> begin_bit) & ((1 << (end_bit - begin_bit + 1)) - 1);
 }
 
-/// Extracts a single bit at bit_position from val of type T.
+/// Extracts a single bit at bit_position from value of type T.
 template<size_t bit_position, typename T>
 constexpr T Bit(const T value) {
-    return Bits<bit_position, bit_position, T>(value);
+    static_assert(bit_position < BitSize<T>(), "bit_position must be smaller than size of T");
+
+    return (value >> bit_position) & 1;
 }
 
-/// Sign-extends a val that has NBits bits to the full bitwidth of type T.
+/// Sign-extends a value that has NBits bits to the full bitwidth of type T.
 template<size_t NBits, typename T>
 inline T SignExtend(const T value) {
-    static_assert(NBits <= BitSize<T>(), "NBits larger that bitsize of T");
+    static_assert(NBits <= BitSize<T>(), "NBits larger than bitsize of T");
 
     constexpr T mask = static_cast<T>(1ULL << NBits) - 1;
-    const T signbit = (value >> NBits) & 1;
+    const T signbit = Bit<NBits - 1>(value);
     if (signbit != 0) {
         return value | ~mask;
     }

@@ -43,6 +43,7 @@ ThumbMatcher MakeMatcher(const char* const str, std::function<void(Visitor* v, u
     return { mask, expect, fn };
 }
 
+using BitUtil::Bit;
 using BitUtil::Bits;
 
 static const std::array<ThumbInstruction, 27> thumb_instruction_table = { {
@@ -66,7 +67,7 @@ static const std::array<ThumbInstruction, 27> thumb_instruction_table = { {
         }
     })},
     { "ADD/SUB_reg",              MakeMatcher("000110oxxxxxxxxx", [](Visitor* v, u16 instruction) {
-        u32 opcode = Bits<9, 9>(instruction);
+        u32 opcode = Bit<9>(instruction);
         Register Rm = static_cast<Register>(Bits<6, 8>(instruction));
         Register Rn = static_cast<Register>(Bits<3, 5>(instruction));
         Register Rd = static_cast<Register>(Bits<0, 2>(instruction));
@@ -82,7 +83,7 @@ static const std::array<ThumbInstruction, 27> thumb_instruction_table = { {
         }
     })},
     { "ADD/SUB_imm",             MakeMatcher("000111oxxxxxxxxx", [](Visitor* v, u16 instruction) {
-        u32 opcode = Bits<9, 9>(instruction);
+        u32 opcode = Bit<9>(instruction);
         u32 imm3 = Bits<6, 8>(instruction);
         Register Rn = static_cast<Register>(Bits<3, 5>(instruction));
         Register Rd = static_cast<Register>(Bits<0, 2>(instruction));
@@ -178,7 +179,7 @@ static const std::array<ThumbInstruction, 27> thumb_instruction_table = { {
     { "special data processing", MakeMatcher("010001ooxxxxxxxx", [](Visitor* v, u16 instruction) {
         u32 opcode = Bits<8, 9>(instruction);
         Register Rm = static_cast<Register>(Bits<3, 6>(instruction));
-        Register Rd = static_cast<Register>(Bits<0, 2>(instruction) | (Bits<7, 7>(instruction) << 3));
+        Register Rd = static_cast<Register>(Bits<0, 2>(instruction) | (Bit<7>(instruction) << 3));
         switch (opcode) {
         case 0: // ADD Rd, Rm
             v->ADD_reg(Cond::AL, /*S=*/false, Rd, Rd, 0, ShiftType::LSL, Rm);
@@ -194,7 +195,7 @@ static const std::array<ThumbInstruction, 27> thumb_instruction_table = { {
         }
     })},
     { "BLX/BX",                  MakeMatcher("01000111xxxxx000", [](Visitor* v, u16 instruction) {
-        bool L = Bits<7, 7>(instruction);
+        bool L = Bit<7>(instruction);
         Register Rm = static_cast<Register>(Bits<3, 6>(instruction));
         if (!L) { // BX Rm
             v->BX(Cond::AL, Rm);
@@ -265,7 +266,7 @@ static const std::array<ThumbInstruction, 27> thumb_instruction_table = { {
         }
     })},
     { "STRH/LDRH_imm",           MakeMatcher("1000xxxxxxxxxxxx", [](Visitor* v, u16 instruction) {
-        bool L = Bits<11, 11>(instruction);
+        bool L = Bit<11>(instruction);
         u32 offset = Bits<6, 10>(instruction);
         Register Rn = static_cast<Register>(Bits<3, 5>(instruction));
         Register Rd = static_cast<Register>(Bits<0, 2>(instruction));
@@ -276,7 +277,7 @@ static const std::array<ThumbInstruction, 27> thumb_instruction_table = { {
         }
     })},
     { "load/store stack",        MakeMatcher("1001xxxxxxxxxxxx", [](Visitor* v, u16 instruction) {
-        bool L = Bits<11, 11>(instruction);
+        bool L = Bit<11>(instruction);
         Register Rd = static_cast<Register>(Bits<8, 10>(instruction));
         u32 offset = Bits<0, 7>(instruction);
         if (!L) { // STR Rd, [SP, #offset]
@@ -287,14 +288,14 @@ static const std::array<ThumbInstruction, 27> thumb_instruction_table = { {
     })},
     { "add to sp/pc",            MakeMatcher("1010oxxxxxxxxxxx", [](Visitor* v, u16 instruction) {
         // ADD Rd, PC/SP, #imm8
-        Register Rn = Bits<11, 11>(instruction) ? Register::SP : Register::PC;
+        Register Rn = Bit<11>(instruction) ? Register::SP : Register::PC;
         Register Rd = static_cast<Register>(Bits<8, 10>(instruction));
         u32 imm8 = Bits<0, 7>(instruction);
         v->ADD_imm(Cond::AL, /*S=*/false, Rn, Rd, 0xF, imm8);
     })},
     { "adjust stack ptr",        MakeMatcher("10110000oxxxxxxx", [](Visitor* v, u16 instruction) {
         // SUB SP, SP, #<imm7*4>
-        u32 opc = Bits<7, 7>(instruction);
+        u32 opc = Bit<7>(instruction);
         u32 imm7 = Bits<0, 6>(instruction);
         switch (opc) {
         case 0:
@@ -329,8 +330,8 @@ static const std::array<ThumbInstruction, 27> thumb_instruction_table = { {
         }
     })},
     { "PUSH/POP_reglist",        MakeMatcher("1011x10xxxxxxxxx", [](Visitor* v, u16 instruction) {
-        bool L = Bits<11, 11>(instruction);
-        u32 R = Bits<8, 8>(instruction);
+        bool L = Bit<11>(instruction);
+        u32 R = Bit<8>(instruction);
         u32 reglist = Bits<0, 7>(instruction);
         if (!L) { // PUSH {reglist, <R>=LR}
             reglist |= R << 14;
@@ -343,14 +344,14 @@ static const std::array<ThumbInstruction, 27> thumb_instruction_table = { {
         }
     })},
     { "SETEND",                  MakeMatcher("101101100101x000", [](Visitor* v, u16 instruction) {
-        bool E = Bits<3, 3>(instruction);
+        u16 E = Bit<3>(instruction);
         v->SETEND(E);
     })},
     { "change processor state",  MakeMatcher("10110110011x0xxx", [](Visitor* v, u16 instruction) {
-        bool imod = Bits<4, 4>(instruction);
-        bool A = Bits<2, 2>(instruction);
-        bool I = Bits<1, 1>(instruction);
-        bool F = Bits<0, 0>(instruction);
+        u16 imod = Bit<4>(instruction);
+        u16 A = Bit<2>(instruction);
+        u16 I = Bit<1>(instruction);
+        u16 F = Bit<0>(instruction);
         v->CPS();
     })},
     { "reverse bytes",           MakeMatcher("10111010ooxxxxxx", [](Visitor* v, u16 instruction) {
@@ -380,7 +381,7 @@ static const std::array<ThumbInstruction, 27> thumb_instruction_table = { {
         v->BKPT(Cond::AL, imm8 >> 4, imm8 & 0xF);
     })},
     { "STMIA/LDMIA",             MakeMatcher("1100xxxxxxxxxxxx", [](Visitor* v, u16 instruction) {
-        bool L = Bits<11, 11>(instruction);
+        bool L = Bit<11>(instruction);
         Register Rn = static_cast<Register>(Bits<8, 10>(instruction));
         u32 reglist = Bits<0, 7>(instruction);
         if (!L) { // STMIA Rn!, { reglist }
