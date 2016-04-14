@@ -23,9 +23,9 @@ void JitX64::LoadAndStoreWordOrUnsignedByte_Immediate_Helper(X64Reg dest, bool U
     if (Rn_index == ArmReg::PC) {
         u32 address;
         if (U) {
-            address = GetReg15Value_WordAligned() + imm12;
+            address = PC_WordAligned() + imm12;
         } else {
-            address = GetReg15Value_WordAligned() - imm12;
+            address = PC_WordAligned() - imm12;
         }
         code->MOV(32, R(dest), Imm32(address));
     } else {
@@ -141,7 +141,7 @@ void JitX64::LoadAndStoreWordOrUnsignedByte_ScaledRegisterOffset(X64Reg dest, bo
         code->MOV(32, R(dest), Rn);
         reg_alloc.UnlockArm(Rn_index);
     } else {
-        code->MOV(32, R(dest), Imm32(GetReg15Value_WordAligned()));
+        code->MOV(32, R(dest), Imm32(PC_WordAligned()));
     }
 
     LoadAndStoreWordOrUnsignedByte_ScaledRegister_Helper(dest, U, Rn_index, imm5, shift, Rm_index);
@@ -343,7 +343,7 @@ void JitX64::STR_imm(Cond cond, bool P, bool U, bool W, ArmReg Rn_index, ArmReg 
     reg_alloc.FlushX64(ABI_PARAM2);
     reg_alloc.LockX64(ABI_PARAM2);
 
-    GetValueOfRegister(code, reg_alloc, GetReg15Value(), ABI_PARAM2, Rd_index);
+    GetValueOfRegister(code, reg_alloc, PC(), ABI_PARAM2, Rd_index);
 
     CompileCallHost(reinterpret_cast<const void*>(!current.EFlag ? &Store32LE : &Store32BE));
 
@@ -369,7 +369,7 @@ void JitX64::STR_reg(Cond cond, bool P, bool U, bool W, ArmReg Rn_index, ArmReg 
     reg_alloc.FlushX64(ABI_PARAM2);
     reg_alloc.LockX64(ABI_PARAM2);
 
-    GetValueOfRegister(code, reg_alloc, GetReg15Value(), ABI_PARAM2, Rd_index);
+    GetValueOfRegister(code, reg_alloc, PC(), ABI_PARAM2, Rd_index);
 
     CompileCallHost(reinterpret_cast<const void*>(!current.EFlag ? &Store32LE : &Store32BE));
 
@@ -395,7 +395,7 @@ void JitX64::STRB_imm(Cond cond, bool P, bool U, bool W, ArmReg Rn_index, ArmReg
     reg_alloc.FlushX64(ABI_PARAM2);
     reg_alloc.LockX64(ABI_PARAM2);
 
-    GetValueOfRegister(code, reg_alloc, GetReg15Value(), ABI_PARAM2, Rd_index);
+    GetValueOfRegister(code, reg_alloc, PC(), ABI_PARAM2, Rd_index);
 
     CompileCallHost(reinterpret_cast<const void*>(&Store8));
 
@@ -421,7 +421,7 @@ void JitX64::STRB_reg(Cond cond, bool P, bool U, bool W, ArmReg Rn_index, ArmReg
     reg_alloc.FlushX64(ABI_PARAM2);
     reg_alloc.LockX64(ABI_PARAM2);
 
-    GetValueOfRegister(code, reg_alloc, GetReg15Value(), ABI_PARAM2, Rd_index);
+    GetValueOfRegister(code, reg_alloc, PC(), ABI_PARAM2, Rd_index);
 
     CompileCallHost(reinterpret_cast<const void*>(&Store8));
 
@@ -706,8 +706,8 @@ void JitX64::STRD_imm(Cond cond, bool P, bool U, bool W, ArmReg Rn_index, ArmReg
     reg_alloc.FlushX64(ABI_PARAM3);
     reg_alloc.LockX64(ABI_PARAM3);
 
-    GetValueOfRegister(code, reg_alloc, GetReg15Value(), ABI_PARAM2, Rd_index + 0);
-    GetValueOfRegister(code, reg_alloc, GetReg15Value(), ABI_PARAM3, Rd_index + 1);
+    GetValueOfRegister(code, reg_alloc, PC(), ABI_PARAM2, Rd_index + 0);
+    GetValueOfRegister(code, reg_alloc, PC(), ABI_PARAM3, Rd_index + 1);
 
     CompileCallHost(reinterpret_cast<const void*>(!current.EFlag ? &Store64LE : &Store64BE));
 
@@ -737,8 +737,8 @@ void JitX64::STRD_reg(Cond cond, bool P, bool U, bool W, ArmReg Rn_index, ArmReg
     reg_alloc.FlushX64(ABI_PARAM3);
     reg_alloc.LockX64(ABI_PARAM3);
 
-    GetValueOfRegister(code, reg_alloc, GetReg15Value(), ABI_PARAM2, Rd_index + 0);
-    GetValueOfRegister(code, reg_alloc, GetReg15Value(), ABI_PARAM3, Rd_index + 1);
+    GetValueOfRegister(code, reg_alloc, PC(), ABI_PARAM2, Rd_index + 0);
+    GetValueOfRegister(code, reg_alloc, PC(), ABI_PARAM3, Rd_index + 1);
 
     CompileCallHost(reinterpret_cast<const void*>(!current.EFlag ? &Store64LE : &Store64BE));
 
@@ -765,7 +765,7 @@ void JitX64::STRH_imm(Cond cond, bool P, bool U, bool W, ArmReg Rn_index, ArmReg
     reg_alloc.FlushX64(ABI_PARAM2);
     reg_alloc.LockX64(ABI_PARAM2);
 
-    GetValueOfRegister(code, reg_alloc, GetReg15Value(), ABI_PARAM2, Rd_index);
+    GetValueOfRegister(code, reg_alloc, PC(), ABI_PARAM2, Rd_index);
 
     CompileCallHost(reinterpret_cast<const void*>(!current.EFlag ? &Store16LE : &Store16BE));
 
@@ -791,7 +791,7 @@ void JitX64::STRH_reg(Cond cond, bool P, bool U, bool W, ArmReg Rn_index, ArmReg
     reg_alloc.FlushX64(ABI_PARAM2);
     reg_alloc.LockX64(ABI_PARAM2);
 
-    GetValueOfRegister(code, reg_alloc, GetReg15Value(), ABI_PARAM2, Rd_index);
+    GetValueOfRegister(code, reg_alloc, PC(), ABI_PARAM2, Rd_index);
 
     CompileCallHost(reinterpret_cast<const void*>(!current.EFlag ? &Store16LE : &Store16BE));
 

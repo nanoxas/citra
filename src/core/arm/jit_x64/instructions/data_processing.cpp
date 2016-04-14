@@ -14,7 +14,7 @@ void JitX64::CompileDataProcessingHelper(ArmReg Rn_index, ArmReg Rd_index, std::
     if (Rn_index == ArmReg::PC) {
         X64Reg Rd = reg_alloc.BindArmForWrite(Rd_index);
 
-        code->MOV(32, R(Rd), Imm32(GetReg15Value()));
+        code->MOV(32, R(Rd), Imm32(PC()));
         body(Rd);
 
         reg_alloc.UnlockArm(Rd_index);
@@ -130,7 +130,7 @@ X64Reg JitX64::CompileDataProcessingHelper_reg(ArmImm5 imm5, ShiftType shift, Ar
         code->MOV(32, R(tmp), Rm);
         reg_alloc.UnlockArm(Rm_index);
     } else {
-        code->MOV(32, R(tmp), Imm32(GetReg15Value()));
+        code->MOV(32, R(tmp), Imm32(PC()));
     }
 
     if (do_shifter_carry_out) {
@@ -143,6 +143,8 @@ X64Reg JitX64::CompileDataProcessingHelper_reg(ArmImm5 imm5, ShiftType shift, Ar
 }
 
 X64Reg JitX64::CompileDataProcessingHelper_rsr(ArmReg Rs_index, ShiftType shift, ArmReg Rm_index, bool do_shifter_carry_out) {
+    ASSERT(Rs_index != ArmReg::PC && Rm_index != ArmReg::PC);
+
     // Caller must call reg_alloc.UnlockTemp on return value.
     // if do_shifter_carry_out,
     //    we output code that calculates and puts shifter_carry_out into MJitStateCFlag().
@@ -152,22 +154,14 @@ X64Reg JitX64::CompileDataProcessingHelper_rsr(ArmReg Rs_index, ShiftType shift,
 
     X64Reg tmp = reg_alloc.AllocTemp();
 
-    if (Rs_index != ArmReg::PC) {
-        OpArg Rs = reg_alloc.LockArmForRead(Rs_index);
-        code->MOV(32, R(RCX), Rs);
-        code->AND(32, R(RCX), Imm32(0xFF));
-        reg_alloc.UnlockArm(Rs_index);
-    } else {
-        code->MOV(32, R(RCX), Imm32(GetReg15Value() & 0xFF));
-    }
+    OpArg Rs = reg_alloc.LockArmForRead(Rs_index);
+    code->MOV(32, R(RCX), Rs);
+    code->AND(32, R(RCX), Imm32(0xFF));
+    reg_alloc.UnlockArm(Rs_index);
 
-    if (Rm_index != ArmReg::PC) {
-        OpArg Rm = reg_alloc.LockArmForRead(Rm_index);
-        code->MOV(32, R(tmp), Rm);
-        reg_alloc.UnlockArm(Rm_index);
-    } else {
-        code->MOV(32, R(tmp), Imm32(GetReg15Value()));
-    }
+    OpArg Rm = reg_alloc.LockArmForRead(Rm_index);
+    code->MOV(32, R(tmp), Rm);
+    reg_alloc.UnlockArm(Rm_index);
 
     switch (shift) {
     case ShiftType::LSL: { // Logical shift left by register
@@ -315,7 +309,11 @@ X64Reg JitX64::CompileDataProcessingHelper_rsr(ArmReg Rs_index, ShiftType shift,
 void JitX64::ADC_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int rotate, ArmImm8 imm8) {
     cond_manager.CompileCond(cond);
 
-    u32 immediate = rotr(imm8, rotate * 2);
+    if (Rd_index == ArmReg::PC && S) {
+        ASSERT(false, "UNPREDICTABLE when current mode is user or system"); // TODO: Other modes
+    }
+
+    u32 immediate = ExpandImmediate(rotate, imm8);
 
     CompileDataProcessingHelper(Rn_index, Rd_index, [&](X64Reg Rd) {
         code->BT(32, MJitStateCFlag(), Imm8(0));
@@ -328,6 +326,7 @@ void JitX64::ADC_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int ro
 
     current.arm_pc += GetInstSize();
     if (Rd_index == ArmReg::PC) {
+        CompileALUWritePC();
         CompileReturnToDispatch();
     }
 }
@@ -335,7 +334,11 @@ void JitX64::ADC_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int ro
 void JitX64::ADC_reg(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmImm5 imm5, ShiftType shift, ArmReg Rm_index) {
     cond_manager.CompileCond(cond);
 
-    Gen::X64Reg tmp = CompileDataProcessingHelper_reg(imm5, shift, Rm_index, false);
+    if (Rd_index == ArmReg::PC && S) {
+        ASSERT(false, "UNPREDICTABLE when current mode is user or system"); // TODO: Other modes
+    }
+
+    X64Reg tmp = CompileDataProcessingHelper_reg(imm5, shift, Rm_index, false);
 
     CompileDataProcessingHelper(Rn_index, Rd_index, [&](X64Reg Rd) {
         code->BT(32, MJitStateCFlag(), Imm8(0));
@@ -350,6 +353,7 @@ void JitX64::ADC_reg(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmImm
 
     current.arm_pc += GetInstSize();
     if (Rd_index == ArmReg::PC) {
+        CompileALUWritePC();
         CompileReturnToDispatch();
     }
 }
@@ -357,7 +361,9 @@ void JitX64::ADC_reg(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmImm
 void JitX64::ADC_rsr(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmReg Rs_index, ShiftType shift, ArmReg Rm_index) {
     cond_manager.CompileCond(cond);
 
-    Gen::X64Reg tmp = CompileDataProcessingHelper_rsr(Rs_index, shift, Rm_index, false);
+    ASSERT_MSG(Rd_index != ArmReg::PC && Rn_index != ArmReg::PC && Rs_index != ArmReg::PC && Rm_index != ArmReg::PC, "UNPREDICTABLE");
+
+    X64Reg tmp = CompileDataProcessingHelper_rsr(Rs_index, shift, Rm_index, false);
 
     CompileDataProcessingHelper(Rn_index, Rd_index, [&](X64Reg Rd) {
         code->BT(32, MJitStateCFlag(), Imm8(0));
@@ -371,15 +377,18 @@ void JitX64::ADC_rsr(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmReg
     }
 
     current.arm_pc += GetInstSize();
-    if (Rd_index == ArmReg::PC) {
-        CompileReturnToDispatch();
-    }
 }
 
 void JitX64::ADD_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int rotate, ArmImm8 imm8) {
     cond_manager.CompileCond(cond);
 
-    u32 immediate = rotr(imm8, rotate * 2);
+    if (Rd_index == ArmReg::PC && S) {
+        ASSERT(false, "UNPREDICTABLE when current mode is user or system"); // TODO: Other modes
+    }
+
+    // If Rd_index == ArmReg::PC && !S, this is an ADR instruction.
+
+    u32 immediate = ExpandImmediate(rotate, imm8);
 
     CompileDataProcessingHelper(Rn_index, Rd_index, [&](X64Reg Rd) {
         code->ADD(32, R(Rd), Imm32(immediate));
@@ -391,6 +400,8 @@ void JitX64::ADD_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int ro
 
     current.arm_pc += GetInstSize();
     if (Rd_index == ArmReg::PC) {
+        ASSERT(!current.TFlag); // Thumb ADR is not handled here. This is a sanity check.
+        CompileALUWritePC();
         CompileReturnToDispatch();
     }
 }
@@ -398,7 +409,11 @@ void JitX64::ADD_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int ro
 void JitX64::ADD_reg(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmImm5 imm5, ShiftType shift, ArmReg Rm_index) {
     cond_manager.CompileCond(cond);
 
-    Gen::X64Reg tmp = CompileDataProcessingHelper_reg(imm5, shift, Rm_index, false);
+    if (Rd_index == ArmReg::PC && S) {
+        ASSERT(false, "UNPREDICTABLE when current mode is user or system"); // TODO: Other modes
+    }
+
+    X64Reg tmp = CompileDataProcessingHelper_reg(imm5, shift, Rm_index, false);
 
     CompileDataProcessingHelper(Rn_index, Rd_index, [&](X64Reg Rd) {
         code->ADD(32, R(Rd), R(tmp));
@@ -412,6 +427,7 @@ void JitX64::ADD_reg(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmImm
 
     current.arm_pc += GetInstSize();
     if (Rd_index == ArmReg::PC) {
+        CompileALUWritePC();
         CompileReturnToDispatch();
     }
 }
@@ -419,7 +435,9 @@ void JitX64::ADD_reg(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmImm
 void JitX64::ADD_rsr(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmReg Rs_index, ShiftType shift, ArmReg Rm_index) {
     cond_manager.CompileCond(cond);
 
-    Gen::X64Reg tmp = CompileDataProcessingHelper_rsr(Rs_index, shift, Rm_index, false);
+    ASSERT_MSG(Rd_index != ArmReg::PC && Rn_index != ArmReg::PC && Rs_index != ArmReg::PC && Rm_index != ArmReg::PC, "UNPREDICTABLE");
+
+    X64Reg tmp = CompileDataProcessingHelper_rsr(Rs_index, shift, Rm_index, false);
 
     CompileDataProcessingHelper(Rn_index, Rd_index, [&](X64Reg Rd) {
         code->ADD(32, R(Rd), R(tmp));
@@ -432,15 +450,16 @@ void JitX64::ADD_rsr(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmReg
     }
 
     current.arm_pc += GetInstSize();
-    if (Rd_index == ArmReg::PC) {
-        CompileReturnToDispatch();
-    }
 }
 
 void JitX64::AND_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int rotate, ArmImm8 imm8) {
     cond_manager.CompileCond(cond);
 
-    u32 immediate = rotr(imm8, rotate * 2);
+    if (Rd_index == ArmReg::PC && S) {
+        ASSERT(false, "UNPREDICTABLE when current mode is user or system"); // TODO: Other modes
+    }
+
+    u32 immediate = CompileExpandImmediate_C(rotate, imm8, S);
 
     CompileDataProcessingHelper(Rn_index, Rd_index, [&](X64Reg Rd) {
         code->AND(32, R(Rd), Imm32(immediate));
@@ -448,13 +467,13 @@ void JitX64::AND_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int ro
 
     if (S) {
         UpdateFlagsNZ();
-        if (rotate != 0) {
-            code->MOV(32, MJitStateCFlag(), Imm32(immediate & 0x80000000 ? 1 : 0));
-        }
+        // C updated by CompileExpandImmediate_C
+        // V unchanged
     }
 
     current.arm_pc += GetInstSize();
     if (Rd_index == ArmReg::PC) {
+        CompileALUWritePC();
         CompileReturnToDispatch();
     }
 }
@@ -462,7 +481,11 @@ void JitX64::AND_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int ro
 void JitX64::AND_reg(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmImm5 imm5, ShiftType shift, ArmReg Rm_index) {
     cond_manager.CompileCond(cond);
 
-    Gen::X64Reg tmp = CompileDataProcessingHelper_reg(imm5, shift, Rm_index, S);
+    if (Rd_index == ArmReg::PC && S) {
+        ASSERT(false, "UNPREDICTABLE when current mode is user or system"); // TODO: Other modes
+    }
+
+    X64Reg tmp = CompileDataProcessingHelper_reg(imm5, shift, Rm_index, S);
 
     CompileDataProcessingHelper(Rn_index, Rd_index, [&](X64Reg Rd) {
         code->AND(32, R(Rd), R(tmp));
@@ -473,10 +496,12 @@ void JitX64::AND_reg(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmImm
     if (S) {
         UpdateFlagsNZ();
         // C updated by CompileDataProcessingHelper_reg
+        // V unchanged
     }
 
     current.arm_pc += GetInstSize();
     if (Rd_index == ArmReg::PC) {
+        CompileALUWritePC();
         CompileReturnToDispatch();
     }
 }
@@ -484,9 +509,63 @@ void JitX64::AND_reg(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmImm
 void JitX64::AND_rsr(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmReg Rs_index, ShiftType shift, ArmReg Rm_index) {
     cond_manager.CompileCond(cond);
 
-    Gen::X64Reg tmp = CompileDataProcessingHelper_rsr(Rs_index, shift, Rm_index, S);
+    ASSERT_MSG(Rd_index != ArmReg::PC && Rn_index != ArmReg::PC && Rs_index != ArmReg::PC && Rm_index != ArmReg::PC, "UNPREDICTABLE");
+
+    X64Reg tmp = CompileDataProcessingHelper_rsr(Rs_index, shift, Rm_index, S);
 
     CompileDataProcessingHelper(Rn_index, Rd_index, [&](X64Reg Rd) {
+        code->AND(32, R(Rd), R(tmp));
+    });
+
+    reg_alloc.UnlockTemp(tmp);
+
+    if (S) {
+        UpdateFlagsNZ();
+        // C updated by CompileDataProcessingHelper_rsr
+        // V unchanged
+    }
+
+    current.arm_pc += GetInstSize();
+}
+
+void JitX64::BIC_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int rotate, ArmImm8 imm8) {
+    cond_manager.CompileCond(cond);
+
+    if (Rd_index == ArmReg::PC && S) {
+        ASSERT(false, "UNPREDICTABLE when current mode is user or system"); // TODO: Other modes
+    }
+
+    u32 immediate = CompileExpandImmediate_C(rotate, imm8, S);
+
+    CompileDataProcessingHelper(Rn_index, Rd_index, [&](X64Reg Rd) {
+        code->AND(32, R(Rd), Imm32(~immediate));
+    });
+
+    if (S) {
+        UpdateFlagsNZ();
+        // C updated by CompileExpandImmediate_C
+        // V unchanged
+    }
+
+    current.arm_pc += GetInstSize();
+    if (Rd_index == ArmReg::PC) {
+        CompileALUWritePC();
+        CompileReturnToDispatch();
+    }
+}
+
+void JitX64::BIC_reg(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmImm5 imm5, ShiftType shift, ArmReg Rm_index) {
+    cond_manager.CompileCond(cond);
+
+    if (Rd_index == ArmReg::PC && S) {
+        ASSERT(false, "UNPREDICTABLE when current mode is user or system"); // TODO: Other modes
+    }
+
+    X64Reg tmp = CompileDataProcessingHelper_reg(imm5, shift, Rm_index, S);
+
+    CompileDataProcessingHelper(Rn_index, Rd_index, [&](X64Reg Rd) {
+        // TODO: Use ANDN instead.
+        code->NOT(32, R(tmp));
         code->AND(32, R(Rd), R(tmp));
     });
 
@@ -495,55 +574,12 @@ void JitX64::AND_rsr(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmReg
     if (S) {
         UpdateFlagsNZ();
         // C updated by CompileDataProcessingHelper_reg
+        // V unchanged
     }
 
     current.arm_pc += GetInstSize();
     if (Rd_index == ArmReg::PC) {
-        CompileReturnToDispatch();
-    }
-}
-
-void JitX64::BIC_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int rotate, ArmImm8 imm8) {
-    cond_manager.CompileCond(cond);
-
-    u32 immediate = rotr(imm8, rotate * 2);
-
-    CompileDataProcessingHelper(Rn_index, Rd_index, [&](X64Reg Rd) {
-        code->AND(32, R(Rd), Imm32(~immediate));
-    });
-
-    if (S) {
-        UpdateFlagsNZ();
-        if (rotate != 0) {
-            code->MOV(32, MJitStateCFlag(), Imm32(immediate & 0x80000000 ? 1 : 0));
-        }
-    }
-
-    current.arm_pc += GetInstSize();
-    if (Rd_index == ArmReg::PC) {
-        CompileReturnToDispatch();
-    }
-}
-
-void JitX64::BIC_reg(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmImm5 imm5, ShiftType shift, ArmReg Rm_index) {
-    cond_manager.CompileCond(cond);
-
-    Gen::X64Reg tmp = CompileDataProcessingHelper_reg(imm5, shift, Rm_index, S);
-
-    CompileDataProcessingHelper(Rn_index, Rd_index, [&](X64Reg Rd) {
-        // TODO: Use ANDN instead.
-        code->NOT(32, R(tmp));
-        code->AND(32, R(Rd), R(tmp));
-    });
-
-    reg_alloc.UnlockTemp(tmp);
-
-    if (S) {
-        UpdateFlagsNZ();
-    }
-
-    current.arm_pc += GetInstSize();
-    if (Rd_index == ArmReg::PC) {
+        CompileALUWritePC();
         CompileReturnToDispatch();
     }
 }
@@ -551,7 +587,9 @@ void JitX64::BIC_reg(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmImm
 void JitX64::BIC_rsr(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmReg Rs_index, ShiftType shift, ArmReg Rm_index) {
     cond_manager.CompileCond(cond);
 
-    Gen::X64Reg tmp = CompileDataProcessingHelper_rsr(Rs_index, shift, Rm_index, S);
+    ASSERT_MSG(Rd_index != ArmReg::PC && Rn_index != ArmReg::PC && Rs_index != ArmReg::PC && Rm_index != ArmReg::PC, "UNPREDICTABLE");
+
+    X64Reg tmp = CompileDataProcessingHelper_rsr(Rs_index, shift, Rm_index, S);
 
     CompileDataProcessingHelper(Rn_index, Rd_index, [&](X64Reg Rd) {
         // TODO: Use ANDN instead.
@@ -563,18 +601,17 @@ void JitX64::BIC_rsr(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmReg
 
     if (S) {
         UpdateFlagsNZ();
+        // C updated by CompileDataProcessingHelper_rsr
+        // V unchanged
     }
 
     current.arm_pc += GetInstSize();
-    if (Rd_index == ArmReg::PC) {
-        CompileReturnToDispatch();
-    }
 }
 
 void JitX64::CMN_imm(Cond cond, ArmReg Rn_index, int rotate, ArmImm8 imm8) {
     cond_manager.CompileCond(cond);
 
-    u32 immediate = rotr(imm8, rotate * 2);
+    u32 immediate = ExpandImmediate(rotate, imm8);
 
     X64Reg tmp = reg_alloc.AllocTemp();
     if (Rn_index != ArmReg::PC) {
@@ -582,7 +619,7 @@ void JitX64::CMN_imm(Cond cond, ArmReg Rn_index, int rotate, ArmImm8 imm8) {
         code->MOV(32, R(tmp), Rn);
         reg_alloc.UnlockArm(Rn_index);
     } else {
-        code->MOV(32, R(tmp), Imm32(GetReg15Value()));
+        code->MOV(32, R(tmp), Imm32(PC()));
     }
 
     code->ADD(32, R(tmp), Imm32(immediate));
@@ -597,14 +634,14 @@ void JitX64::CMN_imm(Cond cond, ArmReg Rn_index, int rotate, ArmImm8 imm8) {
 void JitX64::CMN_reg(Cond cond, ArmReg Rn_index, ArmImm5 imm5, ShiftType shift, ArmReg Rm_index) {
     cond_manager.CompileCond(cond);
 
-    Gen::X64Reg tmp = CompileDataProcessingHelper_reg(imm5, shift, Rm_index, false);
+    X64Reg tmp = CompileDataProcessingHelper_reg(imm5, shift, Rm_index, false);
 
     if (Rn_index != ArmReg::PC) {
         OpArg Rn = reg_alloc.LockArmForRead(Rn_index);
         code->ADD(32, R(tmp), Rn);
         reg_alloc.UnlockArm(Rn_index);
     } else {
-        code->ADD(32, R(tmp), Imm32(GetReg15Value()));
+        code->ADD(32, R(tmp), Imm32(PC()));
     }
 
     reg_alloc.UnlockTemp(tmp);
@@ -617,14 +654,16 @@ void JitX64::CMN_reg(Cond cond, ArmReg Rn_index, ArmImm5 imm5, ShiftType shift, 
 void JitX64::CMN_rsr(Cond cond, ArmReg Rn_index, ArmReg Rs_index, ShiftType shift, ArmReg Rm_index) {
     cond_manager.CompileCond(cond);
 
-    Gen::X64Reg tmp = CompileDataProcessingHelper_rsr(Rs_index, shift, Rm_index, false);
+    ASSERT_MSG(Rn_index != ArmReg::PC && Rs_index != ArmReg::PC && Rm_index != ArmReg::PC, "UNPREDICTABLE");
+
+    X64Reg tmp = CompileDataProcessingHelper_rsr(Rs_index, shift, Rm_index, false);
 
     if (Rn_index != ArmReg::PC) {
         OpArg Rn = reg_alloc.LockArmForRead(Rn_index);
         code->ADD(32, R(tmp), Rn);
         reg_alloc.UnlockArm(Rn_index);
     } else {
-        code->ADD(32, R(tmp), Imm32(GetReg15Value()));
+        code->ADD(32, R(tmp), Imm32(PC()));
     }
 
     reg_alloc.UnlockTemp(tmp);
@@ -637,7 +676,7 @@ void JitX64::CMN_rsr(Cond cond, ArmReg Rn_index, ArmReg Rs_index, ShiftType shif
 void JitX64::CMP_imm(Cond cond, ArmReg Rn_index, int rotate, ArmImm8 imm8) {
     cond_manager.CompileCond(cond);
 
-    u32 immediate = rotr(imm8, rotate * 2);
+    u32 immediate = ExpandImmediate(rotate, imm8);
 
     if (Rn_index != ArmReg::PC) {
         OpArg Rn = reg_alloc.LockArmForRead(Rn_index);
@@ -646,7 +685,7 @@ void JitX64::CMP_imm(Cond cond, ArmReg Rn_index, int rotate, ArmImm8 imm8) {
     } else {
         // TODO: Optimize this
         X64Reg tmp = reg_alloc.AllocTemp();
-        code->MOV(32, R(tmp), Imm32(GetReg15Value()));
+        code->MOV(32, R(tmp), Imm32(PC()));
         code->CMP(32, R(tmp), Imm32(immediate));
         reg_alloc.UnlockTemp(tmp);
     }
@@ -660,7 +699,7 @@ void JitX64::CMP_imm(Cond cond, ArmReg Rn_index, int rotate, ArmImm8 imm8) {
 void JitX64::CMP_reg(Cond cond, ArmReg Rn_index, ArmImm5 imm5, ShiftType shift, ArmReg Rm_index) {
     cond_manager.CompileCond(cond);
 
-    Gen::X64Reg tmp = CompileDataProcessingHelper_reg(imm5, shift, Rm_index, false);
+    X64Reg tmp = CompileDataProcessingHelper_reg(imm5, shift, Rm_index, false);
 
     if (Rn_index != ArmReg::PC) {
         OpArg Rn = reg_alloc.LockArmForRead(Rn_index);
@@ -669,7 +708,7 @@ void JitX64::CMP_reg(Cond cond, ArmReg Rn_index, ArmImm5 imm5, ShiftType shift, 
     } else {
         // TODO: Optimize this
         X64Reg tmp2 = reg_alloc.AllocTemp();
-        code->MOV(32, R(tmp2), Imm32(GetReg15Value()));
+        code->MOV(32, R(tmp2), Imm32(PC()));
         code->CMP(32, R(tmp2), R(tmp));
         reg_alloc.UnlockTemp(tmp2);
     }
@@ -685,7 +724,9 @@ void JitX64::CMP_reg(Cond cond, ArmReg Rn_index, ArmImm5 imm5, ShiftType shift, 
 void JitX64::CMP_rsr(Cond cond, ArmReg Rn_index, ArmReg Rs_index, ShiftType shift, ArmReg Rm_index) {
     cond_manager.CompileCond(cond);
 
-    Gen::X64Reg tmp = CompileDataProcessingHelper_rsr(Rs_index, shift, Rm_index, false);
+    ASSERT_MSG(Rn_index != ArmReg::PC && Rs_index != ArmReg::PC && Rm_index != ArmReg::PC, "UNPREDICTABLE");
+
+    X64Reg tmp = CompileDataProcessingHelper_rsr(Rs_index, shift, Rm_index, false);
 
     if (Rn_index != ArmReg::PC) {
         OpArg Rn = reg_alloc.LockArmForRead(Rn_index);
@@ -694,7 +735,7 @@ void JitX64::CMP_rsr(Cond cond, ArmReg Rn_index, ArmReg Rs_index, ShiftType shif
     } else {
         // TODO: Optimize this
         X64Reg tmp2 = reg_alloc.AllocTemp();
-        code->MOV(32, R(tmp2), Imm32(GetReg15Value()));
+        code->MOV(32, R(tmp2), Imm32(PC()));
         code->CMP(32, R(tmp2), R(tmp));
         reg_alloc.UnlockTemp(tmp2);
     }
@@ -710,7 +751,11 @@ void JitX64::CMP_rsr(Cond cond, ArmReg Rn_index, ArmReg Rs_index, ShiftType shif
 void JitX64::EOR_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int rotate, ArmImm8 imm8) {
     cond_manager.CompileCond(cond);
 
-    u32 immediate = rotr(imm8, rotate * 2);
+    if (Rd_index == ArmReg::PC && S) {
+        ASSERT(false, "UNPREDICTABLE when current mode is user or system"); // TODO: Other modes
+    }
+
+    u32 immediate = CompileExpandImmediate_C(rotate, imm8, S);
 
     CompileDataProcessingHelper(Rn_index, Rd_index, [&](X64Reg Rd) {
         code->XOR(32, R(Rd), Imm32(immediate));
@@ -718,13 +763,13 @@ void JitX64::EOR_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int ro
 
     if (S) {
         UpdateFlagsNZ();
-        if (rotate != 0) {
-            code->MOV(32, MJitStateCFlag(), Imm32(immediate & 0x80000000 ? 1 : 0));
-        }
+        // C updated by CompileArmExpandImm_C
+        // V unchanged
     }
 
     current.arm_pc += GetInstSize();
     if (Rd_index == ArmReg::PC) {
+        CompileALUWritePC();
         CompileReturnToDispatch();
     }
 }
@@ -732,7 +777,11 @@ void JitX64::EOR_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int ro
 void JitX64::EOR_reg(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmImm5 imm5, ShiftType shift, ArmReg Rm_index) {
     cond_manager.CompileCond(cond);
 
-    Gen::X64Reg tmp = CompileDataProcessingHelper_reg(imm5, shift, Rm_index, S);
+    if (Rd_index == ArmReg::PC && S) {
+        ASSERT(false, "UNPREDICTABLE when current mode is user or system"); // TODO: Other modes
+    }
+
+    X64Reg tmp = CompileDataProcessingHelper_reg(imm5, shift, Rm_index, S);
 
     CompileDataProcessingHelper(Rn_index, Rd_index, [&](X64Reg Rd) {
         code->XOR(32, R(Rd), R(tmp));
@@ -742,10 +791,13 @@ void JitX64::EOR_reg(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmImm
 
     if (S) {
         UpdateFlagsNZ();
+        // C updated by CompileDataProcessingHelper_reg
+        // V unchanged
     }
 
     current.arm_pc += GetInstSize();
     if (Rd_index == ArmReg::PC) {
+        CompileALUWritePC();
         CompileReturnToDispatch();
     }
 }
@@ -753,7 +805,9 @@ void JitX64::EOR_reg(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmImm
 void JitX64::EOR_rsr(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmReg Rs_index, ShiftType shift, ArmReg Rm_index) {
     cond_manager.CompileCond(cond);
 
-    Gen::X64Reg tmp = CompileDataProcessingHelper_rsr(Rs_index, shift, Rm_index, S);
+    ASSERT_MSG(Rd_index != ArmReg::PC && Rn_index != ArmReg::PC && Rs_index != ArmReg::PC && Rm_index != ArmReg::PC, "UNPREDICTABLE");
+
+    X64Reg tmp = CompileDataProcessingHelper_rsr(Rs_index, shift, Rm_index, S);
 
     CompileDataProcessingHelper(Rn_index, Rd_index, [&](X64Reg Rd) {
         code->XOR(32, R(Rd), R(tmp));
@@ -763,35 +817,38 @@ void JitX64::EOR_rsr(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmReg
 
     if (S) {
         UpdateFlagsNZ();
+        // C updated by CompileDataProcessingHelper_rsr
+        // V unchanged
     }
 
     current.arm_pc += GetInstSize();
-    if (Rd_index == ArmReg::PC) {
-        CompileReturnToDispatch();
-    }
 }
 
 void JitX64::MOV_imm(Cond cond, bool S, ArmReg Rd_index, int rotate, ArmImm8 imm8) {
     cond_manager.CompileCond(cond);
 
-    u32 immediate = rotr(imm8, rotate * 2);
+    if (Rd_index == ArmReg::PC && S) {
+        ASSERT(false, "UNPREDICTABLE when current mode is user or system"); // TODO: Other modes
+    }
 
-    Gen::OpArg Rd = reg_alloc.LockArmForWrite(Rd_index);
+    u32 immediate = CompileExpandImmediate_C(rotate, imm8, S);
+
+    OpArg Rd = reg_alloc.LockArmForWrite(Rd_index);
     code->MOV(32, Rd, Imm32(immediate));
     reg_alloc.UnlockArm(Rd_index);
 
     if (S) {
-        Gen::OpArg Rd = reg_alloc.LockArmForRead(Rd_index);
-        code->CMP(32, Rd, Imm32(0));
+        OpArg Rd = reg_alloc.LockArmForRead(Rd_index);
+        code->CMP(32, Rd, Imm32(0)); // TODO: Flags can be precalculated.
         reg_alloc.UnlockArm(Rd_index);
         UpdateFlagsNZ();
-        if (rotate != 0) {
-            code->MOV(32, MJitStateCFlag(), Imm32(immediate & 0x80000000 ? 1 : 0));
-        }
+        // C updated by CompileExpandImmediate_C
+        // V unchanged
     }
 
     current.arm_pc += GetInstSize();
     if (Rd_index == ArmReg::PC) {
+        CompileALUWritePC();
         CompileReturnToDispatch();
     }
 }
@@ -799,21 +856,28 @@ void JitX64::MOV_imm(Cond cond, bool S, ArmReg Rd_index, int rotate, ArmImm8 imm
 void JitX64::MOV_reg(Cond cond, bool S, ArmReg Rd_index, ArmImm5 imm5, ShiftType shift, ArmReg Rm_index) {
     cond_manager.CompileCond(cond);
 
-    Gen::X64Reg tmp = CompileDataProcessingHelper_reg(imm5, shift, Rm_index, S);
+    if (Rd_index == ArmReg::PC && S) {
+        ASSERT(false, "UNPREDICTABLE when current mode is user or system"); // TODO: Other modes
+    }
 
-    Gen::OpArg Rd = reg_alloc.LockArmForWrite(Rd_index);
+    X64Reg tmp = CompileDataProcessingHelper_reg(imm5, shift, Rm_index, S);
+
+    OpArg Rd = reg_alloc.LockArmForWrite(Rd_index);
     code->MOV(32, Rd, R(tmp));
     reg_alloc.UnlockArm(Rd_index);
 
     if (S) {
         code->CMP(32, R(tmp), Imm32(0));
         UpdateFlagsNZ();
+        // C updated by CompileDataProcessingHelper_reg
+        // V unchanged
     }
 
     reg_alloc.UnlockTemp(tmp);
 
     current.arm_pc += GetInstSize();
     if (Rd_index == ArmReg::PC) {
+        CompileALUWritePC();
         CompileReturnToDispatch();
     }
 }
@@ -821,46 +885,51 @@ void JitX64::MOV_reg(Cond cond, bool S, ArmReg Rd_index, ArmImm5 imm5, ShiftType
 void JitX64::MOV_rsr(Cond cond, bool S, ArmReg Rd_index, ArmReg Rs_index, ShiftType shift, ArmReg Rm_index) {
     cond_manager.CompileCond(cond);
 
-    Gen::X64Reg tmp = CompileDataProcessingHelper_rsr(Rs_index, shift, Rm_index, S);
+    ASSERT_MSG(Rd_index != ArmReg::PC && Rs_index != ArmReg::PC && Rm_index != ArmReg::PC, "UNPREDICTABLE");
 
-    Gen::OpArg Rd = reg_alloc.LockArmForWrite(Rd_index);
+    X64Reg tmp = CompileDataProcessingHelper_rsr(Rs_index, shift, Rm_index, S);
+
+    OpArg Rd = reg_alloc.LockArmForWrite(Rd_index);
     code->MOV(32, Rd, R(tmp));
     reg_alloc.UnlockArm(Rd_index);
 
     if (S) {
         code->CMP(32, R(tmp), Imm32(0));
         UpdateFlagsNZ();
+        // C updated by CompileDataProcessingHelper_rsr
+        // V unchanged
     }
 
     reg_alloc.UnlockTemp(tmp);
 
     current.arm_pc += GetInstSize();
-    if (Rd_index == ArmReg::PC) {
-        CompileReturnToDispatch();
-    }
 }
 
 void JitX64::MVN_imm(Cond cond, bool S, ArmReg Rd_index, int rotate, ArmImm8 imm8) {
     cond_manager.CompileCond(cond);
 
-    u32 immediate = rotr(imm8, rotate * 2);
+    if (Rd_index == ArmReg::PC && S) {
+        ASSERT(false, "UNPREDICTABLE when current mode is user or system"); // TODO: Other modes
+    }
 
-    Gen::OpArg Rd = reg_alloc.LockArmForWrite(Rd_index);
+    u32 immediate = CompileExpandImmediate_C(rotate, imm8, S);
+
+    OpArg Rd = reg_alloc.LockArmForWrite(Rd_index);
     code->MOV(32, Rd, Imm32(~immediate));
     reg_alloc.UnlockArm(Rd_index);
 
     if (S) {
-        Gen::OpArg Rd = reg_alloc.LockArmForRead(Rd_index);
+        OpArg Rd = reg_alloc.LockArmForRead(Rd_index);
         code->CMP(32, Rd, Imm32(0));
         reg_alloc.UnlockArm(Rd_index);
         UpdateFlagsNZ();
-        if (rotate != 0) {
-            code->MOV(32, MJitStateCFlag(), Imm32(immediate & 0x80000000 ? 1 : 0));
-        }
+        // C updated by CompileExpandImmediate_C
+        // V unchanged
     }
 
     current.arm_pc += GetInstSize();
     if (Rd_index == ArmReg::PC) {
+        CompileALUWritePC();
         CompileReturnToDispatch();
     }
 }
@@ -868,22 +937,29 @@ void JitX64::MVN_imm(Cond cond, bool S, ArmReg Rd_index, int rotate, ArmImm8 imm
 void JitX64::MVN_reg(Cond cond, bool S, ArmReg Rd_index, ArmImm5 imm5, ShiftType shift, ArmReg Rm_index) {
     cond_manager.CompileCond(cond);
 
-    Gen::X64Reg tmp = CompileDataProcessingHelper_reg(imm5, shift, Rm_index, S);
+    if (Rd_index == ArmReg::PC && S) {
+        ASSERT(false, "UNPREDICTABLE when current mode is user or system"); // TODO: Other modes
+    }
+
+    X64Reg tmp = CompileDataProcessingHelper_reg(imm5, shift, Rm_index, S);
     code->NOT(32, R(tmp));
 
-    Gen::OpArg Rd = reg_alloc.LockArmForWrite(Rd_index);
+    OpArg Rd = reg_alloc.LockArmForWrite(Rd_index);
     code->MOV(32, Rd, R(tmp));
     reg_alloc.UnlockArm(Rd_index);
 
     if (S) {
         code->CMP(32, R(tmp), Imm32(0));
         UpdateFlagsNZ();
+        // C updated by CompileDataProcessingHelper_reg
+        // V unchanged
     }
 
     reg_alloc.UnlockTemp(tmp);
 
     current.arm_pc += GetInstSize();
     if (Rd_index == ArmReg::PC) {
+        CompileALUWritePC();
         CompileReturnToDispatch();
     }
 }
@@ -891,30 +967,35 @@ void JitX64::MVN_reg(Cond cond, bool S, ArmReg Rd_index, ArmImm5 imm5, ShiftType
 void JitX64::MVN_rsr(Cond cond, bool S, ArmReg Rd_index, ArmReg Rs_index, ShiftType shift, ArmReg Rm_index) {
     cond_manager.CompileCond(cond);
 
-    Gen::X64Reg tmp = CompileDataProcessingHelper_rsr(Rs_index, shift, Rm_index, S);
+    ASSERT_MSG(Rd_index != ArmReg::PC && Rs_index != ArmReg::PC && Rm_index != ArmReg::PC, "UNPREDICTABLE");
+
+    X64Reg tmp = CompileDataProcessingHelper_rsr(Rs_index, shift, Rm_index, S);
     code->NOT(32, R(tmp));
 
-    Gen::OpArg Rd = reg_alloc.LockArmForWrite(Rd_index);
+    OpArg Rd = reg_alloc.LockArmForWrite(Rd_index);
     code->MOV(32, Rd, R(tmp));
     reg_alloc.UnlockArm(Rd_index);
 
     if (S) {
         code->CMP(32, R(tmp), Imm32(0));
         UpdateFlagsNZ();
+        // C updated by CompileDataProcessingHelper_rsr
+        // V unchanged
     }
 
     reg_alloc.UnlockTemp(tmp);
 
     current.arm_pc += GetInstSize();
-    if (Rd_index == ArmReg::PC) {
-        CompileReturnToDispatch();
-    }
 }
 
 void JitX64::ORR_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int rotate, ArmImm8 imm8) {
     cond_manager.CompileCond(cond);
 
-    u32 immediate = rotr(imm8, rotate * 2);
+    if (Rd_index == ArmReg::PC && S) {
+        ASSERT(false, "UNPREDICTABLE when current mode is user or system"); // TODO: Other modes
+    }
+
+    u32 immediate = CompileExpandImmediate_C(rotate, imm8, S);
 
     CompileDataProcessingHelper(Rn_index, Rd_index, [&](X64Reg Rd) {
         code->OR(32, R(Rd), Imm32(immediate));
@@ -922,13 +1003,13 @@ void JitX64::ORR_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int ro
 
     if (S) {
         UpdateFlagsNZ();
-        if (rotate != 0) {
-            code->MOV(32, MJitStateCFlag(), Imm32(immediate & 0x80000000 ? 1 : 0));
-        }
+        // C updated by CompileExpandImmediate_C
+        // V unchanged
     }
 
     current.arm_pc += GetInstSize();
     if (Rd_index == ArmReg::PC) {
+        CompileALUWritePC();
         CompileReturnToDispatch();
     }
 }
@@ -936,7 +1017,11 @@ void JitX64::ORR_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int ro
 void JitX64::ORR_reg(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmImm5 imm5, ShiftType shift, ArmReg Rm_index) {
     cond_manager.CompileCond(cond);
 
-    Gen::X64Reg tmp = CompileDataProcessingHelper_reg(imm5, shift, Rm_index, S);
+    if (Rd_index == ArmReg::PC && S) {
+        ASSERT(false, "UNPREDICTABLE when current mode is user or system"); // TODO: Other modes
+    }
+
+    X64Reg tmp = CompileDataProcessingHelper_reg(imm5, shift, Rm_index, S);
 
     CompileDataProcessingHelper(Rn_index, Rd_index, [&](X64Reg Rd) {
         code->OR(32, R(Rd), R(tmp));
@@ -946,10 +1031,13 @@ void JitX64::ORR_reg(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmImm
 
     if (S) {
         UpdateFlagsNZ();
+        // C updated by CompileDataProcessingHelper_reg
+        // V unchanged
     }
 
     current.arm_pc += GetInstSize();
     if (Rd_index == ArmReg::PC) {
+        CompileALUWritePC();
         CompileReturnToDispatch();
     }
 }
@@ -957,7 +1045,9 @@ void JitX64::ORR_reg(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmImm
 void JitX64::ORR_rsr(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmReg Rs_index, ShiftType shift, ArmReg Rm_index) {
     cond_manager.CompileCond(cond);
 
-    Gen::X64Reg tmp = CompileDataProcessingHelper_rsr(Rs_index, shift, Rm_index, S);
+    ASSERT_MSG(Rn_index != ArmReg::PC && Rd_index != ArmReg::PC && Rs_index != ArmReg::PC && Rm_index != ArmReg::PC, "UNPREDICTABLE");
+
+    X64Reg tmp = CompileDataProcessingHelper_rsr(Rs_index, shift, Rm_index, S);
 
     CompileDataProcessingHelper(Rn_index, Rd_index, [&](X64Reg Rd) {
         code->OR(32, R(Rd), R(tmp));
@@ -967,26 +1057,29 @@ void JitX64::ORR_rsr(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmReg
 
     if (S) {
         UpdateFlagsNZ();
+        // C updated by CompileDataProcessingHelper_rsr
+        // V unchanged
     }
 
     current.arm_pc += GetInstSize();
-    if (Rd_index == ArmReg::PC) {
-        CompileReturnToDispatch();
-    }
 }
 
 void JitX64::RSB_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int rotate, ArmImm8 imm8) {
     cond_manager.CompileCond(cond);
 
-    u32 immediate = rotr(imm8, rotate * 2);
+    if (Rd_index == ArmReg::PC && S) {
+        ASSERT(false, "UNPREDICTABLE when current mode is user or system"); // TODO: Other modes
+    }
+
+    u32 immediate = ExpandImmediate(rotate, imm8);
 
     CompileDataProcessingHelper_Reverse(Rn_index, Rd_index, [&](X64Reg Rd) {
         code->MOV(32, R(Rd), Imm32(immediate));
 
         if (Rn_index == ArmReg::PC) {
-            code->SUB(32, R(Rd), Imm32(GetReg15Value()));
+            code->SUB(32, R(Rd), Imm32(PC()));
         } else {
-            Gen::OpArg Rn = reg_alloc.LockArmForRead(Rn_index);
+            OpArg Rn = reg_alloc.LockArmForRead(Rn_index);
             code->SUB(32, R(Rd), Rn);
             reg_alloc.UnlockArm(Rn_index);
         }
@@ -999,6 +1092,7 @@ void JitX64::RSB_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int ro
 
     current.arm_pc += GetInstSize();
     if (Rd_index == ArmReg::PC) {
+        CompileALUWritePC();
         CompileReturnToDispatch();
     }
 }
@@ -1006,15 +1100,19 @@ void JitX64::RSB_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int ro
 void JitX64::RSB_reg(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmImm5 imm5, ShiftType shift, ArmReg Rm_index) {
     cond_manager.CompileCond(cond);
 
-    Gen::X64Reg tmp = CompileDataProcessingHelper_reg(imm5, shift, Rm_index, false);
+    if (Rd_index == ArmReg::PC && S) {
+        ASSERT(false, "UNPREDICTABLE when current mode is user or system"); // TODO: Other modes
+    }
+
+    X64Reg tmp = CompileDataProcessingHelper_reg(imm5, shift, Rm_index, false);
 
     CompileDataProcessingHelper_Reverse(Rn_index, Rd_index, [&](X64Reg Rd) {
         code->MOV(32, R(Rd), R(tmp));
 
         if (Rn_index == ArmReg::PC) {
-            code->SUB(32, R(Rd), Imm32(GetReg15Value()));
+            code->SUB(32, R(Rd), Imm32(PC()));
         } else {
-            Gen::OpArg Rn = reg_alloc.LockArmForRead(Rn_index);
+            OpArg Rn = reg_alloc.LockArmForRead(Rn_index);
             code->SUB(32, R(Rd), Rn);
             reg_alloc.UnlockArm(Rn_index);
         }
@@ -1029,6 +1127,7 @@ void JitX64::RSB_reg(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmImm
 
     current.arm_pc += GetInstSize();
     if (Rd_index == ArmReg::PC) {
+        CompileALUWritePC();
         CompileReturnToDispatch();
     }
 }
@@ -1036,15 +1135,17 @@ void JitX64::RSB_reg(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmImm
 void JitX64::RSB_rsr(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmReg Rs_index, ShiftType shift, ArmReg Rm_index) {
     cond_manager.CompileCond(cond);
 
-    Gen::X64Reg tmp = CompileDataProcessingHelper_rsr(Rs_index, shift, Rm_index, false);
+    ASSERT_MSG(Rn_index != ArmReg::PC && Rd_index != ArmReg::PC && Rs_index != ArmReg::PC && Rm_index != ArmReg::PC, "UNPREDICTABLE");
+
+    X64Reg tmp = CompileDataProcessingHelper_rsr(Rs_index, shift, Rm_index, false);
 
     CompileDataProcessingHelper_Reverse(Rn_index, Rd_index, [&](X64Reg Rd) {
         code->MOV(32, R(Rd), R(tmp));
 
         if (Rn_index == ArmReg::PC) {
-            code->SUB(32, R(Rd), Imm32(GetReg15Value()));
+            code->SUB(32, R(Rd), Imm32(PC()));
         } else {
-            Gen::OpArg Rn = reg_alloc.LockArmForRead(Rn_index);
+            OpArg Rn = reg_alloc.LockArmForRead(Rn_index);
             code->SUB(32, R(Rd), Rn);
             reg_alloc.UnlockArm(Rn_index);
         }
@@ -1058,15 +1159,16 @@ void JitX64::RSB_rsr(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmReg
     }
 
     current.arm_pc += GetInstSize();
-    if (Rd_index == ArmReg::PC) {
-        CompileReturnToDispatch();
-    }
 }
 
 void JitX64::RSC_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int rotate, ArmImm8 imm8) {
     cond_manager.CompileCond(cond);
 
-    u32 immediate = rotr(imm8, rotate * 2);
+    if (Rd_index == ArmReg::PC && S) {
+        ASSERT(false, "UNPREDICTABLE when current mode is user or system"); // TODO: Other modes
+    }
+
+    u32 immediate = ExpandImmediate(rotate, imm8);
 
     CompileDataProcessingHelper_Reverse(Rn_index, Rd_index, [&](X64Reg Rd) {
         code->MOV(32, R(Rd), Imm32(immediate));
@@ -1075,9 +1177,9 @@ void JitX64::RSC_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int ro
         code->CMC();
 
         if (Rn_index == ArmReg::PC) {
-            code->SBB(32, R(Rd), Imm32(GetReg15Value()));
+            code->SBB(32, R(Rd), Imm32(PC()));
         } else {
-            Gen::OpArg Rn = reg_alloc.LockArmForRead(Rn_index);
+            OpArg Rn = reg_alloc.LockArmForRead(Rn_index);
             code->SBB(32, R(Rd), Rn);
             reg_alloc.UnlockArm(Rn_index);
         }
@@ -1090,6 +1192,7 @@ void JitX64::RSC_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int ro
 
     current.arm_pc += GetInstSize();
     if (Rd_index == ArmReg::PC) {
+        CompileALUWritePC();
         CompileReturnToDispatch();
     }
 }
@@ -1097,7 +1200,11 @@ void JitX64::RSC_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int ro
 void JitX64::RSC_reg(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmImm5 imm5, ShiftType shift, ArmReg Rm_index) {
     cond_manager.CompileCond(cond);
 
-    Gen::X64Reg tmp = CompileDataProcessingHelper_reg(imm5, shift, Rm_index, false);
+    if (Rd_index == ArmReg::PC && S) {
+        ASSERT(false, "UNPREDICTABLE when current mode is user or system"); // TODO: Other modes
+    }
+
+    X64Reg tmp = CompileDataProcessingHelper_reg(imm5, shift, Rm_index, false);
 
     CompileDataProcessingHelper_Reverse(Rn_index, Rd_index, [&](X64Reg Rd) {
         code->MOV(32, R(Rd), R(tmp));
@@ -1106,9 +1213,9 @@ void JitX64::RSC_reg(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmImm
         code->CMC();
 
         if (Rn_index == ArmReg::PC) {
-            code->SBB(32, R(Rd), Imm32(GetReg15Value()));
+            code->SBB(32, R(Rd), Imm32(PC()));
         } else {
-            Gen::OpArg Rn = reg_alloc.LockArmForRead(Rn_index);
+            OpArg Rn = reg_alloc.LockArmForRead(Rn_index);
             code->SBB(32, R(Rd), Rn);
             reg_alloc.UnlockArm(Rn_index);
         }
@@ -1123,6 +1230,7 @@ void JitX64::RSC_reg(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmImm
 
     current.arm_pc += GetInstSize();
     if (Rd_index == ArmReg::PC) {
+        CompileALUWritePC();
         CompileReturnToDispatch();
     }
 }
@@ -1130,7 +1238,9 @@ void JitX64::RSC_reg(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmImm
 void JitX64::RSC_rsr(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmReg Rs_index, ShiftType shift, ArmReg Rm_index) {
     cond_manager.CompileCond(cond);
 
-    Gen::X64Reg tmp = CompileDataProcessingHelper_rsr(Rs_index, shift, Rm_index, false);
+    ASSERT_MSG(Rn_index != ArmReg::PC && Rd_index != ArmReg::PC && Rs_index != ArmReg::PC && Rm_index != ArmReg::PC, "UNPREDICTABLE");
+
+    X64Reg tmp = CompileDataProcessingHelper_rsr(Rs_index, shift, Rm_index, false);
 
     CompileDataProcessingHelper_Reverse(Rn_index, Rd_index, [&](X64Reg Rd) {
         code->MOV(32, R(Rd), R(tmp));
@@ -1139,9 +1249,9 @@ void JitX64::RSC_rsr(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmReg
         code->CMC();
 
         if (Rn_index == ArmReg::PC) {
-            code->SBB(32, R(Rd), Imm32(GetReg15Value()));
+            code->SBB(32, R(Rd), Imm32(PC()));
         } else {
-            Gen::OpArg Rn = reg_alloc.LockArmForRead(Rn_index);
+            OpArg Rn = reg_alloc.LockArmForRead(Rn_index);
             code->SBB(32, R(Rd), Rn);
             reg_alloc.UnlockArm(Rn_index);
         }
@@ -1155,15 +1265,16 @@ void JitX64::RSC_rsr(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmReg
     }
 
     current.arm_pc += GetInstSize();
-    if (Rd_index == ArmReg::PC) {
-        CompileReturnToDispatch();
-    }
 }
 
 void JitX64::SBC_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int rotate, ArmImm8 imm8) {
     cond_manager.CompileCond(cond);
 
-    u32 immediate = rotr(imm8, rotate * 2);
+    if (Rd_index == ArmReg::PC && S) {
+        ASSERT(false, "UNPREDICTABLE when current mode is user or system"); // TODO: Other modes
+    }
+
+    u32 immediate = ExpandImmediate(rotate, imm8);
 
     CompileDataProcessingHelper(Rn_index, Rd_index, [&](X64Reg Rd) {
         code->BT(32, MJitStateCFlag(), Imm8(0));
@@ -1178,6 +1289,7 @@ void JitX64::SBC_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int ro
 
     current.arm_pc += GetInstSize();
     if (Rd_index == ArmReg::PC) {
+        CompileALUWritePC();
         CompileReturnToDispatch();
     }
 }
@@ -1185,7 +1297,11 @@ void JitX64::SBC_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int ro
 void JitX64::SBC_reg(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmImm5 imm5, ShiftType shift, ArmReg Rm_index) {
     cond_manager.CompileCond(cond);
 
-    Gen::X64Reg tmp = CompileDataProcessingHelper_reg(imm5, shift, Rm_index, false);
+    if (Rd_index == ArmReg::PC && S) {
+        ASSERT(false, "UNPREDICTABLE when current mode is user or system"); // TODO: Other modes
+    }
+
+    X64Reg tmp = CompileDataProcessingHelper_reg(imm5, shift, Rm_index, false);
 
     CompileDataProcessingHelper(Rn_index, Rd_index, [&](X64Reg Rd) {
         code->BT(32, MJitStateCFlag(), Imm8(0));
@@ -1202,6 +1318,7 @@ void JitX64::SBC_reg(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmImm
 
     current.arm_pc += GetInstSize();
     if (Rd_index == ArmReg::PC) {
+        CompileALUWritePC();
         CompileReturnToDispatch();
     }
 }
@@ -1209,7 +1326,9 @@ void JitX64::SBC_reg(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmImm
 void JitX64::SBC_rsr(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmReg Rs_index, ShiftType shift, ArmReg Rm_index) {
     cond_manager.CompileCond(cond);
 
-    Gen::X64Reg tmp = CompileDataProcessingHelper_rsr(Rs_index, shift, Rm_index, false);
+    ASSERT_MSG(Rn_index != ArmReg::PC && Rd_index != ArmReg::PC && Rs_index != ArmReg::PC && Rm_index != ArmReg::PC, "UNPREDICTABLE");
+
+    X64Reg tmp = CompileDataProcessingHelper_rsr(Rs_index, shift, Rm_index, false);
 
     CompileDataProcessingHelper(Rn_index, Rd_index, [&](X64Reg Rd) {
         code->BT(32, MJitStateCFlag(), Imm8(0));
@@ -1233,7 +1352,11 @@ void JitX64::SBC_rsr(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmReg
 void JitX64::SUB_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int rotate, ArmImm8 imm8) {
     cond_manager.CompileCond(cond);
 
-    u32 immediate = rotr(imm8, rotate * 2);
+    if (Rd_index == ArmReg::PC && S) {
+        ASSERT(false, "UNPREDICTABLE when current mode is user or system"); // TODO: Other modes
+    }
+
+    u32 immediate = ExpandImmediate(rotate, imm8);
 
     CompileDataProcessingHelper(Rn_index, Rd_index, [&](X64Reg Rd) {
         code->SUB(32, R(Rd), Imm32(immediate));
@@ -1246,6 +1369,7 @@ void JitX64::SUB_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int ro
 
     current.arm_pc += GetInstSize();
     if (Rd_index == ArmReg::PC) {
+        CompileALUWritePC();
         CompileReturnToDispatch();
     }
 }
@@ -1253,7 +1377,11 @@ void JitX64::SUB_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int ro
 void JitX64::SUB_reg(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmImm5 imm5, ShiftType shift, ArmReg Rm_index) {
     cond_manager.CompileCond(cond);
 
-    Gen::X64Reg tmp = CompileDataProcessingHelper_reg(imm5, shift, Rm_index, false);
+    if (Rd_index == ArmReg::PC && S) {
+        ASSERT(false, "UNPREDICTABLE when current mode is user or system"); // TODO: Other modes
+    }
+
+    X64Reg tmp = CompileDataProcessingHelper_reg(imm5, shift, Rm_index, false);
 
     CompileDataProcessingHelper(Rn_index, Rd_index, [&](X64Reg Rd) {
         code->SUB(32, R(Rd), R(tmp));
@@ -1268,6 +1396,7 @@ void JitX64::SUB_reg(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmImm
 
     current.arm_pc += GetInstSize();
     if (Rd_index == ArmReg::PC) {
+        CompileALUWritePC();
         CompileReturnToDispatch();
     }
 }
@@ -1275,7 +1404,9 @@ void JitX64::SUB_reg(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmImm
 void JitX64::SUB_rsr(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmReg Rs_index, ShiftType shift, ArmReg Rm_index) {
     cond_manager.CompileCond(cond);
 
-    Gen::X64Reg tmp = CompileDataProcessingHelper_rsr(Rs_index, shift, Rm_index, false);
+    ASSERT_MSG(Rn_index != ArmReg::PC && Rd_index != ArmReg::PC && Rs_index != ArmReg::PC && Rm_index != ArmReg::PC, "UNPREDICTABLE");
+
+    X64Reg tmp = CompileDataProcessingHelper_rsr(Rs_index, shift, Rm_index, false);
 
     CompileDataProcessingHelper(Rn_index, Rd_index, [&](X64Reg Rd) {
         code->SUB(32, R(Rd), R(tmp));
@@ -1289,23 +1420,20 @@ void JitX64::SUB_rsr(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmReg
     }
 
     current.arm_pc += GetInstSize();
-    if (Rd_index == ArmReg::PC) {
-        CompileReturnToDispatch();
-    }
 }
 
 
 void JitX64::TEQ_imm(Cond cond, ArmReg Rn_index, int rotate, ArmImm8 imm8) {
     cond_manager.CompileCond(cond);
 
-    u32 immediate = rotr(imm8, rotate * 2);
+    u32 immediate = CompileExpandImmediate_C(rotate, imm8, true);
 
     X64Reg Rn_tmp = reg_alloc.AllocTemp();
 
     if (Rn_index == ArmReg::PC) {
-        code->MOV(32, R(Rn_tmp), Imm32(GetReg15Value()));
+        code->MOV(32, R(Rn_tmp), Imm32(PC()));
     } else {
-        Gen::OpArg Rn_real = reg_alloc.LockArmForRead(Rn_index);
+        OpArg Rn_real = reg_alloc.LockArmForRead(Rn_index);
         code->MOV(32, R(Rn_tmp), Rn_real);
         reg_alloc.UnlockArm(Rn_index);
     }
@@ -1315,9 +1443,8 @@ void JitX64::TEQ_imm(Cond cond, ArmReg Rn_index, int rotate, ArmImm8 imm8) {
     reg_alloc.UnlockTemp(Rn_tmp);
 
     UpdateFlagsNZ();
-    if (rotate != 0) {
-        code->MOV(32, MJitStateCFlag(), Imm32(immediate & 0x80000000 ? 1 : 0));
-    }
+    // C updated by CompileExpandImmediate_C
+    // V unchanged
 
     current.arm_pc += GetInstSize();
 }
@@ -1325,12 +1452,12 @@ void JitX64::TEQ_imm(Cond cond, ArmReg Rn_index, int rotate, ArmImm8 imm8) {
 void JitX64::TEQ_reg(Cond cond, ArmReg Rn_index, ArmImm5 imm5, ShiftType shift, ArmReg Rm_index) {
     cond_manager.CompileCond(cond);
 
-    Gen::X64Reg tmp = CompileDataProcessingHelper_reg(imm5, shift, Rm_index, true);
+    X64Reg tmp = CompileDataProcessingHelper_reg(imm5, shift, Rm_index, true);
 
     if (Rn_index == ArmReg::PC) {
-        code->XOR(32, R(tmp), Imm32(GetReg15Value()));
+        code->XOR(32, R(tmp), Imm32(PC()));
     } else {
-        Gen::OpArg Rn = reg_alloc.LockArmForRead(Rn_index);
+        OpArg Rn = reg_alloc.LockArmForRead(Rn_index);
         code->XOR(32, R(tmp), Rn);
         reg_alloc.UnlockArm(Rn_index);
     }
@@ -1338,6 +1465,8 @@ void JitX64::TEQ_reg(Cond cond, ArmReg Rn_index, ArmImm5 imm5, ShiftType shift, 
     reg_alloc.UnlockTemp(tmp);
 
     UpdateFlagsNZ();
+    // C updated by CompileDataProcessingHelper_reg
+    // V unchanged
 
     current.arm_pc += GetInstSize();
 }
@@ -1345,19 +1474,19 @@ void JitX64::TEQ_reg(Cond cond, ArmReg Rn_index, ArmImm5 imm5, ShiftType shift, 
 void JitX64::TEQ_rsr(Cond cond, ArmReg Rn_index, ArmReg Rs_index, ShiftType shift, ArmReg Rm_index) {
     cond_manager.CompileCond(cond);
 
-    Gen::X64Reg tmp = CompileDataProcessingHelper_rsr(Rs_index, shift, Rm_index, true);
+    ASSERT_MSG(Rn_index != ArmReg::PC && Rs_index != ArmReg::PC && Rm_index != ArmReg::PC, "UNPREDICTABLE");
 
-    if (Rn_index == ArmReg::PC) {
-        code->XOR(32, R(tmp), Imm32(GetReg15Value()));
-    } else {
-        Gen::OpArg Rn = reg_alloc.LockArmForRead(Rn_index);
-        code->XOR(32, R(tmp), Rn);
-        reg_alloc.UnlockArm(Rn_index);
-    }
+    X64Reg tmp = CompileDataProcessingHelper_rsr(Rs_index, shift, Rm_index, true);
+
+    OpArg Rn = reg_alloc.LockArmForRead(Rn_index);
+    code->XOR(32, R(tmp), Rn);
+    reg_alloc.UnlockArm(Rn_index);
 
     reg_alloc.UnlockTemp(tmp);
 
     UpdateFlagsNZ();
+    // C updated by CompileDataProcessingHelper_rs
+    // V unchanged
 
     current.arm_pc += GetInstSize();
 }
@@ -1365,13 +1494,13 @@ void JitX64::TEQ_rsr(Cond cond, ArmReg Rn_index, ArmReg Rs_index, ShiftType shif
 void JitX64::TST_imm(Cond cond, ArmReg Rn_index, int rotate, ArmImm8 imm8) {
     cond_manager.CompileCond(cond);
 
-    u32 immediate = rotr(imm8, rotate * 2);
+    u32 immediate = CompileExpandImmediate_C(rotate, imm8, true);
 
     X64Reg Rn;
 
     if (Rn_index == ArmReg::PC) {
         Rn = reg_alloc.AllocTemp();
-        code->MOV(32, R(Rn), Imm32(GetReg15Value()));
+        code->MOV(32, R(Rn), Imm32(PC()));
     } else {
         Rn = reg_alloc.BindArmForRead(Rn_index);
     }
@@ -1385,9 +1514,8 @@ void JitX64::TST_imm(Cond cond, ArmReg Rn_index, int rotate, ArmImm8 imm8) {
     }
 
     UpdateFlagsNZ();
-    if (rotate != 0) {
-        code->MOV(32, MJitStateCFlag(), Imm32(immediate & 0x80000000 ? 1 : 0));
-    }
+    // C updated by CompileExpandImmediate_C
+    // V unchanged
 
     current.arm_pc += GetInstSize();
 }
@@ -1395,10 +1523,10 @@ void JitX64::TST_imm(Cond cond, ArmReg Rn_index, int rotate, ArmImm8 imm8) {
 void JitX64::TST_reg(Cond cond, ArmReg Rn_index, ArmImm5 imm5, ShiftType shift, ArmReg Rm_index) {
     cond_manager.CompileCond(cond);
 
-    Gen::X64Reg tmp = CompileDataProcessingHelper_reg(imm5, shift, Rm_index, true);
+    X64Reg tmp = CompileDataProcessingHelper_reg(imm5, shift, Rm_index, true);
 
     if (Rn_index == ArmReg::PC) {
-        code->TEST(32, R(tmp), Imm32(GetReg15Value()));
+        code->TEST(32, R(tmp), Imm32(PC()));
     } else {
         OpArg Rn = reg_alloc.LockArmForRead(Rn_index);
         code->TEST(32, R(tmp), Rn);
@@ -1408,6 +1536,8 @@ void JitX64::TST_reg(Cond cond, ArmReg Rn_index, ArmImm5 imm5, ShiftType shift, 
     reg_alloc.UnlockTemp(tmp);
 
     UpdateFlagsNZ();
+    // C updated by CompileDataProcessingHelper_reg
+    // V unchanged
 
     current.arm_pc += GetInstSize();
 }
@@ -1415,19 +1545,19 @@ void JitX64::TST_reg(Cond cond, ArmReg Rn_index, ArmImm5 imm5, ShiftType shift, 
 void JitX64::TST_rsr(Cond cond, ArmReg Rn_index, ArmReg Rs_index, ShiftType shift, ArmReg Rm_index) {
     cond_manager.CompileCond(cond);
 
-    Gen::X64Reg tmp = CompileDataProcessingHelper_rsr(Rs_index, shift, Rm_index, true);
+    ASSERT_MSG(Rn_index != ArmReg::PC && Rs_index != ArmReg::PC && Rm_index != ArmReg::PC, "UNPREDICTABLE");
 
-    if (Rn_index == ArmReg::PC) {
-        code->TEST(32, R(tmp), Imm32(GetReg15Value()));
-    } else {
-        OpArg Rn = reg_alloc.LockArmForRead(Rn_index);
-        code->TEST(32, R(tmp), Rn);
-        reg_alloc.UnlockArm(Rn_index);
-    }
+    X64Reg tmp = CompileDataProcessingHelper_rsr(Rs_index, shift, Rm_index, true);
+
+    OpArg Rn = reg_alloc.LockArmForRead(Rn_index);
+    code->TEST(32, R(tmp), Rn);
+    reg_alloc.UnlockArm(Rn_index);
 
     reg_alloc.UnlockTemp(tmp);
 
     UpdateFlagsNZ();
+    // C updated by CompileDataProcessingHelper_rsr
+    // V unchanged
 
     current.arm_pc += GetInstSize();
 }

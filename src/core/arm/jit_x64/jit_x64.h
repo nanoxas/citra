@@ -95,13 +95,6 @@ private:
     Gen::OpArg MJitStateExclusiveTag() const;
     Gen::OpArg MJitStateExclusiveState() const;
 
-    u32 GetReg15Value() const {
-        return (current.arm_pc & ~0x1) + static_cast<u32>(GetInstSize() * 2);
-    }
-    u32 GetReg15Value_WordAligned() const {
-        return (current.arm_pc & ~0x3) + static_cast<u32>(GetInstSize() * 2);
-    }
-
     void UpdateFlagsNZCV() {
         cond_manager.FlagsDirty();
         code->SETcc(Gen::CC_S, MJitStateNFlag());
@@ -144,10 +137,24 @@ private:
     } cond_manager;
 
 private:
+    // Interpreter
     void CompileInterpretInstruction();
+
+    // Common instruction subroutines
+    /// Assembles a CALL instruction to fn.
     void CompileCallHost(const void* const fn);
-    /// dest must be a temporary that contains a copy of the value of Rm
+    /// Value of R15.
+    u32 PC() const;
+    /// Value of Align(R15, 4).
+    u32 PC_WordAligned() const;
+    /// Compiles shifter operations for instructions that use the shifter. dest must be a temporary that contains a copy of the value of Rm
     void CompileShifter_imm(Gen::X64Reg dest, ArmImm5 imm5, ShiftType shift, bool do_shifter_carry_out);
+    /// Returns the expanded immediate value for ARM instructions.
+    u32 ExpandArmImmediate(int rotate, ArmImm8 imm8);
+    /// Returns the expanded immediate value for ARM instructions. This function also sets MJitStateCFlag according to the carry output.
+    u32 CompileExpandArmImmediate_C(int rotate, ArmImm8 imm8, bool update_cflag);
+    /// Corrects the value written to MJitStateArmPC after an ALU operation that writes to the PC.
+    void CompileALUWritePC();
 
     // Branch instructions
     void B(Cond cond, ArmImm24 imm24) override;

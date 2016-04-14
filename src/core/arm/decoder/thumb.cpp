@@ -291,6 +291,7 @@ static const std::array<ThumbInstruction, 27> thumb_instruction_table = { {
         Register Rn = Bit<11>(instruction) ? Register::SP : Register::PC;
         Register Rd = static_cast<Register>(Bits<8, 10>(instruction));
         u32 imm8 = Bits<0, 7>(instruction);
+        // TODO: ADR implementation incorrect. Reimplement properly.
         v->ADD_imm(Cond::AL, /*S=*/false, Rn, Rd, 0xF, imm8);
     })},
     { "adjust stack ptr",        MakeMatcher("10110000oxxxxxxx", [](Visitor* v, u16 instruction) {

@@ -16,7 +16,7 @@ void JitX64::thumb_B(Cond cond, ArmImm8 imm8) {
 
     ASSERT_MSG(current.TFlag, "thumb_B may only be called in thumb mode");
 
-    const u32 new_pc = GetReg15Value() + BitUtil::SignExtend<9>(imm8 << 1);
+    const u32 new_pc = PC() + BitUtil::SignExtend<9>(imm8 << 1);
 
     reg_alloc.FlushEverything();
     current.arm_pc += GetInstSize();
@@ -33,7 +33,7 @@ void JitX64::thumb_B(ArmImm11 imm11) {
 
     ASSERT_MSG(current.TFlag, "thumb_B may only be called in thumb mode");
 
-    const u32 new_pc = GetReg15Value() + BitUtil::SignExtend<12>(imm11 << 1);
+    const u32 new_pc = PC() + BitUtil::SignExtend<12>(imm11 << 1);
 
     reg_alloc.FlushEverything();
     current.arm_pc += GetInstSize();

@@ -13,7 +13,7 @@ using namespace Gen;
 void JitX64::B(Cond cond, ArmImm24 imm24) {
     cond_manager.CompileCond(cond);
 
-    const u32 new_pc = GetReg15Value() + BitUtil::SignExtend<26>(imm24 << 2);
+    const u32 new_pc = PC() + BitUtil::SignExtend<26>(imm24 << 2);
 
     reg_alloc.FlushEverything();
     current.arm_pc += GetInstSize();
@@ -28,7 +28,7 @@ void JitX64::B(Cond cond, ArmImm24 imm24) {
 void JitX64::BL(Cond cond, ArmImm24 imm24) {
     cond_manager.CompileCond(cond);
 
-    const u32 new_pc = GetReg15Value() + BitUtil::SignExtend<26>(imm24 << 2);
+    const u32 new_pc = PC() + BitUtil::SignExtend<26>(imm24 << 2);
 
     ASSERT(!current.TFlag);
     const u32 link_pc = current.arm_pc + GetInstSize();
@@ -49,7 +49,7 @@ void JitX64::BL(Cond cond, ArmImm24 imm24) {
 void JitX64::BLX_imm(bool H, ArmImm24 imm24) {
     cond_manager.Always();
 
-    const u32 new_pc = GetReg15Value() + BitUtil::SignExtend<26>(imm24 << 2) + (H ? 2 : 0);
+    const u32 new_pc = PC() + BitUtil::SignExtend<26>(imm24 << 2) + (H ? 2 : 0);
 
     ASSERT(!current.TFlag);
     const u32 link_pc = current.arm_pc + GetInstSize();
@@ -95,7 +95,7 @@ void JitX64::BX(Cond cond, ArmReg Rm_index) {
     cond_manager.CompileCond(cond);
 
     if (Rm_index == ArmReg::PC) {
-        code->MOV(32, MJitStateArmPC(), Imm32(GetReg15Value()));
+        code->MOV(32, MJitStateArmPC(), Imm32(PC()));
         code->MOV(32, MJitStateTFlag(), Imm32(0));
     } else {
         Gen::X64Reg Rm = reg_alloc.BindArmForRead(Rm_index);

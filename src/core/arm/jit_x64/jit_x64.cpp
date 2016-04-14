@@ -159,24 +159,6 @@ void JitX64::CompileSingleThumbInstruction() {
     }
 }
 
-void JitX64::CompileCallHost(const void* const fn) {
-    // There is no need to setup the stack as the stored RSP has already been properly aligned.
-
-    reg_alloc.FlushABICallerSaved();
-
-    ASSERT(reg_alloc.JitStateReg() != RSP);
-    code->MOV(64, R(RSP), MJitStateHostReturnRSP());
-
-    const uintptr_t distance = reinterpret_cast<uintptr_t>(fn) - (reinterpret_cast<uintptr_t>(code->GetCodePtr()) + 5);
-    if (distance >= 0x0000000080000000ULL && distance < 0xFFFFFFFF80000000ULL) {
-        // Far call
-        code->MOV(64, R(RAX), ImmPtr(fn));
-        code->CALLptr(R(RAX));
-    } else {
-        code->CALL(fn);
-    }
-}
-
 // Convenience functions:
 // We static_assert types because anything that calls these functions makes those assumptions.
 // If the types of the variables are changed please update all code that calls these functions.
@@ -260,6 +242,55 @@ Gen::OpArg JitX64::MJitStateExclusiveState() const {
     static_assert(std::is_same<decltype(ARMul_State::exclusive_state), bool>::value, "exclusive_state must be bool");
 
     return Gen::MDisp(reg_alloc.JitStateReg(), offsetof(JitState, cpu_state) + offsetof(ARMul_State, exclusive_state));
+}
+
+// Common instruction subroutines
+
+void JitX64::CompileCallHost(const void* const fn) {
+    // There is no need to setup the stack as the stored RSP has already been properly aligned.
+
+    reg_alloc.FlushABICallerSaved();
+
+    ASSERT(reg_alloc.JitStateReg() != RSP);
+    code->MOV(64, R(RSP), MJitStateHostReturnRSP());
+
+    const uintptr_t distance = reinterpret_cast<uintptr_t>(fn) - (reinterpret_cast<uintptr_t>(code->GetCodePtr()) + 5);
+    if (distance >= 0x0000000080000000ULL && distance < 0xFFFFFFFF80000000ULL) {
+        // Far call
+        code->MOV(64, R(RAX), ImmPtr(fn));
+        code->CALLptr(R(RAX));
+    } else {
+        code->CALL(fn);
+    }
+}
+
+u32 JitX64::PC() const {
+    // When executing an ARM instruction, PC reads as the address of that instruction plus 8.
+    // When executing an Thumb instruction, PC reads as the address of that instruction plus 4.
+    return !current.TFlag ? current.arm_pc + 8 : current.arm_pc + 4;
+}
+
+u32 JitX64::PC_WordAligned() const {
+    return PC() & 0xFFFFFFFC;
+}
+
+u32 JitX64::ExpandArmImmediate(int rotate, ArmImm8 imm8) {
+    return CompileExpandArmImmediate_C(rotate, imm8, false);
+}
+
+u32 JitX64::CompileExpandArmImmediate_C(int rotate, ArmImm8 imm8, bool update_cflag) {
+    u32 immediate = rotr(imm8, rotate * 2);
+
+    if (rotate != 0 && update_cflag) {
+        code->MOV(32, MJitStateCFlag(), Gen::Imm32(immediate & 0x80000000 ? 1 : 0));
+    }
+
+    return immediate;
+}
+
+void JitX64::CompileALUWritePC() {
+    reg_alloc.FlushArm(ArmReg::PC);
+    code->AND(32, MJitStateArmPC(), Gen::Imm32(!current.TFlag ? 0xFFFFFFFC : 0xFFFFFFFE));
 }
 
 }
