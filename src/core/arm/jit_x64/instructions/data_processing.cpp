@@ -313,7 +313,7 @@ void JitX64::ADC_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int ro
         ASSERT(false, "UNPREDICTABLE when current mode is user or system"); // TODO: Other modes
     }
 
-    u32 immediate = ExpandImmediate(rotate, imm8);
+    u32 immediate = ExpandArmImmediate(rotate, imm8);
 
     CompileDataProcessingHelper(Rn_index, Rd_index, [&](X64Reg Rd) {
         code->BT(32, MJitStateCFlag(), Imm8(0));
@@ -388,7 +388,7 @@ void JitX64::ADD_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int ro
 
     // If Rd_index == ArmReg::PC && !S, this is an ADR instruction.
 
-    u32 immediate = ExpandImmediate(rotate, imm8);
+    u32 immediate = ExpandArmImmediate(rotate, imm8);
 
     CompileDataProcessingHelper(Rn_index, Rd_index, [&](X64Reg Rd) {
         code->ADD(32, R(Rd), Imm32(immediate));
@@ -459,7 +459,7 @@ void JitX64::AND_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int ro
         ASSERT(false, "UNPREDICTABLE when current mode is user or system"); // TODO: Other modes
     }
 
-    u32 immediate = CompileExpandImmediate_C(rotate, imm8, S);
+    u32 immediate = CompileExpandArmImmediate_C(rotate, imm8, S);
 
     CompileDataProcessingHelper(Rn_index, Rd_index, [&](X64Reg Rd) {
         code->AND(32, R(Rd), Imm32(immediate));
@@ -467,7 +467,7 @@ void JitX64::AND_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int ro
 
     if (S) {
         UpdateFlagsNZ();
-        // C updated by CompileExpandImmediate_C
+        // C updated by CompileExpandArmImmediate_C
         // V unchanged
     }
 
@@ -535,7 +535,7 @@ void JitX64::BIC_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int ro
         ASSERT(false, "UNPREDICTABLE when current mode is user or system"); // TODO: Other modes
     }
 
-    u32 immediate = CompileExpandImmediate_C(rotate, imm8, S);
+    u32 immediate = CompileExpandArmImmediate_C(rotate, imm8, S);
 
     CompileDataProcessingHelper(Rn_index, Rd_index, [&](X64Reg Rd) {
         code->AND(32, R(Rd), Imm32(~immediate));
@@ -543,7 +543,7 @@ void JitX64::BIC_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int ro
 
     if (S) {
         UpdateFlagsNZ();
-        // C updated by CompileExpandImmediate_C
+        // C updated by CompileExpandArmImmediate_C
         // V unchanged
     }
 
@@ -611,7 +611,7 @@ void JitX64::BIC_rsr(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmReg
 void JitX64::CMN_imm(Cond cond, ArmReg Rn_index, int rotate, ArmImm8 imm8) {
     cond_manager.CompileCond(cond);
 
-    u32 immediate = ExpandImmediate(rotate, imm8);
+    u32 immediate = ExpandArmImmediate(rotate, imm8);
 
     X64Reg tmp = reg_alloc.AllocTemp();
     if (Rn_index != ArmReg::PC) {
@@ -676,7 +676,7 @@ void JitX64::CMN_rsr(Cond cond, ArmReg Rn_index, ArmReg Rs_index, ShiftType shif
 void JitX64::CMP_imm(Cond cond, ArmReg Rn_index, int rotate, ArmImm8 imm8) {
     cond_manager.CompileCond(cond);
 
-    u32 immediate = ExpandImmediate(rotate, imm8);
+    u32 immediate = ExpandArmImmediate(rotate, imm8);
 
     if (Rn_index != ArmReg::PC) {
         OpArg Rn = reg_alloc.LockArmForRead(Rn_index);
@@ -755,7 +755,7 @@ void JitX64::EOR_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int ro
         ASSERT(false, "UNPREDICTABLE when current mode is user or system"); // TODO: Other modes
     }
 
-    u32 immediate = CompileExpandImmediate_C(rotate, imm8, S);
+    u32 immediate = CompileExpandArmImmediate_C(rotate, imm8, S);
 
     CompileDataProcessingHelper(Rn_index, Rd_index, [&](X64Reg Rd) {
         code->XOR(32, R(Rd), Imm32(immediate));
@@ -831,7 +831,7 @@ void JitX64::MOV_imm(Cond cond, bool S, ArmReg Rd_index, int rotate, ArmImm8 imm
         ASSERT(false, "UNPREDICTABLE when current mode is user or system"); // TODO: Other modes
     }
 
-    u32 immediate = CompileExpandImmediate_C(rotate, imm8, S);
+    u32 immediate = CompileExpandArmImmediate_C(rotate, imm8, S);
 
     OpArg Rd = reg_alloc.LockArmForWrite(Rd_index);
     code->MOV(32, Rd, Imm32(immediate));
@@ -842,7 +842,7 @@ void JitX64::MOV_imm(Cond cond, bool S, ArmReg Rd_index, int rotate, ArmImm8 imm
         code->CMP(32, Rd, Imm32(0)); // TODO: Flags can be precalculated.
         reg_alloc.UnlockArm(Rd_index);
         UpdateFlagsNZ();
-        // C updated by CompileExpandImmediate_C
+        // C updated by CompileExpandArmImmediate_C
         // V unchanged
     }
 
@@ -912,7 +912,7 @@ void JitX64::MVN_imm(Cond cond, bool S, ArmReg Rd_index, int rotate, ArmImm8 imm
         ASSERT(false, "UNPREDICTABLE when current mode is user or system"); // TODO: Other modes
     }
 
-    u32 immediate = CompileExpandImmediate_C(rotate, imm8, S);
+    u32 immediate = CompileExpandArmImmediate_C(rotate, imm8, S);
 
     OpArg Rd = reg_alloc.LockArmForWrite(Rd_index);
     code->MOV(32, Rd, Imm32(~immediate));
@@ -923,7 +923,7 @@ void JitX64::MVN_imm(Cond cond, bool S, ArmReg Rd_index, int rotate, ArmImm8 imm
         code->CMP(32, Rd, Imm32(0));
         reg_alloc.UnlockArm(Rd_index);
         UpdateFlagsNZ();
-        // C updated by CompileExpandImmediate_C
+        // C updated by CompileExpandArmImmediate_C
         // V unchanged
     }
 
@@ -995,7 +995,7 @@ void JitX64::ORR_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int ro
         ASSERT(false, "UNPREDICTABLE when current mode is user or system"); // TODO: Other modes
     }
 
-    u32 immediate = CompileExpandImmediate_C(rotate, imm8, S);
+    u32 immediate = CompileExpandArmImmediate_C(rotate, imm8, S);
 
     CompileDataProcessingHelper(Rn_index, Rd_index, [&](X64Reg Rd) {
         code->OR(32, R(Rd), Imm32(immediate));
@@ -1003,7 +1003,7 @@ void JitX64::ORR_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int ro
 
     if (S) {
         UpdateFlagsNZ();
-        // C updated by CompileExpandImmediate_C
+        // C updated by CompileExpandArmImmediate_C
         // V unchanged
     }
 
@@ -1071,7 +1071,7 @@ void JitX64::RSB_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int ro
         ASSERT(false, "UNPREDICTABLE when current mode is user or system"); // TODO: Other modes
     }
 
-    u32 immediate = ExpandImmediate(rotate, imm8);
+    u32 immediate = ExpandArmImmediate(rotate, imm8);
 
     CompileDataProcessingHelper_Reverse(Rn_index, Rd_index, [&](X64Reg Rd) {
         code->MOV(32, R(Rd), Imm32(immediate));
@@ -1168,7 +1168,7 @@ void JitX64::RSC_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int ro
         ASSERT(false, "UNPREDICTABLE when current mode is user or system"); // TODO: Other modes
     }
 
-    u32 immediate = ExpandImmediate(rotate, imm8);
+    u32 immediate = ExpandArmImmediate(rotate, imm8);
 
     CompileDataProcessingHelper_Reverse(Rn_index, Rd_index, [&](X64Reg Rd) {
         code->MOV(32, R(Rd), Imm32(immediate));
@@ -1274,7 +1274,7 @@ void JitX64::SBC_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int ro
         ASSERT(false, "UNPREDICTABLE when current mode is user or system"); // TODO: Other modes
     }
 
-    u32 immediate = ExpandImmediate(rotate, imm8);
+    u32 immediate = ExpandArmImmediate(rotate, imm8);
 
     CompileDataProcessingHelper(Rn_index, Rd_index, [&](X64Reg Rd) {
         code->BT(32, MJitStateCFlag(), Imm8(0));
@@ -1356,7 +1356,7 @@ void JitX64::SUB_imm(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, int ro
         ASSERT(false, "UNPREDICTABLE when current mode is user or system"); // TODO: Other modes
     }
 
-    u32 immediate = ExpandImmediate(rotate, imm8);
+    u32 immediate = ExpandArmImmediate(rotate, imm8);
 
     CompileDataProcessingHelper(Rn_index, Rd_index, [&](X64Reg Rd) {
         code->SUB(32, R(Rd), Imm32(immediate));
@@ -1426,7 +1426,7 @@ void JitX64::SUB_rsr(Cond cond, bool S, ArmReg Rn_index, ArmReg Rd_index, ArmReg
 void JitX64::TEQ_imm(Cond cond, ArmReg Rn_index, int rotate, ArmImm8 imm8) {
     cond_manager.CompileCond(cond);
 
-    u32 immediate = CompileExpandImmediate_C(rotate, imm8, true);
+    u32 immediate = CompileExpandArmImmediate_C(rotate, imm8, true);
 
     X64Reg Rn_tmp = reg_alloc.AllocTemp();
 
@@ -1443,7 +1443,7 @@ void JitX64::TEQ_imm(Cond cond, ArmReg Rn_index, int rotate, ArmImm8 imm8) {
     reg_alloc.UnlockTemp(Rn_tmp);
 
     UpdateFlagsNZ();
-    // C updated by CompileExpandImmediate_C
+    // C updated by CompileExpandArmImmediate_C
     // V unchanged
 
     current.arm_pc += GetInstSize();
@@ -1494,7 +1494,7 @@ void JitX64::TEQ_rsr(Cond cond, ArmReg Rn_index, ArmReg Rs_index, ShiftType shif
 void JitX64::TST_imm(Cond cond, ArmReg Rn_index, int rotate, ArmImm8 imm8) {
     cond_manager.CompileCond(cond);
 
-    u32 immediate = CompileExpandImmediate_C(rotate, imm8, true);
+    u32 immediate = CompileExpandArmImmediate_C(rotate, imm8, true);
 
     X64Reg Rn;
 
@@ -1514,7 +1514,7 @@ void JitX64::TST_imm(Cond cond, ArmReg Rn_index, int rotate, ArmImm8 imm8) {
     }
 
     UpdateFlagsNZ();
-    // C updated by CompileExpandImmediate_C
+    // C updated by CompileExpandArmImmediate_C
     // V unchanged
 
     current.arm_pc += GetInstSize();
