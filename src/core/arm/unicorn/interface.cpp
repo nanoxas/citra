@@ -221,17 +221,18 @@ void ARM_Unicorn::AddTicks(u64 ticks) {
     if (down_count < 0)
         CoreTiming::Advance();
 }
-
+static bool once = false;
 void ARM_Unicorn::ExecuteInstructions(int num_instructions) {
     //this->NumInstrsToExecute = num_instructions;
     u32 start_address = GetPC();
     //num_instructions = 1;
 //    LOG_INFO(Core, "Execute code at 0x%08x", start_address, Memory::Read32());
-    LOG_INFO(Core, "CPSR: %d", GetCPSR());
+//    LOG_INFO(Core, "CPSR: %d", GetCPSR());
     uc_err err = uc_emu_start(engine, start_address, 0, 0, num_instructions);
-    if (err) {
-        LOG_INFO(Core, "CPSR: %d", GetCPSR());
-        LOG_ERROR(Core, "Failed to execute code at 0x%08x. Error code: %d Memory at 0x00100004 0x%08x", start_address, err, Memory::Read32(0x100004));
+    if (err && !once) {
+        once = true;
+//        LOG_INFO(Core, "CPSR: %d", GetCPSR());
+        LOG_ERROR(Core, "Failed to execute code at 0x%08x. Error: %s", start_address, uc_strerror(err));
     }
     AddTicks(num_instructions);
 }
