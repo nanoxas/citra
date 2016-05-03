@@ -46,10 +46,16 @@ void Config::ReadValues() {
     Settings::values.use_hw_renderer = qt_config->value("use_hw_renderer", false).toBool();
     Settings::values.use_shader_jit = qt_config->value("use_shader_jit", true).toBool();
     Settings::values.use_scaled_resolution = qt_config->value("use_scaled_resolution", false).toBool();
+    Settings::values.use_split_screen = qt_config->value("use_split_screen", false).toBool();
 
     Settings::values.bg_red   = qt_config->value("bg_red",   1.0).toFloat();
     Settings::values.bg_green = qt_config->value("bg_green", 1.0).toFloat();
     Settings::values.bg_blue  = qt_config->value("bg_blue",  1.0).toFloat();
+    qt_config->endGroup();
+
+    qt_config->beginGroup("Layout");
+    Settings::values.layout_option = static_cast<Settings::LayoutOption>(qt_config->value("layout_option").toInt());
+    Settings::values.swap_screen = qt_config->value("swap_screen", false).toBool();
     qt_config->endGroup();
 
     qt_config->beginGroup("Audio");
@@ -140,6 +146,11 @@ void Config::SaveValues() {
     qt_config->setValue("bg_red",   (double)Settings::values.bg_red);
     qt_config->setValue("bg_green", (double)Settings::values.bg_green);
     qt_config->setValue("bg_blue",  (double)Settings::values.bg_blue);
+    qt_config->endGroup();
+
+    qt_config->beginGroup("Layout");
+    qt_config->setValue("layout_option", static_cast<int>(Settings::values.layout_option));
+    qt_config->setValue("swap_screen", Settings::values.swap_screen);
     qt_config->endGroup();
 
     qt_config->beginGroup("Audio");

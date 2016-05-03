@@ -35,5 +35,4 @@ void ConfigureGeneral::applyConfiguration() {
     Settings::values.use_hw_renderer = ui->toogle_hw_renderer->isChecked();
     Settings::values.use_shader_jit = ui->toogle_shader_jit->isChecked();
     Settings::values.use_scaled_resolution = ui->toogle_scaled_resolution->isChecked();
-    Settings::Apply();
 }

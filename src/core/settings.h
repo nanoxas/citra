@@ -39,6 +39,12 @@ static const std::array<Values, NUM_INPUTS> All = {{
 }};
 }
 
+enum class LayoutOption {
+    Default,
+    SingleScreen,
+    LargeScreen,
+    Custom,
+};
 
 struct Values {
     // Controls
@@ -57,6 +63,10 @@ struct Values {
     bool use_hw_renderer;
     bool use_shader_jit;
     bool use_scaled_resolution;
+    bool use_split_screen;
+
+    LayoutOption layout_option;
+    bool swap_screen;
 
     float bg_red;
     float bg_green;
