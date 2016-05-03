@@ -101,6 +101,41 @@
             </item>
            </layout>
           </item>
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_7">
+            <item>
+             <widget class="QLabel" name="label1">
+              <property name="text">
+               <string>Screen Layout:</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QComboBox" name="layout_combobox">
+              <item>
+               <property name="text">
+                <string notr="true">Default</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string notr="true">Top Only</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string notr="true">Bottom Only</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string notr="true">Bottom First</string>
+               </property>
+              </item>
+             </widget>
+            </item>
+           </layout>
+          </item>
          </layout>
         </item>
        </layout>

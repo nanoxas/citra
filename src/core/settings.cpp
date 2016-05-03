@@ -10,6 +10,8 @@
 
 #include "video_core/video_core.h"
 
+#include "common/emu_window.h"
+
 namespace Settings {
 
 Values values = {};
@@ -22,6 +24,28 @@ void Apply() {
     VideoCore::g_hw_renderer_enabled = values.use_hw_renderer;
     VideoCore::g_shader_jit_enabled = values.use_shader_jit;
     VideoCore::g_scaled_resolution_enabled = values.use_scaled_resolution;
+
+    if (VideoCore::g_emu_window) {
+        int width = VideoCore::g_emu_window->GetFramebufferLayout().width;
+        int height = VideoCore::g_emu_window->GetFramebufferLayout().height;
+        EmuWindow::FramebufferLayout layout;
+        switch (Settings::values.layout_option) {
+        case Settings::Layout::TopOnly:
+            layout = EmuWindow::FramebufferLayout::TopOnlyLayout(width, height);
+            break;
+        case Settings::Layout::BottomOnly:
+            layout = EmuWindow::FramebufferLayout::BotOnlyLayout(width, height);
+            break;
+        case Settings::Layout::BottomFirst:
+            layout = EmuWindow::FramebufferLayout::BotFirstLayout(width, height);
+            break;
+        case Settings::Layout::Default:
+        default:
+            layout = EmuWindow::FramebufferLayout::DefaultScreenLayout(width, height);
+            break;
+        }
+        VideoCore::g_emu_window->NotifyFramebufferLayoutChanged(layout);
+    }
 
     AudioCore::SelectSink(values.sink_id);
 

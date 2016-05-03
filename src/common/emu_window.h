@@ -56,8 +56,34 @@ public:
          */
         static FramebufferLayout DefaultScreenLayout(unsigned width, unsigned height);
 
+        /**
+        * Factory method for constructing a FramebufferLayout with only the top screen
+        * @param width Window framebuffer width in pixels
+        * @param height Window framebuffer height in pixels
+        * @return Newly created FramebufferLayout object with default screen regions initialized
+        */
+        static FramebufferLayout TopOnlyLayout(unsigned width, unsigned height);
+
+        /**
+        * Factory method for constructing a FramebufferLayout with only the bottom screen
+        * @param width Window framebuffer width in pixels
+        * @param height Window framebuffer height in pixels
+        * @return Newly created FramebufferLayout object with default screen regions initialized
+        */
+        static FramebufferLayout BotOnlyLayout(unsigned width, unsigned height);
+
+        /**
+        * Factory method for constructing a Frame with the bottom screen and top screens switched
+        * @param width Window framebuffer width in pixels
+        * @param height Window framebuffer height in pixels
+        * @return Newly created FramebufferLayout object with default screen regions initialized
+        */
+        static FramebufferLayout BotFirstLayout(unsigned width, unsigned height);
+
         unsigned width;
         unsigned height;
+        bool top_screen_enabled;
+        bool bottom_screen_enabled;
         MathUtil::Rectangle<unsigned> top_screen;
         MathUtil::Rectangle<unsigned> bottom_screen;
     };
@@ -192,6 +218,14 @@ public:
         return framebuffer_layout;
     }
 
+    /**
+     * Update framebuffer layout with the given parameter.
+     * @note EmuWindow implementations will usually use this in window resize event handlers.
+     */
+    void NotifyFramebufferLayoutChanged(const FramebufferLayout& layout) {
+        framebuffer_layout = layout;
+    }
+
 protected:
     EmuWindow() {
         // TODO: Find a better place to set this.
@@ -219,14 +253,6 @@ protected:
             OnMinimalClientAreaChangeRequest(config.min_client_area_size);
             config.min_client_area_size = active_config.min_client_area_size;
         }
-    }
-
-    /**
-     * Update framebuffer layout with the given parameter.
-     * @note EmuWindow implementations will usually use this in window resize event handlers.
-     */
-    void NotifyFramebufferLayoutChanged(const FramebufferLayout& layout) {
-        framebuffer_layout = layout;
     }
 
     /**

@@ -50,6 +50,10 @@ use_shader_jit =
 # 0 (default): Native, 1: Scaled
 use_scaled_resolution =
 
+# Layout for the screen inside the render window.
+# 0 (default): Default Top Bottom Screen, 1: Top Screen Only, 2: Bottom Screen Only, 3: Bottom Screen on Top
+layout_option =
+
 # The clear color for the renderer. What shows up on the sides of the bottom screen.
 # Must be in range of 0.0-1.0. Defaults to 1.0 for all.
 bg_red =
