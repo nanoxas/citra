@@ -4,7 +4,7 @@
 
 #pragma once
 
-class EmuWindow;
+class Screen;
 
 namespace System {
 
@@ -15,7 +15,7 @@ enum class Result {
     ErrorInitVideoCore,     ///< Something went wrong during video core init
 };
 
-Result Init(EmuWindow* emu_window);
+Result Init(Screen* emu_window);
 void Shutdown();
 
 }

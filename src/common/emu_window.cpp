@@ -124,3 +124,233 @@ EmuWindow::FramebufferLayout EmuWindow::FramebufferLayout::DefaultScreenLayout(u
 
     return res;
 }
+
+EmuWindow::FramebufferLayout EmuWindow::FramebufferLayout::TopOnlyLayout(unsigned width, unsigned height) {
+
+    ASSERT(width > 0);
+    ASSERT(height > 0);
+
+    EmuWindow::FramebufferLayout res = { width, height, {}, {} };
+
+    float window_aspect_ratio = static_cast<float>(height) / width;
+    float emulation_aspect_ratio = static_cast<float>(VideoCore::kScreenTopHeight) /
+        VideoCore::kScreenTopWidth;
+
+    if (window_aspect_ratio > emulation_aspect_ratio) {
+        // Window is narrower than the emulation content => apply borders to the top and bottom
+        int viewport_height = static_cast<int>(std::round(emulation_aspect_ratio * width));
+
+        res.top_screen.left = 0;
+        res.top_screen.right = res.top_screen.left + width;
+        res.top_screen.top = (height - viewport_height) / 2;
+        res.top_screen.bottom = res.top_screen.top + viewport_height;
+
+        res.bottom_screen.left = 0;
+        res.bottom_screen.right = 0;
+        res.bottom_screen.top = 0;
+        res.bottom_screen.bottom = 0;
+    }
+    else {
+        // Otherwise, apply borders to the left and right sides of the window.
+        int viewport_width = static_cast<int>(std::round(height / emulation_aspect_ratio));
+
+        res.top_screen.left = (width - viewport_width) / 2;
+        res.top_screen.right = res.top_screen.left + viewport_width;
+        res.top_screen.top = 0;
+        res.top_screen.bottom = res.top_screen.top + height;
+
+        res.bottom_screen.left = 0;
+        res.bottom_screen.right = 0;
+        res.bottom_screen.top = 0;
+        res.bottom_screen.bottom = 0;
+    }
+
+    return res;
+}
+
+EmuWindow::FramebufferLayout EmuWindow::FramebufferLayout::BotOnlyLayout(unsigned width, unsigned height) {
+
+    ASSERT(width > 0);
+    ASSERT(height > 0);
+
+    EmuWindow::FramebufferLayout res = { width, height, {}, {} };
+
+    float window_aspect_ratio = static_cast<float>(height) / width;
+    float emulation_aspect_ratio = static_cast<float>(VideoCore::kScreenBottomHeight) /
+        VideoCore::kScreenBottomWidth;
+
+    if (window_aspect_ratio > emulation_aspect_ratio) {
+        // Window is narrower than the emulation content => apply borders to the top and bottom
+        int viewport_height = static_cast<int>(std::round(emulation_aspect_ratio * width));
+
+        res.bottom_screen.left = 0;
+        res.bottom_screen.right = res.top_screen.left + width;
+        res.bottom_screen.top = (height - viewport_height) / 2;
+        res.bottom_screen.bottom = res.top_screen.top + viewport_height;
+
+        res.top_screen.left = 0;
+        res.top_screen.right = 0;
+        res.top_screen.top = 0;
+        res.top_screen.bottom = 0;
+    }
+    else {
+        // Otherwise, apply borders to the left and right sides of the window.
+        int viewport_width = static_cast<int>(std::round(height / emulation_aspect_ratio));
+
+        res.bottom_screen.left = (width - viewport_width) / 2;
+        res.bottom_screen.right = res.top_screen.left + viewport_width;
+        res.bottom_screen.top = 0;
+        res.bottom_screen.bottom = res.top_screen.top + height;
+
+        res.top_screen.left = 0;
+        res.top_screen.right = 0;
+        res.top_screen.top = 0;
+        res.top_screen.bottom = 0;
+    }
+
+    return res;
+}
+
+EmuWindow::FramebufferLayout EmuWindow::FramebufferLayout::BotFirstLayout(unsigned width, unsigned height) {
+
+    ASSERT(width > 0);
+    ASSERT(height > 0);
+
+    EmuWindow::FramebufferLayout res = { width, height, {}, {} };
+
+    float window_aspect_ratio = static_cast<float>(height) / width;
+    float emulation_aspect_ratio = static_cast<float>(VideoCore::kScreenTopHeight * 2) /
+        VideoCore::kScreenTopWidth;
+
+    if (window_aspect_ratio > emulation_aspect_ratio) {
+        // Window is narrower than the emulation content => apply borders to the top and bottom
+        int viewport_height = static_cast<int>(std::round(emulation_aspect_ratio * width));
+        int bottom_width = static_cast<int>((static_cast<float>(VideoCore::kScreenBottomWidth) /
+            VideoCore::kScreenTopWidth) * (res.top_screen.right - res.top_screen.left));
+        int bottom_border = ((res.top_screen.right - res.top_screen.left) - bottom_width) / 2;
+
+        res.bottom_screen.left = bottom_border;
+        res.bottom_screen.right = res.bottom_screen.left + bottom_width;
+        res.bottom_screen.top = (height - viewport_height) / 2;
+        res.bottom_screen.bottom = res.bottom_screen.top + viewport_height / 2;
+
+        res.top_screen.left = 0;
+        res.top_screen.right = res.top_screen.left + width;
+        res.top_screen.top = res.top_screen.bottom;
+        res.top_screen.bottom = res.top_screen.top + viewport_height / 2;
+    }
+    else {
+        // Otherwise, apply borders to the left and right sides of the window.
+        int viewport_width = static_cast<int>(std::round(height / emulation_aspect_ratio));
+        int bottom_width = static_cast<int>((static_cast<float>(VideoCore::kScreenBottomWidth) /
+            VideoCore::kScreenTopWidth) * (res.top_screen.right - res.top_screen.left));
+        int bottom_border = ((res.top_screen.right - res.top_screen.left) - bottom_width) / 2;
+
+        res.bottom_screen.left = res.top_screen.left + bottom_border;
+        res.bottom_screen.right = res.bottom_screen.left + bottom_width;
+        res.bottom_screen.top = 0;
+        res.bottom_screen.bottom = res.bottom_screen.top + height / 2;
+
+        res.top_screen.left = (width - viewport_width) / 2;
+        res.top_screen.right = res.top_screen.left + viewport_width;
+        res.top_screen.top = res.top_screen.bottom;
+        res.top_screen.bottom = res.top_screen.top + height / 2;
+    }
+
+    return res;
+}
+
+Screen::Screen(EmuWindow* single) {
+    is_split_screen = false;
+    single_window = single;
+}
+
+Screen::Screen(EmuWindow* top, EmuWindow* bot) {
+    is_split_screen = true;
+    split_window_top = top;
+    split_window_bot = bot;
+}
+
+EmuWindow* Screen::GetTopScreen() {
+    return (is_split_screen) ? split_window_top : single_window;
+}
+
+EmuWindow* Screen::GetBotScreen() {
+    return (is_split_screen) ? split_window_bot : single_window;
+}
+
+void Screen::SwapBuffers() {
+    if (is_split_screen) {
+        split_window_top->SwapBuffers();
+        split_window_bot->SwapBuffers();
+    } else {
+        single_window->SwapBuffers();
+    }
+}
+
+void Screen::PollEvents() {
+    if (is_split_screen) {
+        split_window_top->SwapBuffers();
+        split_window_bot->SwapBuffers();
+    } else {
+        single_window->SwapBuffers();
+    }
+}
+
+void Screen::MakeCurrent() {
+    if (is_split_screen) {
+        split_window_top->MakeCurrent();
+        split_window_bot->MakeCurrent();
+    } else {
+        single_window->MakeCurrent();
+    }
+}
+
+void Screen::DoneCurrent() {
+    if (is_split_screen) {
+        split_window_top->DoneCurrent();
+        split_window_bot->DoneCurrent();
+    } else {
+        single_window->DoneCurrent();
+    }
+}
+
+void Screen::ReloadSetKeymaps() {
+    if (is_split_screen) {
+        split_window_top->ReloadSetKeymaps();
+        split_window_bot->ReloadSetKeymaps();
+    } else {
+        single_window->ReloadSetKeymaps();
+    }
+}
+
+void Screen::KeyPressed(KeyMap::HostDeviceKey key){
+    return (is_split_screen) ? split_window_bot->KeyPressed(key) : single_window->KeyPressed(key);
+}
+void Screen::KeyReleased(KeyMap::HostDeviceKey key){
+    return (is_split_screen) ? split_window_bot->KeyReleased(key) : single_window->KeyReleased(key);
+}
+void Screen::TouchPressed(unsigned framebuffer_x, unsigned framebuffer_y){
+    return (is_split_screen) ? split_window_bot->TouchPressed(framebuffer_x, framebuffer_y) : single_window->TouchPressed(framebuffer_x, framebuffer_y);
+}
+void Screen::TouchReleased(){
+    return (is_split_screen) ? split_window_bot->TouchReleased() : single_window->TouchReleased();
+}
+void Screen::TouchMoved(unsigned framebuffer_x, unsigned framebuffer_y){
+    return (is_split_screen) ? split_window_bot->TouchMoved(framebuffer_x, framebuffer_y) : single_window->TouchMoved(framebuffer_x, framebuffer_y);
+}
+Service::HID::PadState Screen::GetPadState(){
+    return (is_split_screen) ? split_window_bot->GetPadState() : single_window->GetPadState();
+}
+std::tuple<u16, u16, bool> Screen::GetTouchState(){
+    return (is_split_screen) ? split_window_bot->GetTouchState() : single_window->GetTouchState();
+}
+std::tuple<s16, s16, s16> Screen::GetAccelerometerState(){
+    return (is_split_screen) ? split_window_bot->GetAccelerometerState() : single_window->GetAccelerometerState();
+}
+std::tuple<s16, s16, s16> Screen::GetGyroscopeState(){
+    return (is_split_screen) ? split_window_bot->GetGyroscopeState() : single_window->GetGyroscopeState();
+}
+f32 Screen::GetGyroscopeRawToDpsCoefficient(){
+    return (is_split_screen) ? split_window_bot->GetGyroscopeRawToDpsCoefficient() : single_window->GetGyroscopeRawToDpsCoefficient();
+}

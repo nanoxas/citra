@@ -46,7 +46,7 @@ public:
      * Set the emulator window to use for renderer
      * @param window EmuWindow handle to emulator window to use for rendering
      */
-    void SetWindow(EmuWindow* window) override;
+    void SetWindow(Screen* window) override;
 
     /// Initialize the renderer
     bool Init() override;
@@ -69,7 +69,7 @@ private:
     void LoadColorToActiveGLTexture(u8 color_r, u8 color_g, u8 color_b,
                                     const TextureInfo& texture);
 
-    EmuWindow*  render_window;                    ///< Handle to render window
+    Screen* render_window;                        ///< Handle to render window
 
     int resolution_width;                         ///< Current resolution width
     int resolution_height;                        ///< Current resolution height

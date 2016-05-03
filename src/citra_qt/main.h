@@ -111,8 +111,12 @@ private slots:
 
 private:
     Ui::MainWindow ui;
-
+    
     GRenderWindow* render_window;
+    GRenderWindow* top_window;
+    GRenderWindow* bot_window;
+    std::unique_ptr<Screen> current_screen;
+
     GameList* game_list;
 
     std::unique_ptr<Config> config;

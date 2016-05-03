@@ -10,7 +10,7 @@
 
 #include "video_core/rasterizer_interface.h"
 
-class EmuWindow;
+class Screen;
 
 class RendererBase : NonCopyable {
 public:
@@ -32,7 +32,7 @@ public:
      * Set the emulator window to use for renderer
      * @param window EmuWindow handle to emulator window to use for rendering
      */
-    virtual void SetWindow(EmuWindow* window) = 0;
+    virtual void SetWindow(Screen* window) = 0;
 
     /// Initialize the renderer
     virtual bool Init() = 0;

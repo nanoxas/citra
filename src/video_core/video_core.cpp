@@ -20,20 +20,22 @@
 
 namespace VideoCore {
 
-EmuWindow*                    g_emu_window = nullptr; ///< Frontend emulator window
-std::unique_ptr<RendererBase> g_renderer;             ///< Renderer plugin
+Screen*                       g_screen = nullptr; ///< Frontend emulator window
+std::unique_ptr<RendererBase> g_renderer;         ///< Renderer plugin
 
 std::atomic<bool> g_hw_renderer_enabled;
 std::atomic<bool> g_shader_jit_enabled;
 std::atomic<bool> g_scaled_resolution_enabled;
+std::atomic<bool> g_split_screen_enabled;
 
 /// Initialize the video core
-bool Init(EmuWindow* emu_window) {
+bool Init(Screen* screen) {
     Pica::Init();
 
-    g_emu_window = emu_window;
+    g_screen = screen;
     g_renderer = std::make_unique<RendererOpenGL>();
-    g_renderer->SetWindow(g_emu_window);
+
+    g_renderer->SetWindow(g_screen);
     if (g_renderer->Init()) {
         LOG_DEBUG(Render, "initialized OK");
     } else {

@@ -56,6 +56,30 @@ public:
          */
         static FramebufferLayout DefaultScreenLayout(unsigned width, unsigned height);
 
+        /**
+        * Factory method for constructing a FramebufferLayout with only the top screen
+        * @param width Window framebuffer width in pixels
+        * @param height Window framebuffer height in pixels
+        * @return Newly created FramebufferLayout object with default screen regions initialized
+        */
+        static FramebufferLayout TopOnlyLayout(unsigned width, unsigned height);
+
+        /**
+        * Factory method for constructing a FramebufferLayout with only the bottom screen
+        * @param width Window framebuffer width in pixels
+        * @param height Window framebuffer height in pixels
+        * @return Newly created FramebufferLayout object with default screen regions initialized
+        */
+        static FramebufferLayout BotOnlyLayout(unsigned width, unsigned height);
+
+        /**
+        * Factory method for constructing a Frame with the bottom screen and top screens switched
+        * @param width Window framebuffer width in pixels
+        * @param height Window framebuffer height in pixels
+        * @return Newly created FramebufferLayout object with default screen regions initialized
+        */
+        static FramebufferLayout BotFirstLayout(unsigned width, unsigned height);
+
         unsigned width;
         unsigned height;
         MathUtil::Rectangle<unsigned> top_screen;
@@ -266,4 +290,41 @@ private:
     std::tuple<unsigned,unsigned> ClipToTouchScreen(unsigned new_x, unsigned new_y);
 
     Service::HID::PadState pad_state;
+};
+
+/**
+ * Helper class to hide whether there is one EmuWindow or two.
+ */
+class Screen {
+public:
+    Screen(EmuWindow* single);
+    Screen(EmuWindow* top, EmuWindow* bot);
+
+    EmuWindow* GetTopScreen();
+    EmuWindow* GetBotScreen();
+
+    // Pass thru to both if this is in split screen mode
+    void SwapBuffers();
+    void PollEvents();
+    void MakeCurrent();
+    void DoneCurrent();
+    void ReloadSetKeymaps();
+
+    // Pass thru to the bottom screen only
+    void KeyPressed(KeyMap::HostDeviceKey key);
+    void KeyReleased(KeyMap::HostDeviceKey key);
+    void TouchPressed(unsigned framebuffer_x, unsigned framebuffer_y);
+    void TouchReleased();
+    void TouchMoved(unsigned framebuffer_x, unsigned framebuffer_y);
+    Service::HID::PadState GetPadState();
+    std::tuple<u16, u16, bool> GetTouchState();
+    std::tuple<s16, s16, s16> GetAccelerometerState();
+    std::tuple<s16, s16, s16> GetGyroscopeState();
+    f32 GetGyroscopeRawToDpsCoefficient();
+
+private:
+    bool is_split_screen;
+    EmuWindow* single_window = nullptr;
+    EmuWindow* split_window_top = nullptr;
+    EmuWindow* split_window_bot = nullptr;
 };

@@ -8,6 +8,7 @@
 #include <memory>
 
 class EmuWindow;
+class Screen;
 class RendererBase;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -31,18 +32,23 @@ static const int kScreenBottomHeight    = 240;  ///< 3DS bottom screen height
 // ---------------------
 
 extern std::unique_ptr<RendererBase> g_renderer;   ///< Renderer plugin
-extern EmuWindow*                    g_emu_window; ///< Emu window
+
+extern Screen* g_screen;
+//extern EmuWindow*                    g_emu_window;
+//extern EmuWindow*                    g_top_emu_window;
+//extern EmuWindow*                    g_bot_emu_window;
 
 // TODO: Wrap these in a user settings struct along with any other graphics settings (often set from qt ui)
 extern std::atomic<bool> g_hw_renderer_enabled;
 extern std::atomic<bool> g_shader_jit_enabled;
 extern std::atomic<bool> g_scaled_resolution_enabled;
+extern std::atomic<bool> g_split_screen_enabled;
 
 /// Start the video core
 void Start();
 
 /// Initialize the video core
-bool Init(EmuWindow* emu_window);
+bool Init(Screen* screen);
 
 /// Shutdown the video core
 void Shutdown();

@@ -380,7 +380,9 @@ void RendererOpenGL::DrawSingleScreenRotated(const ScreenInfo& screen_info, floa
  * Draws the emulated screens to the emulator window.
  */
 void RendererOpenGL::DrawScreens() {
-    auto layout = render_window->GetFramebufferLayout();
+    auto layout = render_window->GetTopScreen()->GetFramebufferLayout();
+    auto top_screen = layout.top_screen;
+    auto bottom_screen = render_window->GetBotScreen()->GetFramebufferLayout().bottom_screen;
 
     glViewport(0, 0, layout.width, layout.height);
     glClear(GL_COLOR_BUFFER_BIT);
@@ -394,10 +396,10 @@ void RendererOpenGL::DrawScreens() {
     glActiveTexture(GL_TEXTURE0);
     glUniform1i(uniform_color_texture, 0);
 
-    DrawSingleScreenRotated(screen_infos[0], (float)layout.top_screen.left, (float)layout.top_screen.top,
-        (float)layout.top_screen.GetWidth(), (float)layout.top_screen.GetHeight());
-    DrawSingleScreenRotated(screen_infos[1], (float)layout.bottom_screen.left,(float)layout.bottom_screen.top,
-        (float)layout.bottom_screen.GetWidth(), (float)layout.bottom_screen.GetHeight());
+    DrawSingleScreenRotated(screen_infos[0], (float)top_screen.left, (float)top_screen.top,
+        (float)top_screen.GetWidth(), (float)top_screen.GetHeight());
+    DrawSingleScreenRotated(screen_infos[1], (float)bottom_screen.left,(float)bottom_screen.top,
+        (float)bottom_screen.GetWidth(), (float)bottom_screen.GetHeight());
 
     m_current_frame++;
 }
@@ -410,8 +412,23 @@ void RendererOpenGL::UpdateFramerate() {
  * Set the emulator window to use for renderer
  * @param window EmuWindow handle to emulator window to use for rendering
  */
-void RendererOpenGL::SetWindow(EmuWindow* window) {
+void RendererOpenGL::SetWindow(Screen* window) {
     render_window = window;
+    // resize the resolution 
+    switch (Settings::values.layout_option) {
+    case Settings::Layout::TopOnly:
+        resolution_width = VideoCore::kScreenTopWidth;
+        resolution_height = VideoCore::kScreenTopHeight;
+        break;
+    case Settings::Layout::BottomOnly:
+        resolution_width = VideoCore::kScreenBottomWidth;
+        resolution_height = VideoCore::kScreenBottomHeight;
+        break;
+    case Settings::Layout::Default:
+    case Settings::Layout::BottomFirst:
+    default:
+        break;
+    }
 }
 
 static const char* GetSource(GLenum source) {
@@ -476,7 +493,7 @@ bool RendererOpenGL::Init() {
 
     if (GLAD_GL_KHR_debug) {
         glEnable(GL_DEBUG_OUTPUT);
-        glDebugMessageCallback(DebugHandler, nullptr);
+        glDebugMessageCallback(reinterpret_cast<GLDEBUGPROC>(DebugHandler), nullptr);
     }
 
     LOG_INFO(Render_OpenGL, "GL_VERSION: %s", glGetString(GL_VERSION));

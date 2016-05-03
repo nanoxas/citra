@@ -500,11 +500,11 @@ std::tuple<CachedSurface*, CachedSurface*, MathUtil::Rectangle<int>> RasterizerC
     color_params.height = depth_params.height = config.GetHeight();
     color_params.is_tiled = depth_params.is_tiled = true;
     if (VideoCore::g_scaled_resolution_enabled) {
-        auto layout = VideoCore::g_emu_window->GetFramebufferLayout();
+        auto top_screen = VideoCore::g_screen->GetTopScreen()->GetFramebufferLayout().top_screen;
 
         // Assume same scaling factor for top and bottom screens
-        color_params.res_scale_width = depth_params.res_scale_width = (float)layout.top_screen.GetWidth() / VideoCore::kScreenTopWidth;
-        color_params.res_scale_height = depth_params.res_scale_height = (float)layout.top_screen.GetHeight() / VideoCore::kScreenTopHeight;
+        color_params.res_scale_width = depth_params.res_scale_width = (float)top_screen.GetWidth() / VideoCore::kScreenTopWidth;
+        color_params.res_scale_height = depth_params.res_scale_height = (float)top_screen.GetHeight() / VideoCore::kScreenTopHeight;
     }
 
     color_params.addr = config.GetColorBufferPhysicalAddress();

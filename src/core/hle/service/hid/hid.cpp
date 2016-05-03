@@ -64,7 +64,7 @@ const std::array<Service::HID::PadState, Settings::NativeInput::NUM_INPUTS> pad_
 
 void Update() {
     SharedMem* mem = reinterpret_cast<SharedMem*>(shared_mem->GetPointer());
-    const PadState state = VideoCore::g_emu_window->GetPadState();
+    const PadState state = VideoCore::g_screen->GetPadState();
 
     if (mem == nullptr) {
         LOG_DEBUG(Service_HID, "Cannot update HID prior to mapping shared memory!");
@@ -109,7 +109,7 @@ void Update() {
     TouchDataEntry& touch_entry = mem->touch.entries[mem->touch.index];
     bool pressed = false;
 
-    std::tie(touch_entry.x, touch_entry.y, pressed) = VideoCore::g_emu_window->GetTouchState();
+    std::tie(touch_entry.x, touch_entry.y, pressed) = VideoCore::g_screen->GetTouchState();
     touch_entry.valid.Assign(pressed ? 1 : 0);
 
     // TODO(bunnei): We're not doing anything with offset 0xA8 + 0x18 of HID SharedMemory, which
@@ -133,7 +133,7 @@ void Update() {
 
         AccelerometerDataEntry& accelerometer_entry = mem->accelerometer.entries[mem->accelerometer.index];
         std::tie(accelerometer_entry.x, accelerometer_entry.y, accelerometer_entry.z)
-            = VideoCore::g_emu_window->GetAccelerometerState();
+            = VideoCore::g_screen->GetAccelerometerState();
 
         // Make up "raw" entry
         // TODO(wwylele):
@@ -162,7 +162,7 @@ void Update() {
 
         GyroscopeDataEntry& gyroscope_entry = mem->gyroscope.entries[mem->gyroscope.index];
         std::tie(gyroscope_entry.x, gyroscope_entry.y, gyroscope_entry.z)
-            = VideoCore::g_emu_window->GetGyroscopeState();
+            = VideoCore::g_screen->GetGyroscopeState();
 
         // Make up "raw" entry
         mem->gyroscope.raw_entry.x = gyroscope_entry.x;
@@ -242,7 +242,7 @@ void GetGyroscopeLowRawToDpsCoefficient(Service::Interface* self) {
 
     cmd_buff[1] = RESULT_SUCCESS.raw;
 
-    f32 coef = VideoCore::g_emu_window->GetGyroscopeRawToDpsCoefficient();
+    f32 coef = VideoCore::g_screen->GetGyroscopeRawToDpsCoefficient();
     memcpy(&cmd_buff[2], &coef, 4);
 }
 

@@ -61,6 +61,15 @@ GMainWindow::GMainWindow() : config(new Config()), emu_thread(nullptr)
 
     render_window = new GRenderWindow(this, emu_thread.get());
     render_window->hide();
+    
+    top_window = new GRenderWindow(this, emu_thread.get());
+    //addDockWidget(Qt::TopDockWidgetArea, top_window);
+    top_window->hide();
+
+    bot_window = new GRenderWindow(this, emu_thread.get());
+    //addDockWidget(Qt::BottomDockWidgetArea, bot_window);
+    bot_window->hide();
+    current_screen = std::make_unique<Screen>(render_window);
 
     game_list = new GameList();
     ui.horizontalLayout->addWidget(game_list);
@@ -241,7 +250,7 @@ bool GMainWindow::InitializeSystem() {
         ShutdownGame();
 
     // Initialize the core emulation
-    System::Result system_result = System::Init(render_window);
+    System::Result system_result = System::Init(current_screen.get());
     if (System::Result::Success != system_result) {
         switch (system_result) {
         case System::Result::ErrorInitVideoCore:

@@ -17,14 +17,14 @@
 
 namespace System {
 
-Result Init(EmuWindow* emu_window) {
+Result Init(Screen* screen) {
     Core::Init();
     CoreTiming::Init();
     Memory::Init();
     HW::Init();
     Kernel::Init();
     HLE::Init();
-    if (!VideoCore::Init(emu_window)) {
+    if (!VideoCore::Init(screen)) {
         return Result::ErrorInitVideoCore;
     }
     AudioCore::Init();
