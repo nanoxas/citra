@@ -80,6 +80,24 @@ public:
         */
         static FramebufferLayout BotFirstLayout(unsigned width, unsigned height);
 
+        /**
+        * Factory method for constructing a Frame with the a 4x size Top screen with a 1x size bottom screen on the right
+        * This is useful in particular because it matches well with a 1920x1080 resolution monitor
+        * @param width Window framebuffer width in pixels
+        * @param height Window framebuffer height in pixels
+        * @return Newly created FramebufferLayout object with default screen regions initialized
+        */
+        static FramebufferLayout LargeTopLayout(unsigned width, unsigned height);
+
+        /**
+        * Factory method for constructing a Frame with the a 4x size bottom screen with a 1x size top screen on the right
+        * This is useful in particular because it matches well with a 1920x1080 resolution monitor
+        * @param width Window framebuffer width in pixels
+        * @param height Window framebuffer height in pixels
+        * @return Newly created FramebufferLayout object with default screen regions initialized
+        */
+        static FramebufferLayout LargeBotLayout(unsigned width, unsigned height);
+
         unsigned width;
         unsigned height;
         bool top_screen_enabled;
@@ -219,12 +237,10 @@ public:
     }
 
     /**
-     * Update framebuffer layout with the given parameter.
-     * @note EmuWindow implementations will usually use this in window resize event handlers.
+     * Convenience method to update the VideoCore EmuWindow
+     * Read from the current settings to determine which layout to use.
      */
-    void NotifyFramebufferLayoutChanged(const FramebufferLayout& layout) {
-        framebuffer_layout = layout;
-    }
+    void UpdateCurrentFramebufferLayout(unsigned width, unsigned height);
 
 protected:
     EmuWindow() {
@@ -253,6 +269,14 @@ protected:
             OnMinimalClientAreaChangeRequest(config.min_client_area_size);
             config.min_client_area_size = active_config.min_client_area_size;
         }
+    }
+
+    /**
+     * Update framebuffer layout with the given parameter.
+     * @note EmuWindow implementations will usually use this in window resize event handlers.
+     */
+    void NotifyFramebufferLayoutChanged(const FramebufferLayout& layout) {
+        framebuffer_layout = layout;
     }
 
     /**

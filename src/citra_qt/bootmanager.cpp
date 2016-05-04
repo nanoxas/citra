@@ -186,23 +186,7 @@ void GRenderWindow::OnFramebufferSizeChanged()
     qreal pixelRatio = windowPixelRatio();
     unsigned width = child->QPaintDevice::width() * pixelRatio;
     unsigned height = child->QPaintDevice::height() * pixelRatio;
-    EmuWindow::FramebufferLayout layout;
-    switch (Settings::values.layout_option) {
-    case Settings::Layout::TopOnly:
-        layout = EmuWindow::FramebufferLayout::TopOnlyLayout(width, height);
-        break;
-    case Settings::Layout::BottomOnly:
-        layout = EmuWindow::FramebufferLayout::BotOnlyLayout(width, height);
-        break;
-    case Settings::Layout::BottomFirst:
-        layout = EmuWindow::FramebufferLayout::BotFirstLayout(width, height);
-        break;
-    case Settings::Layout::Default:
-    default:
-        layout = EmuWindow::FramebufferLayout::DefaultScreenLayout(width, height);
-        break;
-    }
-    NotifyFramebufferLayoutChanged(layout);
+    UpdateCurrentFramebufferLayout(width, height);
 }
 
 void GRenderWindow::BackupGeometry()

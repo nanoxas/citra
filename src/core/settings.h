@@ -38,14 +38,16 @@ static const std::array<Values, NUM_INPUTS> All = {{
     CUP, CDOWN, CLEFT, CRIGHT
 }};
 }
-namespace Layout {
-enum LayoutOption {
+
+enum class LayoutOption {
     Default,
     TopOnly,
     BottomOnly,
-    BottomFirst
+    BottomFirst,
+    LargeTop,
+    LargeBottom,
+    Custom,
 };
-}
 
 struct Values {
     // Controls
@@ -66,7 +68,7 @@ struct Values {
     bool use_scaled_resolution;
     bool use_split_screen;
 
-    Layout::LayoutOption layout_option;
+    LayoutOption layout_option;
 
     float bg_red;
     float bg_green;

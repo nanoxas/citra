@@ -75,6 +75,32 @@ void EmuWindow::TouchMoved(unsigned framebuffer_x, unsigned framebuffer_y) {
     TouchPressed(framebuffer_x, framebuffer_y);
 }
 
+void EmuWindow::UpdateCurrentFramebufferLayout(unsigned width, unsigned height) {
+    EmuWindow::FramebufferLayout layout;
+    switch (Settings::values.layout_option) {
+    case Settings::LayoutOption::TopOnly:
+        layout = EmuWindow::FramebufferLayout::TopOnlyLayout(width, height);
+        break;
+    case Settings::LayoutOption::BottomOnly:
+        layout = EmuWindow::FramebufferLayout::BotOnlyLayout(width, height);
+        break;
+    case Settings::LayoutOption::BottomFirst:
+        layout = EmuWindow::FramebufferLayout::BotFirstLayout(width, height);
+        break;
+    case Settings::LayoutOption::LargeTop:
+        layout = EmuWindow::FramebufferLayout::LargeTopLayout(width, height);
+        break;
+    case Settings::LayoutOption::LargeBottom:
+        layout = EmuWindow::FramebufferLayout::LargeBotLayout(width, height);
+        break;
+    case Settings::LayoutOption::Default:
+    default:
+        layout = EmuWindow::FramebufferLayout::DefaultScreenLayout(width, height);
+        break;
+    }
+    NotifyFramebufferLayoutChanged(layout);
+}
+
 EmuWindow::FramebufferLayout EmuWindow::FramebufferLayout::DefaultScreenLayout(unsigned width, unsigned height) {
 
     ASSERT(width > 0);
@@ -260,6 +286,109 @@ EmuWindow::FramebufferLayout EmuWindow::FramebufferLayout::BotFirstLayout(unsign
 
         res.top_screen.top = res.bottom_screen.bottom;
         res.top_screen.bottom = res.top_screen.top + height / 2;
+    }
+
+    return res;
+}
+
+EmuWindow::FramebufferLayout EmuWindow::FramebufferLayout::LargeTopLayout(unsigned width, unsigned height) {
+
+    ASSERT(width > 0);
+    ASSERT(height > 0);
+
+    EmuWindow::FramebufferLayout res = { width, height, true, true, {}, {} };
+
+    float window_aspect_ratio = static_cast<float>(height) / width;
+    float emulation_aspect_ratio = static_cast<float>(VideoCore::kScreenTopHeight * 4) /
+        (VideoCore::kScreenTopWidth * 4 + VideoCore::kScreenBottomWidth);
+
+    if (window_aspect_ratio > emulation_aspect_ratio) {
+        // Window is narrower than the emulation content => apply borders to the top and bottom
+        int viewport_height = static_cast<int>(std::round(emulation_aspect_ratio * width));
+
+        res.top_screen.left = 0;
+        // Top screen occupies 4 / 5ths of the total width
+        res.top_screen.right = static_cast<int>(std::round(width / 5)) * 4;
+        res.top_screen.top = (height - viewport_height) / 2;
+        res.top_screen.bottom = res.top_screen.top + viewport_height;
+
+        int bottom_height = static_cast<int>((static_cast<float>(VideoCore::kScreenBottomHeight) /
+            VideoCore::kScreenBottomWidth) * (width - res.top_screen.right));
+
+        res.bottom_screen.left = res.top_screen.right;
+        res.bottom_screen.right = width;
+        res.bottom_screen.bottom = res.top_screen.bottom;
+        res.bottom_screen.top = res.bottom_screen.bottom - bottom_height;
+    } else {
+        // Otherwise, apply borders to the left and right sides of the window.
+        int viewport_width = static_cast<int>(std::round(height / emulation_aspect_ratio));
+        // Break the viewport into fifths and give top 4 of them
+        int fifth_width = static_cast<int>(std::round(viewport_width / 5));
+
+        res.top_screen.left = (width - viewport_width) / 2;
+        res.top_screen.right = res.top_screen.left + fifth_width * 4;
+        res.top_screen.top = 0;
+        res.top_screen.bottom = height;
+
+        int bottom_height = static_cast<int>((static_cast<float>(VideoCore::kScreenBottomHeight) /
+            VideoCore::kScreenBottomWidth) * (fifth_width));
+
+        res.bottom_screen.left = res.top_screen.right;
+        res.bottom_screen.right = width - (width - viewport_width) / 2;
+        res.bottom_screen.bottom = res.top_screen.bottom;
+        res.bottom_screen.top = res.bottom_screen.bottom - bottom_height;
+    }
+
+    return res;
+}
+
+
+EmuWindow::FramebufferLayout EmuWindow::FramebufferLayout::LargeBotLayout(unsigned width, unsigned height) {
+
+    ASSERT(width > 0);
+    ASSERT(height > 0);
+
+    EmuWindow::FramebufferLayout res = { width, height, true, true, {}, {} };
+
+    float window_aspect_ratio = static_cast<float>(height) / width;
+    float emulation_aspect_ratio = static_cast<float>(VideoCore::kScreenBottomHeight * 4) /
+        (VideoCore::kScreenBottomWidth * 4 + VideoCore::kScreenTopWidth);
+
+    if (window_aspect_ratio > emulation_aspect_ratio) {
+        // Window is narrower than the emulation content => apply borders to the top and bottom
+        int viewport_height = static_cast<int>(std::round(emulation_aspect_ratio * width));
+
+        res.bottom_screen.left = 0;
+        // Top screen occupies 4 / 5ths of the total width
+        res.bottom_screen.right = static_cast<int>(std::round(width / 5)) * 4;
+        res.bottom_screen.top = (height - viewport_height) / 2;
+        res.bottom_screen.bottom = res.bottom_screen.top + viewport_height;
+
+        int top_height = static_cast<int>((static_cast<float>(VideoCore::kScreenTopHeight) /
+            VideoCore::kScreenTopWidth) * (width - res.bottom_screen.right));
+
+        res.top_screen.left = res.bottom_screen.right;
+        res.top_screen.right = width;
+        res.top_screen.bottom = res.bottom_screen.bottom;
+        res.top_screen.top = res.top_screen.bottom - top_height;
+    } else {
+        // Otherwise, apply borders to the left and right sides of the window.
+        int viewport_width = static_cast<int>(std::round(height / emulation_aspect_ratio));
+        // Break the viewport into fifths and give top 4 of them
+        int fifth_width = static_cast<int>(std::round(viewport_width / 5));
+
+        res.bottom_screen.left = (width - viewport_width) / 2;
+        res.bottom_screen.right = res.bottom_screen.left + fifth_width * 4;
+        res.bottom_screen.top = 0;
+        res.bottom_screen.bottom = height;
+
+        int top_height = static_cast<int>((static_cast<float>(VideoCore::kScreenTopHeight) /
+            VideoCore::kScreenTopWidth) * (fifth_width));
+
+        res.top_screen.left = res.bottom_screen.right;
+        res.top_screen.right = width - (width - viewport_width) / 2;
+        res.top_screen.bottom = res.bottom_screen.bottom;
+        res.top_screen.top = res.top_screen.bottom - top_height;
     }
 
     return res;

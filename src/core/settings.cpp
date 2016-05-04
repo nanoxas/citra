@@ -26,25 +26,8 @@ void Apply() {
     VideoCore::g_scaled_resolution_enabled = values.use_scaled_resolution;
 
     if (VideoCore::g_emu_window) {
-        int width = VideoCore::g_emu_window->GetFramebufferLayout().width;
-        int height = VideoCore::g_emu_window->GetFramebufferLayout().height;
-        EmuWindow::FramebufferLayout layout;
-        switch (Settings::values.layout_option) {
-        case Settings::Layout::TopOnly:
-            layout = EmuWindow::FramebufferLayout::TopOnlyLayout(width, height);
-            break;
-        case Settings::Layout::BottomOnly:
-            layout = EmuWindow::FramebufferLayout::BotOnlyLayout(width, height);
-            break;
-        case Settings::Layout::BottomFirst:
-            layout = EmuWindow::FramebufferLayout::BotFirstLayout(width, height);
-            break;
-        case Settings::Layout::Default:
-        default:
-            layout = EmuWindow::FramebufferLayout::DefaultScreenLayout(width, height);
-            break;
-        }
-        VideoCore::g_emu_window->NotifyFramebufferLayoutChanged(layout);
+        auto layout = VideoCore::g_emu_window->GetFramebufferLayout();
+        VideoCore::g_emu_window->UpdateCurrentFramebufferLayout(layout.width, layout.height);
     }
 
     AudioCore::SelectSink(values.sink_id);

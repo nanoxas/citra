@@ -50,26 +50,8 @@ bool EmuWindow_SDL2::IsOpen() const {
 
 void EmuWindow_SDL2::OnResize() {
     int width, height;
-
     SDL_GetWindowSize(render_window, &width, &height);
-
-    EmuWindow::FramebufferLayout layout;
-    switch (Settings::values.layout_option) {
-    case Settings::Layout::TopOnly:
-        layout = EmuWindow::FramebufferLayout::TopOnlyLayout(width, height);
-        break;
-    case Settings::Layout::BottomOnly:
-        layout = EmuWindow::FramebufferLayout::BotOnlyLayout(width, height);
-        break;
-    case Settings::Layout::BottomFirst:
-        layout = EmuWindow::FramebufferLayout::BotFirstLayout(width, height);
-        break;
-    case Settings::Layout::Default:
-    default:
-        layout = EmuWindow::FramebufferLayout::DefaultScreenLayout(width, height);
-        break;
-    }
-    NotifyFramebufferLayoutChanged(layout);
+    UpdateCurrentFramebufferLayout(width, height);
 }
 
 EmuWindow_SDL2::EmuWindow_SDL2() {

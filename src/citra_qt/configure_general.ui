@@ -132,6 +132,21 @@
                 <string notr="true">Bottom First</string>
                </property>
               </item>
+              <item>
+               <property name="text">
+                <string notr="true">4x Top 1x Bottom</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string notr="true">4x Bottom 1x Top</string>
+               </property>
+              </item><!--
+              <item>
+               <property name="text">
+                <string notr="true">Custom</string>
+               </property>
+              </item>-->
              </widget>
             </item>
            </layout>
