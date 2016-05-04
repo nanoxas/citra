@@ -1140,6 +1140,10 @@ static inline void *AllocBuffer(unsigned int size) {
     return (void *)&inst_buf[start];
 }
 
+void InterpreterClearCache() {
+    top = 0;
+}
+
 static shtop_fp_t get_shtop(unsigned int inst) {
     if (BIT(inst, 25)) {
         return DPO(Immediate);
@@ -3877,6 +3881,9 @@ unsigned InterpreterMainLoop(ARMul_State* cpu) {
     LOAD_NZCVT;
     DISPATCH:
     {
+        if (num_instrs >= cpu->NumInstrsToExecute)
+            goto END;
+
         if (!cpu->NirqSig) {
             if (!(cpu->Cpsr & 0x80)) {
                 goto END;

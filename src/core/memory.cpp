@@ -125,6 +125,13 @@ void UnmapRegion(VAddr base, u32 size) {
     ASSERT_MSG((size & PAGE_MASK) == 0, "non-page aligned size: %08X", size);
     ASSERT_MSG((base & PAGE_MASK) == 0, "non-page aligned base: %08X", base);
     MapPages(base / PAGE_SIZE, size / PAGE_SIZE, nullptr, PageType::Unmapped);
+
+    auto region_iter = std::find_if(current_page_table->special_regions.begin(), current_page_table->special_regions.end(),
+        [base, size] (const auto& region) { return base == region.base && size == region.size; });
+
+    if (region_iter != current_page_table->special_regions.end()) {
+        current_page_table->special_regions.erase(region_iter);
+    }
 }
 
 /**
@@ -154,7 +161,7 @@ static u8* GetPointerFromVMA(VAddr vaddr) {
  */
 static MMIORegionPointer GetMMIOHandler(VAddr vaddr) {
     for (const auto& region : current_page_table->special_regions) {
-        if (vaddr >= region.base && vaddr < (region.base + region.size)) {
+        if (vaddr >= region.base && (vaddr - region.base) < region.size) {
             return region.handler;
         }
     }

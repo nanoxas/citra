@@ -5,6 +5,7 @@
 #pragma once
 
 #include <algorithm>
+#include <cstddef>
 #include <cstdlib>
 #include <type_traits>
 
@@ -16,14 +17,12 @@ inline bool IntervalsIntersect(unsigned start0, unsigned length0, unsigned start
 }
 
 template<typename T>
-inline T Clamp(const T val, const T& min, const T& max)
-{
+inline T Clamp(const T val, const T& min, const T& max) {
     return std::max(min, std::min(max, val));
 }
 
 template<class T>
-struct Rectangle
-{
+struct Rectangle {
     T left;
     T top;
     T right;

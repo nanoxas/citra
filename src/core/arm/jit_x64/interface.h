@@ -1,4 +1,4 @@
-// Copyright 2014 Citra Emulator Project
+// Copyright 2016 Citra Emulator Project
 // Licensed under GPLv2 or any later version
 // Refer to the license.txt file included.
 
@@ -9,17 +9,14 @@
 #include "common/common_types.h"
 
 #include "core/arm/arm_interface.h"
-#include "core/arm/skyeye_common/arm_regformat.h"
-#include "core/arm/skyeye_common/armstate.h"
+#include "core/arm/jit_x64/common.h"
 
-namespace Core {
-struct ThreadContext;
-}
+namespace JitX64 {
 
-class ARM_DynCom final : virtual public ARM_Interface {
+class ARM_Jit final : virtual public ARM_Interface {
 public:
-    ARM_DynCom(PrivilegeMode initial_mode);
-    ~ARM_DynCom();
+    ARM_Jit(PrivilegeMode initial_mode);
+    ~ARM_Jit();
 
     void SetPC(u32 pc) override;
     u32 GetPC() const override;
@@ -44,7 +41,14 @@ public:
     void ExecuteInstructions(int num_instructions) override;
 
     void ClearCache() override;
+    void FastClearCache();
 
 private:
-    std::unique_ptr<ARMul_State> state;
+    struct Impl;
+
+    std::unique_ptr<Impl> impl;
+    bool reschedule = false;
+    std::unique_ptr<JitState> state;
 };
+
+}
