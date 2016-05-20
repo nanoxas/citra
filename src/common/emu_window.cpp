@@ -11,6 +11,23 @@
 #include "emu_window.h"
 #include "video_core/video_core.h"
 
+#ifdef VKENABLED
+bool EmuWindow::VulkanSupported(){
+    return false;
+}
+bool EmuWindow::CanDevicePresent(void * instance, void* device,uint32_t queue){
+    return false;
+}
+void * EmuWindow::CreateVulkanSurface(void * instance){
+    return NULL;
+}
+void EmuWindow::DestroyVulkanSurface(void * instance, void * surface){}
+const char** EmuWindow::RequiredVulkanExtensions(uint32_t * count){
+    *count = 0;
+    return NULL;
+}
+#endif
+
 void EmuWindow::KeyPressed(KeyMap::HostDeviceKey key) {
     pad_state.hex |= KeyMap::GetPadKey(key).hex;
 }

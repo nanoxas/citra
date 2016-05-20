@@ -9,6 +9,8 @@
 #include "video_core/pica.h"
 #include "video_core/renderer_base.h"
 #include "video_core/video_core.h"
+
+#include "video_core/renderer_vulkan/renderer_vulkan.h"
 #include "video_core/renderer_opengl/renderer_opengl.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -19,7 +21,7 @@ namespace VideoCore {
 EmuWindow*                    g_emu_window = nullptr; ///< Frontend emulator window
 std::unique_ptr<RendererBase> g_renderer;             ///< Renderer plugin
 
-std::atomic<bool> g_hw_renderer_enabled;
+std::atomic<Rasterizer>  g_selected_rasterizer;
 std::atomic<bool> g_shader_jit_enabled;
 std::atomic<bool> g_scaled_resolution_enabled;
 
@@ -28,7 +30,12 @@ bool Init(EmuWindow* emu_window) {
     Pica::Init();
 
     g_emu_window = emu_window;
-    g_renderer = std::make_unique<RendererOpenGL>();
+
+    if (g_selected_rasterizer == VideoCore::Rasterizer::VULKAN) {
+        g_renderer = std::make_unique<RendererVulkan>();
+    } else {
+        g_renderer = std::make_unique<RendererOpenGL>();
+    }
     g_renderer->SetWindow(g_emu_window);
     if (g_renderer->Init()) {
         LOG_DEBUG(Render, "initialized OK");

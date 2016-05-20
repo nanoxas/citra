@@ -8,17 +8,24 @@
 #include "video_core/renderer_base.h"
 #include "video_core/video_core.h"
 #include "video_core/swrasterizer.h"
+#include "video_core/renderer_vulkan/vk_rasterizer.h"
 #include "video_core/renderer_opengl/gl_rasterizer.h"
 
 void RendererBase::RefreshRasterizerSetting() {
-    bool hw_renderer_enabled = VideoCore::g_hw_renderer_enabled;
-    if (rasterizer == nullptr || opengl_rasterizer_active != hw_renderer_enabled) {
-        opengl_rasterizer_active = hw_renderer_enabled;
-
-        if (hw_renderer_enabled) {
+    VideoCore::Rasterizer r_backend = VideoCore::g_selected_rasterizer;
+    if (rasterizer == nullptr || active_rasterizer != r_backend) {
+        active_rasterizer = r_backend;
+        switch (r_backend) {
+        case VideoCore::Rasterizer::VULKAN:
+            rasterizer = std::make_unique<RasterizerVulkan>();
+            break;
+        case VideoCore::Rasterizer::OPENGL:
             rasterizer = std::make_unique<RasterizerOpenGL>();
-        } else {
+            break;
+        case VideoCore::Rasterizer::SOFTWARE:
+        default:
             rasterizer = std::make_unique<VideoCore::SWRasterizer>();
+            break;
         }
     }
 }

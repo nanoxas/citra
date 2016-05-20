@@ -241,6 +241,7 @@ public:
     bool AccelerateFill(const GPU::Regs::MemoryFillConfig& config) override;
     bool AccelerateDisplay(const GPU::Regs::FramebufferConfig& config, PAddr framebuffer_addr, u32 pixel_stride, ScreenInfo& screen_info) override;
 
+
     /// OpenGL shader generated for a given Pica register state
     struct PicaShader {
         /// OpenGL shader resource
