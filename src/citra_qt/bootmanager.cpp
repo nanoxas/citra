@@ -302,3 +302,47 @@ void GRenderWindow::showEvent(QShowEvent * event) {
         connect(this->windowHandle(), SIGNAL(screenChanged(QScreen*)), this, SLOT(OnFramebufferSizeChanged()), Qt::UniqueConnection);
     #endif
 }
+
+#ifdef VKENABLED
+#include <vulkan/vulkan.h>
+bool GRenderWindow::VulkanSupported(){
+    return true;
+}
+bool GRenderWindow::CanDevicePresent(void * instance, void* device, uint32_t queue){
+    return true;
+}
+void * GRenderWindow::CreateVulkanSurface(void * instance){
+    VkSurfaceKHR surface;
+    
+#if defined(_WIN32)
+    VkWin32SurfaceCreateInfoKHR surfaceCreateInfo;
+    surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
+    surfaceCreateInfo.hinstance = (HINSTANCE)platformHandle; // provided by the platform code
+    surfaceCreateInfo.hwnd = (HWND)platformWindow;           // provided by the platform code
+    VkResult result = vkCreateWin32SurfaceKHR(instance, &surfaceCreateInfo, NULL, &surface);
+#elif defined(__ANDROID__)
+    VkAndroidSurfaceCreateInfoKHR surfaceCreateInfo;
+    surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR;
+    surfaceCreateInfo.window = window;                       // provided by the platform code
+    VkResult result = vkCreateAndroidSurfaceKHR(instance, &surfaceCreateInfo, NULL, &surface);
+#else
+    VkXcbSurfaceCreateInfoKHR surfaceCreateInfo;
+    surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR;
+    surfaceCreateInfo.connection = connection;               // provided by the platform code
+    surfaceCreateInfo.window = window;                       // provided by the platform code
+    VkResult result = vkCreateXcbSurfaceKHR(instance, &surfaceCreateInfo, NULL, &surface);
+#endif
+    if (result != VK_SUCCESS) {
+        fprintf(stderr, "Failed to create Vulkan surface: %d\n", result);
+        abort();
+    }
+    return NULL;
+}
+void GRenderWindow::DestroyVulkanSurface(void * instance, void * surface){
+    
+}
+const char** GRenderWindow::RequiredVulkanExtensions(uint32_t * count){
+    *count = 0;
+    return NULL;
+}
+#endif

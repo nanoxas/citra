@@ -151,4 +151,9 @@ private:
 
 protected:
     void showEvent(QShowEvent* event) override;
+    bool VulkanSupported();
+    bool CanDevicePresent(void * instance, void * device, uint32_t queue);
+    void * CreateVulkanSurface(void * instance);
+    void DestroyVulkanSurface(void * instance, void * surface);
+    const char ** RequiredVulkanExtensions(uint32_t * count);
 };

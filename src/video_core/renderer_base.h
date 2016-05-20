@@ -63,5 +63,5 @@ protected:
     int m_current_frame = 0;        ///< Current frame, should be set by the renderer
 
 private:
-    VideoCore::Rasterizer active_rasterizer = VideoCore::Rasterizer::SOFTWARE;
+    int active_rasterizer = 0;
 };

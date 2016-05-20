@@ -56,7 +56,7 @@ public:
     void SetWindow(EmuWindow* window) override;
 
     /// Initialize the renderer
-    void Init() override;
+    bool Init() override;
 
     /// Shutdown the renderer
     void ShutDown() override;
@@ -88,7 +88,7 @@ private:
 #endif
     /// Structure used for storing information about the textures for each 3DS screen
 
-    VkDelegate rendererDelegate = { RD_TYPE_VULKAN, 0 , 0 };
+    //VkDelegate rendererDelegate = { RD_TYPE_VULKAN, 0 , 0 };
     VideoCore::RasterizerInterface* lastRasterizer;
 
     void InitVulkanObjects();
@@ -102,7 +102,7 @@ private:
     void DrawScreens();
     void DrawSingleScreenRotated(VkCommandBuffer buff, const VkTextureInfo& texture, float left, float top, float width, float height);
     void UpdateFramerate();
-    void RefreshDelegate();
+    //void RefreshDelegate();
 
     // Loads framebuffer from emulated memory into the active Vulkan texture.
     //void LoadFBToActiveVKTexture(const GPU::Regs::FramebufferConfig& framebuffer,

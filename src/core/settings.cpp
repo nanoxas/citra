@@ -19,7 +19,7 @@ void Apply() {
     GDBStub::SetServerPort(static_cast<u32>(values.gdbstub_port));
     GDBStub::ToggleServer(values.use_gdbstub);
 
-    VideoCore::g_hw_renderer_enabled = values.use_hw_renderer;
+    VideoCore::g_selected_rasterizer = values.use_hw_renderer ? VideoCore::Rasterizer::VULKAN : VideoCore::Rasterizer::SOFTWARE;
     VideoCore::g_shader_jit_enabled = values.use_shader_jit;
     VideoCore::g_scaled_resolution_enabled = values.use_scaled_resolution;
 

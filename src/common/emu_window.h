@@ -195,24 +195,25 @@ public:
     /**
      * Query if the vulkan api is supported.
      */
-    virtual bool VulkanSupported();
+    virtual bool VulkanSupported() = 0;
     /**
      * Check if the device can present.
      */
-    virtual bool CanDevicePresent(void* instance, void* device,uint32_t queue);
+    virtual bool CanDevicePresent(void* instance, void* device, uint32_t queue) = 0;
     /**
      * Gets a vulkan surface for this emu window returns NULL if unsupported.
      */
-    virtual void * CreateVulkanSurface(void * instance);
+    virtual void * CreateVulkanSurface(void * instance) = 0;
     /**
      * Destroys the passed vulkan surface for the passed instance and this emu window.
      */
-    virtual void DestroyVulkanSurface(void * instance, void * surface);
+    virtual void DestroyVulkanSurface(void * instance, void * surface) = 0;
     /**
      * Lists all required vulkan extensions for this emu window
      */
-    virtual const char** RequiredVulkanExtensions(uint32_t * count);
+    virtual const char** RequiredVulkanExtensions(uint32_t * count) = 0;
 #endif
+
 protected:
     EmuWindow() {
         // TODO: Find a better place to set this.

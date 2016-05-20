@@ -794,15 +794,6 @@ bool RasterizerOpenGL::AccelerateDisplay(const GPU::Regs::FramebufferConfig& con
     return true;
 }
 
-bool RasterizerOpenGL::SupportsRendererDelegate()
-{
-    return false;
-}
-
-void RasterizerOpenGL::SetRendererDelegate(void * renderDelegate)
-{
-}
-
 void RasterizerOpenGL::SamplerInfo::Create() {
     sampler.Create();
     mag_filter = min_filter = TextureConfig::Linear;

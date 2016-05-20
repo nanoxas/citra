@@ -144,9 +144,9 @@ void RendererVulkan::SetWindow(EmuWindow* window){
     this->render_window = window;
 }
 
-void RendererVulkan::Init(){
+bool RendererVulkan::Init(){
     VkApplicationInfo appinfo;
-    appinfo.apiVersion = VK_API_VERSION;
+    appinfo.apiVersion = VK_MAKE_VERSION(1, 0, 0);
     appinfo.applicationVersion = 0;
     appinfo.pApplicationName = "CTR";
     appinfo.pEngineName = "Citra Emulator";
@@ -335,6 +335,7 @@ void RendererVulkan::Init(){
         }
     }
     InitVulkanObjects();
+    return true;
 }
 
 void RendererVulkan::InitVulkanObjects(){
@@ -523,20 +524,20 @@ void RendererVulkan::InitVulkanObjects(){
         }
     }
     RefreshRasterizerSetting();
-    RefreshDelegate();
+//    RefreshDelegate();
 
 }
 
-void RendererVulkan::RefreshDelegate() {
-    rendererDelegate.screens[0] = textures[0];
-    rendererDelegate.screens[1] = textures[1];
-    rendererDelegate.device = device;
-    rendererDelegate.instance = instance;
-    if (rasterizer.get() != lastRasterizer&&rasterizer->SupportsRendererDelegate()) {
-        lastRasterizer = rasterizer.get();
-        rasterizer->SetRendererDelegate(&rendererDelegate);
-    }
-}
+//void RendererVulkan::RefreshDelegate() {
+//    rendererDelegate.screens[0] = textures[0];
+//    rendererDelegate.screens[1] = textures[1];
+//    rendererDelegate.device = device;
+//    rendererDelegate.instance = instance;
+//    if (rasterizer.get() != lastRasterizer&&rasterizer->SupportsRendererDelegate()) {
+//        lastRasterizer = rasterizer.get();
+//        rasterizer->SetRendererDelegate(&rendererDelegate);
+//    }
+//}
 
 bool RendererVulkan::createVertexBuffers()
 {
@@ -785,11 +786,11 @@ void RendererVulkan::SwapBuffers() {
         profiler.BeginFrame();
 
         RefreshRasterizerSetting();
-        RefreshDelegate();
+//        RefreshDelegate();
 
-        if (Pica::g_debug_context && Pica::g_debug_context->recorder) {
-            Pica::g_debug_context->recorder->FrameFinished();
-        }
+        //if (Pica::g_debug_context && Pica::g_debug_context->recorder) {
+        //    Pica::g_debug_context->recorder->FrameFinished();
+        //}
     }
 }
 

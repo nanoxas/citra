@@ -42,11 +42,7 @@ option(ENABLE_QT "Enable the Qt frontend" ON)
 option(CITRA_USE_BUNDLED_QT "Download bundled Qt binaries" OFF)
 option(CITRA_FORCE_QT4 "Use Qt4 even if Qt5 is available." OFF)
 
-if (NOT ENABLE_QT)
-    option(ENABLE_VULKAN "Enable Vulkan support." OFF)
-else()
-    set(ENABLE_VULKAN OFF)
-endif()
+option(ENABLE_VULKAN "Enable Vulkan support." OFF)
 
 if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/.git/hooks/pre-commit)
     message(STATUS "Copying pre-commit hook")

@@ -13,8 +13,8 @@
 
 void RendererBase::RefreshRasterizerSetting() {
     VideoCore::Rasterizer r_backend = VideoCore::g_selected_rasterizer;
-    if (rasterizer == nullptr || active_rasterizer != r_backend) {
-        active_rasterizer = r_backend;
+    if (rasterizer == nullptr || active_rasterizer != static_cast<int>(r_backend)) {
+        active_rasterizer = static_cast<int>(r_backend);
         switch (r_backend) {
         case VideoCore::Rasterizer::VULKAN:
             rasterizer = std::make_unique<RasterizerVulkan>();
