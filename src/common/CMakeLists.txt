@@ -16,6 +16,7 @@ set(SRCS
             misc.cpp
             profiler.cpp
             scm_rev.cpp
+            screen.cpp
             string_util.cpp
             symbols.cpp
             thread.cpp
@@ -52,6 +53,7 @@ set(HEADERS
             profiler_reporting.h
             scm_rev.h
             scope_exit.h
+            screen.h
             string_util.h
             swap.h
             symbols.h
