@@ -13,7 +13,7 @@
 #include "common/logging/log.h"
 #include "common/string_util.h"
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER) || defined(__MINGW64__)
     #include <Windows.h>
     #include <codecvt>
     #include "common/common_funcs.h"
@@ -52,7 +52,7 @@ bool CharArrayFromFormatV(char* out, int outsize, const char* format, va_list ar
 {
     int writtenCount;
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
     // You would think *printf are simple, right? Iterate on each character,
     // if it's a format specifier handle it properly, etc.
     //
@@ -292,11 +292,11 @@ std::string ReplaceAll(std::string result, const std::string& src, const std::st
     return result;
 }
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER) || defined(__MINGW64__)
 
 std::string UTF16ToUTF8(const std::u16string& input)
 {
-#if _MSC_VER >= 1900
+#if _MSC_VER >= 1900 || defined(__MINGW64__)
     // Workaround for missing char16_t/char32_t instantiations in MSVC2015
     std::wstring_convert<std::codecvt_utf8_utf16<__int16>, __int16> convert;
     std::basic_string<__int16> tmp_buffer(input.cbegin(), input.cend());
@@ -309,7 +309,7 @@ std::string UTF16ToUTF8(const std::u16string& input)
 
 std::u16string UTF8ToUTF16(const std::string& input)
 {
-#if _MSC_VER >= 1900
+#if _MSC_VER >= 1900 || defined(__MINGW64__)
     // Workaround for missing char16_t/char32_t instantiations in MSVC2015
     std::wstring_convert<std::codecvt_utf8_utf16<__int16>, __int16> convert;
     auto tmp_buffer = convert.from_bytes(input);
