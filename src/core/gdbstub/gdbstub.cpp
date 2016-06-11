@@ -14,7 +14,7 @@
 #include <map>
 #include <numeric>
 
-#ifdef _MSC_VER
+#if defined(_WIN32)
 #include <WinSock2.h>
 #include <ws2tcpip.h>
 #include <common/x64/abi.h>

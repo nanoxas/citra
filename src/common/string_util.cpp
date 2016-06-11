@@ -13,7 +13,7 @@
 #include "common/logging/log.h"
 #include "common/string_util.h"
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER) || defined(__MINGW64__)
     #include <Windows.h>
     #include <codecvt>
     #include "common/common_funcs.h"
@@ -292,7 +292,7 @@ std::string ReplaceAll(std::string result, const std::string& src, const std::st
     return result;
 }
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER) || defined(__MINGW64__)
 
 std::string UTF16ToUTF8(const std::u16string& input)
 {
