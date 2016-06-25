@@ -113,9 +113,9 @@ else()
 
     set(CMAKE_EXE_LINKER_FLAGS_DEBUG   "/DEBUG" CACHE STRING "" FORCE)
     set(CMAKE_EXE_LINKER_FLAGS_RELEASE "/DEBUG /INCREMENTAL:NO /OPT:REF,ICF" CACHE STRING "" FORCE)
+    
+    ADD_DEFINITIONS(/arch:AVX)
 endif()
-
-SET(CMAKE_EXE_LINKER_FLAGS "-static -static-libgcc -static-libstdc++ -Wl,-Bstatic -lstdc++ -lpthread")
 
 add_definitions(-DSINGLETHREADED)
 # CMake seems to only define _DEBUG on Windows
