@@ -15,19 +15,27 @@ configuration:
 
 install:
   - git submodule update --init --recursive
+  - C:\msys64\usr\bin\bash -lc "pacman --noconfirm -Suy make pkg-config mingw-w64-x86_64-glib2 mingw-w64-x86_64-toolchain mingw64/mingw-w64-x86_64-qt5-static mingw64/mingw-w64-x86_64-SDL2"
 
 before_build:
   - mkdir build
   - cd build
   - cmake -G "Visual Studio 14 2015 Win64" -DCITRA_USE_BUNDLED_QT=1 -DCITRA_USE_BUNDLED_SDL2=1 ..
   - cd ..
+  - mkdir gccbuild
+  - C:\msys64\usr\bin\bash -lc "MSYSTEM=MINGW64 . /etc/profile && cd $APPVEYOR_BUILD_FOLDER/gccbuild && cmake .."
 
 build:
   project: build/citra.sln
   parallel: true
 
+after_build:
+  # build the gcc version as well
+
+
 test_script:
   - cd build && ctest -VV -C Release && cd ..
+  - cd gccbuild && ctest -VV -C Release && cd ..
 
 on_success:
     # copying the needed QT Dlls is now done post build. See the CMakeLists.txt file in the citra-qt folder
