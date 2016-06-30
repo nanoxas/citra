@@ -41,6 +41,9 @@ option(CITRA_USE_BUNDLED_SDL2 "Download bundled SDL2 binaries" OFF)
 option(ENABLE_QT "Enable the Qt frontend" ON)
 option(CITRA_USE_BUNDLED_QT "Download bundled Qt binaries" OFF)
 
+option(ENABLE_VS_LLVM "Change the Visual Studio compiler to use LLVM instead" OFF)
+option(CITRA_VS_LLVM_TOOLSET "Toolset" OFF)
+
 if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/.git/hooks/pre-commit)
     message(STATUS "Copying pre-commit hook")
     file(COPY hooks/pre-commit
@@ -110,6 +113,10 @@ else()
 
     set(CMAKE_EXE_LINKER_FLAGS_DEBUG   "/DEBUG" CACHE STRING "" FORCE)
     set(CMAKE_EXE_LINKER_FLAGS_RELEASE "/DEBUG /INCREMENTAL:NO /OPT:REF,ICF" CACHE STRING "" FORCE)
+
+    if(ENABLE_VS_LLVM)
+        set(CMAKE_VS_PLATFORM_TOOLSET "LLVM-vs2014")
+    endif()
 endif()
 
 add_definitions(-DSINGLETHREADED)

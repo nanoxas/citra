@@ -23,7 +23,9 @@ before_build:
   - cmake -G "Visual Studio 14 2015 Win64" -DCITRA_USE_BUNDLED_QT=1 -DCITRA_USE_BUNDLED_SDL2=1 ..
   - cd ..
   - mkdir gccbuild
-  - C:\msys64\usr\bin\bash -lc "MSYSTEM=MINGW64 . /etc/profile && cd $APPVEYOR_BUILD_FOLDER/gccbuild && cmake .."
+  - >
+    C:\msys64\usr\bin\bash -lc "MSYSTEM=MINGW64 . /etc/profile && cd $APPVEYOR_BUILD_FOLDER/gccbuild &&
+    cmake -G \"MSYS Makefiles\" -DCMAKE_BUILD_TYPE=Release -DQt5_DIR=C:/msys64/mingw64/qt5-static/lib/cmake/Qt5/ .."
 
 build:
   project: build/citra.sln
