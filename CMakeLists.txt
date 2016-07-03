@@ -246,6 +246,12 @@ endif()
 
 add_subdirectory(externals/soundtouch)
 
+set(ASMJIT_STATIC TRUE)
+set(ASMJIT_BUILD_X64 TRUE)
+set(ASMJIT_DISABLE_COMPILER TRUE)
+include_directories(externals/asmjit/src)
+add_subdirectory(externals/asmjit)
+
 enable_testing()
 
 add_subdirectory(src)

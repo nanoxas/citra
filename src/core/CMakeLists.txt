@@ -1,4 +1,7 @@
 set(SRCS
+            arm/asmjit/jit.cpp
+            arm/asmjit/jit_interface.cpp
+            arm/asmjit/jit_runtime.cpp
             arm/disassembler/arm_disasm.cpp
             arm/disassembler/load_symbol_map.cpp
             arm/dyncom/arm_dyncom.cpp
@@ -136,6 +139,10 @@ set(SRCS
 
 set(HEADERS
             arm/arm_interface.h
+            arm/asmjit/jit.h
+            arm/asmjit/jit_float.h
+            arm/asmjit/jit_interface.h
+            arm/asmjit/jit_runtime.h
             arm/disassembler/arm_disasm.h
             arm/disassembler/load_symbol_map.h
             arm/dyncom/arm_dyncom.h

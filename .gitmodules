@@ -13,3 +13,6 @@
 [submodule "catch"]
 	path = externals/catch
 	url = https://github.com/philsquared/Catch.git
+[submodule "asmjit"]
+	path = externals/asmjit
+	url = https://github.com/kobalicek/asmjit.git
