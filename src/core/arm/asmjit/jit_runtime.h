@@ -14,9 +14,9 @@ public:
 
    void* allocate(size_t size, size_t alignment = 4) noexcept;
 
-   ASMJIT_API virtual asmjit::Error add(void** dst, asmjit::Assembler* assembler) noexcept;
+   ASMJIT_API virtual asmjit::Error add(void** dst, asmjit::Assembler* assembler);
 
-   ASMJIT_API virtual asmjit::Error release(void* p) noexcept {
+   ASMJIT_API virtual asmjit::Error release(void* p) {
       // We do not release memory
       return asmjit::kErrorOk;
    }
@@ -26,9 +26,9 @@ public:
    }
 
 private:
-   std::mutex mMutex;
    asmjit::Ptr base_address;
-   size_t mIncreaseSize;
+   size_t increase_size;
+   std::mutex runtime_lock;
    std::atomic<asmjit::Ptr> current_address;
-   std::atomic<size_t> mCommittedSize;
+   std::atomic<size_t> committed_size;
 };

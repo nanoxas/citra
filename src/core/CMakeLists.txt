@@ -142,6 +142,7 @@ set(HEADERS
             arm/asmjit/jit.h
             arm/asmjit/jit_float.h
             arm/asmjit/jit_interface.h
+            arm/asmjit/jit_internal.h
             arm/asmjit/jit_runtime.h
             arm/disassembler/arm_disasm.h
             arm/disassembler/load_symbol_map.h

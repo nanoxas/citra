@@ -39,7 +39,7 @@ void* AllocateExecutableMemory(size_t size, bool low)
     // effect of discarding already mapped pages that happen to be in the
     // requested virtual memory range (such as the emulated RAM, sometimes).
     if (low && (!map_hint))
-        map_hint = (char*)round_page(512*1024*1024); /* 0.5 GB rounded up to the next page */
+        map_hint = (char*)round_page(512 * 1024 * 1024); /* 0.5 GB rounded up to the next page */
 #endif
     void* ptr = mmap(map_hint, size, PROT_READ | PROT_WRITE | PROT_EXEC,
         MAP_ANON | MAP_PRIVATE
@@ -69,11 +69,28 @@ void* AllocateExecutableMemory(size_t size, bool low)
         }
     }
 #endif
+}
 
-#if EMU_ARCH_BITS == 64
-    if ((u64)ptr >= 0x80000000 && low == true)
-        LOG_ERROR(Common_Memory, "Executable memory ended up above 2GB!");
+void* AllocateExecutableMemoryWithHint(size_t hint, size_t size)
+{
+    char* map_hint = reinterpret_cast<char*>(hint);
+#if defined(_WIN32)
+    void* ptr = VirtualAlloc(static_cast<LPVOID>(map_hint), size, MEM_COMMIT, PAGE_EXECUTE_READWRITE);
+#else
+    void* ptr = mmap(map_hint, size, PROT_READ | PROT_WRITE | PROT_EXEC,
+        MAP_ANON | MAP_PRIVATE, -1, 0);
+#endif /* defined(_WIN32) */
+
+#ifdef _WIN32
+    if (ptr == nullptr)
+    {
+#else
+    if (ptr == MAP_FAILED)
+    {
+        ptr = nullptr;
 #endif
+        LOG_ERROR(Common_Memory, "Failed to allocate executable memory");
+    }
 
     return ptr;
 }

@@ -23,6 +23,7 @@ namespace Log {
         SUB(Common, Memory) \
         CLS(Core) \
         SUB(Core, ARM11) \
+        SUB(Core, JIT) \
         SUB(Core, Timing) \
         CLS(Config) \
         CLS(Debug) \
