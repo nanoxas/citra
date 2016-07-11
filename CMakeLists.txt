@@ -41,8 +41,7 @@ option(CITRA_USE_BUNDLED_SDL2 "Download bundled SDL2 binaries" OFF)
 option(ENABLE_QT "Enable the Qt frontend" ON)
 option(CITRA_USE_BUNDLED_QT "Download bundled Qt binaries" OFF)
 
-option(ENABLE_VS_LLVM "Change the Visual Studio compiler to use LLVM instead" OFF)
-option(CITRA_VS_LLVM_TOOLSET "Toolset" OFF)
+option(MINGW_BUILD_STATIC "Build Citra as a static exe in Mingw" OFF)
 
 if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/.git/hooks/pre-commit)
     message(STATUS "Copying pre-commit hook")
@@ -77,6 +76,13 @@ if (NOT MSVC)
 
     if (MINGW)
         add_definitions(-DMINGW_HAS_SECURE_API)
+        if (MINGW_STATIC_BUILD)
+            add_definitions(-DQT_STATICPLUGIN=1)
+            set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wl,-Bstatic -lstdc++ -lpthread")
+            set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static -static-libgcc -static-libstdc++")
+            set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-Bstatic -lstdc++ -lpthread")
+            set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static -static-libgcc -static-libstdc++")
+        endif()
     endif()
 else()
     # Silence "deprecation" warnings

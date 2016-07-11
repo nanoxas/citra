@@ -1,43 +1,34 @@
 # shallow clone
 clone_depth: 5
 
-environment:
-  BUILD_PASSWORD:
-    secure: EXGNlWKJsCtbeImEJ5EP9qrxZ+EqUFfNy+CP61nDOMA=
-
-os: Visual Studio 2015
-
 platform:
   - x64
 
-configuration:
-  - Release
+environment:
+  global:
+    MSYS2_ARCH: x86_64
+  matrix:
+    - HOST_ARCH_ARG: --host=x86_64-w64-mingw32
+      ADD_PATH: /mingw64/bin
+    - HOST_ARCH_ARG: --host=i686-w64-mingw32
+      ADD_PATH: /mingw32/bin
+
+  BUILD_PASSWORD:
+    secure: EXGNlWKJsCtbeImEJ5EP9qrxZ+EqUFfNy+CP61nDOMA=
 
 install:
   - git submodule update --init --recursive
-  - C:\msys64\usr\bin\bash -lc "pacman --noconfirm -Suy make pkg-config mingw-w64-x86_64-glib2 mingw-w64-x86_64-toolchain mingw64/mingw-w64-x86_64-qt5-static mingw64/mingw-w64-x86_64-SDL2"
+  - pacman --noconfirm -Suy make pkg-config mingw-w64-x86_64-glib2 mingw-w64-x86_64-toolchain mingw64/mingw-w64-x86_64-qt5-static mingw64/mingw-w64-x86_64-SDL2
 
 before_build:
   - mkdir build
-  - cd build
-  - cmake -G "Visual Studio 14 2015 Win64" -DCITRA_USE_BUNDLED_QT=1 -DCITRA_USE_BUNDLED_SDL2=1 ..
-  - cd ..
-  - mkdir gccbuild
-  - >
-    C:\msys64\usr\bin\bash -lc "MSYSTEM=MINGW64 . /etc/profile && cd $APPVEYOR_BUILD_FOLDER/gccbuild &&
-    cmake -G \"MSYS Makefiles\" -DCMAKE_BUILD_TYPE=Release -DQt5_DIR=C:/msys64/mingw64/qt5-static/lib/cmake/Qt5/ .."
+  - cmake -G "MSYS Makefiles" -DMINGW_STATIC_BUILD=ON -DCMAKE_BUILD_TYPE=Release -DQt5_DIR=C:/msys64/mingw64/qt5-static/lib/cmake/Qt5/ ..
 
-build:
-  project: build/citra.sln
-  parallel: true
-
-after_build:
-  # build the gcc version as well
-
+build_script:
+  - cd build && make VERBOSE=1 && cd ..
 
 test_script:
   - cd build && ctest -VV -C Release && cd ..
-  - cd gccbuild && ctest -VV -C Release && cd ..
 
 on_success:
     # copying the needed QT Dlls is now done post build. See the CMakeLists.txt file in the citra-qt folder
