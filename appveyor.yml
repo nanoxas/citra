@@ -10,15 +10,13 @@ environment:
   matrix:
     - HOST_ARCH_ARG: --host=x86_64-w64-mingw32
       ADD_PATH: /mingw64/bin
-    - HOST_ARCH_ARG: --host=i686-w64-mingw32
-      ADD_PATH: /mingw32/bin
 
   BUILD_PASSWORD:
     secure: EXGNlWKJsCtbeImEJ5EP9qrxZ+EqUFfNy+CP61nDOMA=
 
 install:
   - git submodule update --init --recursive
-  - pacman --noconfirm -Suy make pkg-config mingw-w64-x86_64-glib2 mingw-w64-x86_64-toolchain mingw64/mingw-w64-x86_64-qt5-static mingw64/mingw-w64-x86_64-SDL2
+  - C:\msys64\usr\bin\bash -lc "pacman --noconfirm -Suy make pkg-config mingw-w64-x86_64-glib2 mingw-w64-x86_64-toolchain mingw64/mingw-w64-x86_64-qt5-static mingw64/mingw-w64-x86_64-SDL2"
 
 before_build:
   - mkdir build
