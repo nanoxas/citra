@@ -16,11 +16,12 @@ environment:
 
 install:
   - git submodule update --init --recursive
-  - C:\msys64\usr\bin\bash -lc "pacman --noconfirm -Suy make pkg-config mingw-w64-x86_64-glib2 mingw-w64-x86_64-toolchain mingw64/mingw-w64-x86_64-qt5-static mingw64/mingw-w64-x86_64-SDL2"
+  - C:\msys64\usr\bin\bash -lc "pacman --noconfirm -S make pkg-config mingw-w64-x86_64-glib2 mingw-w64-x86_64-toolchain mingw64/mingw-w64-x86_64-qt5-static mingw64/mingw-w64-x86_64-SDL2"
 
 before_build:
-  - mkdir build
+  - mkdir build && cd build
   - cmake -G "MSYS Makefiles" -DMINGW_STATIC_BUILD=ON -DCMAKE_BUILD_TYPE=Release -DQt5_DIR=C:/msys64/mingw64/qt5-static/lib/cmake/Qt5/ ..
+  - cd ..
 
 build_script:
   - cd build && make VERBOSE=1 && cd ..
