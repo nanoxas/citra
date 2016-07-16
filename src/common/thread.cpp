@@ -59,7 +59,7 @@ void SwitchCurrentThread()
 {
     SwitchToThread();
 }
-#ifdef __MINGW__
+#ifdef USE_NATIVE_WINTHREAD
 // If Mingw is using native winthreads, then we need this helper method to ignore exceptions
 static EXCEPTION_DISPOSITION NTAPI ignore_handler(EXCEPTION_RECORD *rec,
                                                   void *frame, CONTEXT *ctx,
