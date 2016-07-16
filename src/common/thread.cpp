@@ -21,6 +21,16 @@
     #include <unistd.h>
 #endif
 
+#ifdef USE_NATIVE_WINTHREAD
+// If Mingw is using native winthreads, then we need this helper method to ignore exceptions
+static EXCEPTION_DISPOSITION NTAPI ignore_handler(EXCEPTION_RECORD *rec,
+                                                  void *frame, CONTEXT *ctx,
+                                                  void *disp)
+{
+    return ExceptionContinueExecution;
+}
+#endif
+
 namespace Common
 {
 
@@ -59,15 +69,6 @@ void SwitchCurrentThread()
 {
     SwitchToThread();
 }
-#ifdef USE_NATIVE_WINTHREAD
-// If Mingw is using native winthreads, then we need this helper method to ignore exceptions
-static EXCEPTION_DISPOSITION NTAPI ignore_handler(EXCEPTION_RECORD *rec,
-                                                  void *frame, CONTEXT *ctx,
-                                                  void *disp)
-{
-    return ExceptionContinueExecution;
-}
-#endif
 // Sets the debugger-visible name of the current thread.
 // Uses undocumented (actually, it is now documented) trick.
 // http://msdn.microsoft.com/library/default.asp?url=/library/en-us/vsdebug/html/vxtsksettingthreadname.asp
