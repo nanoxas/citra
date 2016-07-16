@@ -26,7 +26,7 @@ namespace Common
 
 int CurrentThreadId()
 {
-#ifdef _MSC_VER
+#if defined(_MSC_VER) || USE_NATIVE_WINTHREAD
     return GetCurrentThreadId();
 #elif defined __APPLE__
     return mach_thread_self();
@@ -43,7 +43,7 @@ void SleepCurrentThread(int ms)
 }
 #endif
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER) || USE_NATIVE_WINTHREAD
 
 void SetThreadAffinity(std::thread::native_handle_type thread, u32 mask)
 {
