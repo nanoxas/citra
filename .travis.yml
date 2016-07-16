@@ -5,6 +5,11 @@ matrix:
     - os: linux
       sudo: true
       dist: trusty
+      env: CROSS_COMPILE=false
+    - os: linux
+      sudo: true
+      dist: trusty
+      env: CROSS_COMPILE=true
     - os: osx
       sudo: false
 
