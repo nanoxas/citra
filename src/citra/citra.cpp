@@ -7,6 +7,10 @@
 #include <iostream>
 #include <memory>
 
+#ifdef USE_NATIVE_WINTHREAD
+#include <mingw.thread.h>
+#endif
+
 // This needs to be included before getopt.h because the latter #defines symbols used by it
 #include "common/microprofile.h"
 
@@ -18,7 +22,7 @@
 #endif
 
 #ifdef _WIN32
-#include <Windows.h>
+#include <windows.h>
 #endif
 
 #include "common/logging/log.h"

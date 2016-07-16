@@ -8,6 +8,11 @@
 #include <thread>
 #include <condition_variable>
 #include <mutex>
+#ifdef USE_NATIVE_WINTHREAD
+#include <mingw.thread.h>
+#include <mingw.condition_variable.h>
+#include <mingw.mutex.h>
+#endif
 
 #include "common/common_types.h"
 

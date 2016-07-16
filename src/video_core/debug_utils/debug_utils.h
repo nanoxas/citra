@@ -15,6 +15,10 @@
 #include <string>
 #include <utility>
 #include <vector>
+#ifdef USE_NATIVE_WINTHREAD
+#include <mingw.condition_variable.h>
+#include <mingw.mutex.h>
+#endif
 
 #include "common/common_types.h"
 #include "common/vector_math.h"

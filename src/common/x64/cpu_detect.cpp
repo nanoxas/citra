@@ -6,6 +6,10 @@
 #include <string>
 #include <thread>
 
+#ifdef USE_NATIVE_WINTHREAD
+#include <mingw.thread.h>
+#endif
+
 #include "common/common_types.h"
 
 #include "cpu_detect.h"

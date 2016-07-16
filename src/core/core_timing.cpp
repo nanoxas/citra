@@ -5,6 +5,9 @@
 #include <atomic>
 #include <cinttypes>
 #include <mutex>
+#ifdef USE_NATIVE_WINTHREAD
+#include <mingw.mutex.h>
+#endif
 #include <vector>
 
 #include "common/chunk_file.h"

@@ -6,6 +6,10 @@
 #include <memory>
 #include <thread>
 
+#ifdef USE_NATIVE_WINTHREAD
+#include <mingw.thread.h>
+#endif
+
 #include <glad/glad.h>
 
 #define QT_NO_OPENGL

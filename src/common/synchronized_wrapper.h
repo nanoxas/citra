@@ -6,6 +6,9 @@
 
 #include <algorithm>
 #include <mutex>
+#ifdef USE_NATIVE_WINTHREAD
+#include <mingw.mutex.h>
+#endif
 
 namespace Common {
 

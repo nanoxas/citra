@@ -5,6 +5,10 @@
 #include <atomic>
 #include <condition_variable>
 #include <mutex>
+#ifdef USE_NATIVE_WINTHREAD
+#include <mingw.condition_variable.h>
+#include <mingw.mutex.h>
+#endif
 
 #include <QGLWidget>
 #include <QThread>
