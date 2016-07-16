@@ -18,7 +18,7 @@
 #if __GNUC__ > 4
     #include <codecvt>
 #else
-
+    #include <boost/locale/encoding_utf.hpp>
 #endif
     #include "common/common_funcs.h"
 #else
@@ -305,9 +305,12 @@ std::string UTF16ToUTF8(const std::u16string& input)
     std::wstring_convert<std::codecvt_utf8_utf16<__int16>, __int16> convert;
     std::basic_string<__int16> tmp_buffer(input.cbegin(), input.cend());
     return convert.to_bytes(tmp_buffer);
-#else
+#elif __GNUC__ > 4
     std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> convert;
     return convert.to_bytes(input);
+#else
+    // fallback to boost if gcc is too old to have codecvt
+    return boost::locale::conv::utf_to_utf<char>(input);
 #endif
 }
 
@@ -318,9 +321,12 @@ std::u16string UTF8ToUTF16(const std::string& input)
     std::wstring_convert<std::codecvt_utf8_utf16<__int16>, __int16> convert;
     auto tmp_buffer = convert.from_bytes(input);
     return std::u16string(tmp_buffer.cbegin(), tmp_buffer.cend());
-#else
+#elif __GNUC__ > 4
     std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> convert;
     return convert.from_bytes(input);
+#else
+    // fallback to boost if gcc is too old to have codecvt
+    return boost::locale::conv::utf_to_utf<char16_t>(input);
 #endif
 }
 
