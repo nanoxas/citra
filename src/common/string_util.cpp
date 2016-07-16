@@ -14,7 +14,7 @@
 #include "common/string_util.h"
 
 #if defined(_MSC_VER) || defined(__MINGW64__)
-    #include <Windows.h>
+    #include <windows.h>
     #include <codecvt>
     #include "common/common_funcs.h"
 #else

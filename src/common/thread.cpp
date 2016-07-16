@@ -7,7 +7,7 @@
 #ifdef __APPLE__
     #include <mach/mach.h>
 #elif defined(_WIN32)
-    #include <Windows.h>
+    #include <windows.h>
 #else
     #if defined(BSD4_4) || defined(__OpenBSD__)
         #include <pthread_np.h>

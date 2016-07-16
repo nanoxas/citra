@@ -5,7 +5,7 @@
 #include <time.h>
 
 #ifdef _WIN32
-#include <Windows.h>
+#include <windows.h>
 #include <mmsystem.h>
 #include <sys/timeb.h>
 #else
