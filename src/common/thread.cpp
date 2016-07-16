@@ -59,7 +59,15 @@ void SwitchCurrentThread()
 {
     SwitchToThread();
 }
-
+#ifdef __MINGW__
+// If Mingw is using native winthreads, then we need this helper method to ignore exceptions
+static EXCEPTION_DISPOSITION NTAPI ignore_handler(EXCEPTION_RECORD *rec,
+                                                  void *frame, CONTEXT *ctx,
+                                                  void *disp)
+{
+    return ExceptionContinueExecution;
+}
+#endif
 // Sets the debugger-visible name of the current thread.
 // Uses undocumented (actually, it is now documented) trick.
 // http://msdn.microsoft.com/library/default.asp?url=/library/en-us/vsdebug/html/vxtsksettingthreadname.asp
@@ -84,13 +92,29 @@ void SetCurrentThreadName(const char* szThreadName)
     info.szName = szThreadName;
     info.dwThreadID = -1; //dwThreadID;
     info.dwFlags = 0;
-
+#ifdef MSC_VER
     __try
     {
         RaiseException(MS_VC_EXCEPTION, 0, sizeof(info)/sizeof(ULONG_PTR), (ULONG_PTR*)&info);
     }
     __except(EXCEPTION_CONTINUE_EXECUTION)
     {}
+#else
+    // since Mingw with winthreads doesn't support SEH exceptions we can work around it like so
+    // Push an exception handler to ignore all following exceptions
+    NT_TIB *tib = ((NT_TIB*)NtCurrentTeb());
+    EXCEPTION_REGISTRATION_RECORD rec = {
+        .Next = tib->ExceptionList,
+        .Handler = ignore_handler,
+    };
+    tib->ExceptionList = &rec;
+    // Visual Studio and compatible debuggers receive thread names from the
+    // program through a specially crafted exception
+    RaiseException(MS_VC_EXCEPTION, 0, sizeof(ti) / sizeof(ULONG_PTR), (ULONG_PTR*)&ti);
+
+    // Pop exception handler
+    tib->ExceptionList = tib->ExceptionList->Next;
+#endif
 }
 
 #else // !MSVC_VER, so must be POSIX threads
