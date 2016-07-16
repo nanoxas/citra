@@ -105,8 +105,8 @@ void SetCurrentThreadName(const char* szThreadName)
     // Push an exception handler to ignore all following exceptions
     NT_TIB *tib = ((NT_TIB*)NtCurrentTeb());
     EXCEPTION_REGISTRATION_RECORD rec = {
-        .Next = tib->ExceptionList,
-        .Handler = ignore_handler,
+        Next : tib->ExceptionList,
+        Handler : ignore_handler
     };
     tib->ExceptionList = &rec;
     // Visual Studio and compatible debuggers receive thread names from the
