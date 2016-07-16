@@ -154,6 +154,10 @@ typedef uint16_t MicroProfileGroupId;
 #include <string.h>
 #include <thread>
 #include <mutex>
+#ifdef USE_NATIVE_WINTHREAD
+#include <mingw.thread.h>
+#include <mingw.mutex.h>
+#endif
 #include <atomic>
 
 #ifndef MICROPROFILE_API

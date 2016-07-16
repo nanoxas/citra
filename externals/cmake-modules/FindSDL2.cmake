@@ -131,6 +131,7 @@ SET(SDL2_SEARCH_PATHS
     /opt/local # DarwinPorts
     /opt/csw # Blastwave
     /opt
+    ${CMAKE_FIND_ROOT_PATH}
     ${SDL2_PATH}
 )
 
