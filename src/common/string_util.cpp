@@ -15,7 +15,11 @@
 
 #if defined(_MSC_VER) || defined(__MINGW64__)
     #include <windows.h>
+#if __GNUC__ > 4
     #include <codecvt>
+#else
+
+#endif
     #include "common/common_funcs.h"
 #else
     #include <iconv.h>
