@@ -13,7 +13,7 @@
 #include "common/logging/log.h"
 #include "common/string_util.h"
 
-#if defined(_MSC_VER) || defined(__MINGW64__)
+#if defined(_MSC_VER) || (defined(__MINGW64__) && __GNUC__ > 4)
     #include <windows.h>
     #include <codecvt>
     #include "common/common_funcs.h"
