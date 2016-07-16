@@ -110,7 +110,7 @@ void SetCurrentThreadName(const char* szThreadName)
     tib->ExceptionList = &rec;
     // Visual Studio and compatible debuggers receive thread names from the
     // program through a specially crafted exception
-    RaiseException(MS_VC_EXCEPTION, 0, sizeof(ti) / sizeof(ULONG_PTR), (ULONG_PTR*)&ti);
+    RaiseException(MS_VC_EXCEPTION, 0, sizeof(info)/sizeof(ULONG_PTR), (ULONG_PTR*)&info);
 
     // Pop exception handler
     tib->ExceptionList = tib->ExceptionList->Next;
