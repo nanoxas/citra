@@ -292,7 +292,7 @@ std::string ReplaceAll(std::string result, const std::string& src, const std::st
     return result;
 }
 
-#if defined(_MSC_VER) || defined(__MINGW64__)
+#if defined(_MSC_VER) || (defined(__MINGW64__) && __GNUC__ > 4)
 
 std::string UTF16ToUTF8(const std::u16string& input)
 {
