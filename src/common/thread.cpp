@@ -104,10 +104,9 @@ void SetCurrentThreadName(const char* szThreadName)
     // since Mingw with winthreads doesn't support SEH exceptions we can work around it like so
     // Push an exception handler to ignore all following exceptions
     NT_TIB *tib = ((NT_TIB*)NtCurrentTeb());
-    EXCEPTION_REGISTRATION_RECORD rec = {
-        Next : tib->ExceptionList,
-        Handler : ignore_handler
-    };
+    EXCEPTION_REGISTRATION_RECORD rec;
+    rec.Next = tib->ExceptionList;
+    rec.Handler = ignore_handler;
     tib->ExceptionList = &rec;
     // Visual Studio and compatible debuggers receive thread names from the
     // program through a specially crafted exception
