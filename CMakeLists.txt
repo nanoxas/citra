@@ -69,6 +69,9 @@ if (NOT MSVC)
 
     if (MINGW)
         add_definitions(-DMINGW_HAS_SECURE_API)
+        if (MINGW_STATIC_BUILD)
+            add_definitions(-DQT_STATICPLUGIN)
+        endif()
     endif()
 else()
     # Silence "deprecation" warnings
@@ -170,7 +173,7 @@ IF (APPLE)
 ELSEIF(MINGW)
     # GCC does not support codecvt, so use iconv instead
     # PSAPI is the Process Status API
-    set(PLATFORM_LIBRARIES winmm ws2_32 psapi iconv)
+    set(PLATFORM_LIBRARIES winmm ws2_32 psapi)
 
     # WSAPoll functionality doesn't exist before WinNT 6.x (Vista and up)
     add_definitions(-D_WIN32_WINNT=0x0600)
