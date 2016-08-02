@@ -33,7 +33,8 @@ before_build:
         if ($env:BUILD_TYPE -eq 'msvc') {
           cmake -G "Visual Studio 14 2015 Win64" -DCITRA_USE_BUNDLED_QT=1 -DCITRA_USE_BUNDLED_SDL2=1 ..
         } else {
-          cmake -G "MSYS Makefiles" -DCMAKE_BUILD_TYPE=Release -DQt5_DIR=C:/msys64/mingw64/qt5/lib/cmake/Qt5/ -DSDL2_INCLUDE_DIR=C:/msys64/mingw64/include/SDL2/ -DSDL2_LIBRARY=C:/msys64/mingw64/bin/SDL2.dll ..
+          $env:Path = "C:\msys64\mingw64\bin\;" + $env:Path
+          C:\msys64\mingw64\bin\cmake -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release -DQt5_DIR=C:/msys64/mingw64/qt5/lib/cmake/Qt5/ -DSDL2_INCLUDE_DIR=C:/msys64/mingw64/include/SDL2/ -DSDL2_LIBRARY=C:/msys64/mingw64/bin/SDL2.dll ..
         }
   - cd ..
 
@@ -43,7 +44,8 @@ build_script:
           # https://www.appveyor.com/docs/build-phase
           msbuild msvcbuild/citra.sln /maxcpucount /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
         } else {
-          make -C mingwbuild/
+          $env:Path = "C:\msys64\mingw64\bin\;" + $env:Path
+          C:\msys64\mingw64\bin\mingw32-make -C mingwbuild/
         }
 
 test_script:
