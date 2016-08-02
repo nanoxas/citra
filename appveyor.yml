@@ -38,7 +38,7 @@ before_build:
         }
   - cd ..
 
-build:
+build_script:
   - ps: >
         if ($env:BUILD_TYPE -eq 'msvc') {
           # https://www.appveyor.com/docs/build-phase
