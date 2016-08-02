@@ -50,7 +50,7 @@ build:
 test_script:
   - cd %BUILD_TYPE%build && ctest -VV -C Release && cd ..
 
-on_success: off
+on_success:
     # copying the needed QT Dlls is now done post build. See the CMakeLists.txt file in the citra-qt folder
   - ps: >
         if (!"$env:APPVEYOR_PULL_REQUEST_TITLE" -and ("$env:APPVEYOR_REPO_BRANCH" -eq "master"))
