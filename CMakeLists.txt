@@ -173,7 +173,8 @@ IF (APPLE)
 ELSEIF(MINGW)
     # GCC does not support codecvt, so use iconv instead
     # PSAPI is the Process Status API
-    set(PLATFORM_LIBRARIES winmm ws2_32 psapi)
+    set(PLATFORM_LIBRARIES winmm ws2_32 psapi imm32)
+    #set(PLATFORM_LIBRARIES "${PLATFORM_LIBRARIES} mingw32 SDL2main SDL2 m dinput8 dxguid dxerr8 user32 gdi32 winmm imm32 ole32 oleaut32 shell32 version uuid")
 
     # WSAPoll functionality doesn't exist before WinNT 6.x (Vista and up)
     add_definitions(-D_WIN32_WINNT=0x0600)
