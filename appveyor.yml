@@ -34,7 +34,7 @@ before_build:
           cmake -G "Visual Studio 14 2015 Win64" -DCITRA_USE_BUNDLED_QT=1 -DCITRA_USE_BUNDLED_SDL2=1 ..
         } else {
           $env:Path = "C:\msys64\mingw64\bin\;"
-          C:\msys64\mingw64\bin\cmake -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release -DQt5_DIR=C:/msys64/mingw64/qt5/lib/cmake/Qt5/ -DSDL2_INCLUDE_DIR=C:/msys64/mingw64/include/SDL2/ -DSDL2_LIBRARY=C:/msys64/mingw64/bin/SDL2.dll ..
+          C:\msys64\mingw64\bin\cmake -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release -DQt5_DIR=C:/msys64/mingw64/qt5/lib/cmake/Qt5/ -DSDL2_INCLUDE_DIR=C:/msys64/mingw64/include/SDL2/ -DSDL2_LIBRARY=C:/msys64/mingw64/bin/SDL2.dll .. 2> $null
         }
   - cd ..
 
