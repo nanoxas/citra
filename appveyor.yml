@@ -49,11 +49,18 @@ build_script:
           msbuild msvcbuild/citra.sln /maxcpucount /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
         } else {
           $env:Path = "C:\msys64\mingw64\bin\;" + $env:Path
+          cd mingwbuild
           C:\Windows\System32\cmd /c "C:\msys64\mingw64\bin\mingw32-make -C mingwbuild/ -j${env:NUMBER_OF_PROCESSORS} 2>&1"
         }
 
 test_script:
   - cd %BUILD_TYPE%build && ctest -VV -C Release && cd ..
+
+after_build:
+  - ps: >
+        if ($env:BUILD_TYPE -eq 'mingw') {
+          7z a citra.zip .\mingwbuild
+        }
 
 artifacts:
   - path: citra.zip
@@ -81,7 +88,4 @@ on_success:
                 "put $BUILD_NAME /citra/nightly/windows-amd64/" `
                 "put $BUILD_NAME_NOQT /citra/nightly/windows-noqt-amd64/" `
                 "exit"
-        }
-        if ($env:BUILD_TYPE -eq 'mingw') {
-          7z a citra.zip .\mingwbuild\**\*.exe
         }
