@@ -86,6 +86,7 @@ on_success:
                 "put $BUILD_NAME_NOQT /citra/nightly/windows-noqt-amd64/" `
                 "exit"
         }
+
         # just tack this onto here for testing.
         if ($env:BUILD_TYPE -eq 'mingw') {
           7z a citra.zip %APPVEYOR_BUILD_FOLDER%\mingwbuild\**\citra*.exe
