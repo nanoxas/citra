@@ -87,5 +87,5 @@ on_success:
                 "exit"
         }
         if ($env:BUILD_TYPE -eq 'mingw') {
-          7z a citra.zip "${env:APPVEYOR_BUILD_FOLDER}\mingwbuild\**\citra*.exe"
+          7z a citra.zip ".\mingwbuild\**\citra*.exe"
         }
