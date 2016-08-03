@@ -33,10 +33,12 @@ before_build:
         if ($env:BUILD_TYPE -eq 'msvc') {
           cmake -G "Visual Studio 14 2015 Win64" -DCITRA_USE_BUNDLED_QT=1 -DCITRA_USE_BUNDLED_SDL2=1 ..
         } else {
-          # Change path to just include the mingw gcc and *not* sh.exe (which breaks things)
+          $old_path = $env:Path
+          # Change path to just include the mingw gcc and *not* sh.exe (which breaks things when using MinGW Makefiles)
           $env:Path = "C:\msys64\mingw64\bin\;"
           # make sure error output from this command isn't interpreted as an error in powershell
           C:\Windows\System32\cmd /c 'C:\msys64\mingw64\bin\cmake -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release -DQt5_DIR=C:/msys64/mingw64/qt5/lib/cmake/Qt5/ -DSDL2_INCLUDE_DIR=C:/msys64/mingw64/include/SDL2/ -DSDL2_LIBRARY=C:/msys64/mingw64/bin/SDL2.dll .. 2>&1'
+          $env:Path = $old_path
         }
   - cd ..
 
@@ -53,11 +55,18 @@ build_script:
 test_script:
   - cd %BUILD_TYPE%build && ctest -VV -C Release && cd ..
 
+after_build:
+  # package all the needed files into a zip
+  - ps: >
+
+artifacts:
+  - path: citra.zip
+    name: CitraGCC
+
 on_success:
     # copying the needed QT Dlls is now done post build. See the CMakeLists.txt file in the citra-qt folder
   - ps: >
-        if (!"$env:APPVEYOR_PULL_REQUEST_TITLE" -and ("$env:APPVEYOR_REPO_BRANCH" -eq "master"))
-          {
+        if (!"$env:APPVEYOR_PULL_REQUEST_TITLE" -and ("$env:APPVEYOR_REPO_BRANCH" -eq "master")) {
             $GITDATE = $(git show -s --date=short --format='%ad') -replace "-",""
             $GITREV = $(git show -s --format='%h')
             # Where are these spaces coming from? Regardless, let's remove them
@@ -67,8 +76,6 @@ on_success:
             7z a $BUILD_NAME .\build\bin\release\* .\license.txt .\README.md
             # Do a second archive with only the binaries (excludes dlls) and documentation
             7z a $BUILD_NAME_NOQT .\build\bin\release\*.exe .\license.txt .\README.md
-
-
             # Download WinSCP and upload to server
             choco install winscp.portable
             WinSCP.exe /command `
@@ -78,4 +85,8 @@ on_success:
                 "put $BUILD_NAME /citra/nightly/windows-amd64/" `
                 "put $BUILD_NAME_NOQT /citra/nightly/windows-noqt-amd64/" `
                 "exit"
-          }
+        }
+        # just tack this onto here for testing.
+        if ($env:BUILD_TYPE -eq 'mingw') {
+          7z a citra.zip %APPVEYOR_BUILD_FOLDER%\mingwbuild\**\citra*.exe
+        }
