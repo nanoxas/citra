@@ -58,7 +58,12 @@ test_script:
 after_build:
   - ps: >
         if ($env:BUILD_TYPE -eq 'mingw') {
-          7z a citra.zip .\mingwbuild
+          cmd /c "7z a citra.zip .\mingwbuild\**\citra*.exe"
+          cd C:\msys64\mingw64\bin\
+          cmd /c "7z a ${env:APPVEYOR_BUILD_FOLDER}\citra.zip libgcc_s_sjlj-1.dll libstdc++-6.dll libwinpthread-1.dll "
+          cd C:\msys64\mingw64\qt5\bin\
+          cmd /c "7z a ${env:APPVEYOR_BUILD_FOLDER}\citra.zip Qt5Core.dll Qt5Widgets.dll Qt5Gui.dll Qt5OpenGL.dll"
+          cd ${env:APPVEYOR_BUILD_FOLDER}
         }
 
 artifacts:
