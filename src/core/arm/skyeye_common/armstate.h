@@ -142,7 +142,7 @@ enum {
     RUN        = 3  // Continuous execution
 };
 
-
+extern "C" {
 struct ARMul_State final
 {
 public:
@@ -251,3 +251,4 @@ private:
     u32 exclusive_tag; // The address for which the local monitor is in exclusive access mode
     bool exclusive_state;
 };
+}

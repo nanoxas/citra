@@ -4,6 +4,8 @@
 
 #pragma once
 
+extern "C" {
 struct ARMul_State;
 
 unsigned InterpreterMainLoop(ARMul_State* state);
+}

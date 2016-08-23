@@ -40,6 +40,10 @@ option(CITRA_USE_BUNDLED_SDL2 "Download bundled SDL2 binaries" OFF)
 option(ENABLE_QT "Enable the Qt frontend" ON)
 option(CITRA_USE_BUNDLED_QT "Download bundled Qt binaries" OFF)
 
+if (MSVC)
+    option(USE_GCC_INTERPRETER "Use GCC to compile the interpreter for a speed boost. Requires msys2 installed mingw64." OFF)
+endif()
+
 if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/.git/hooks/pre-commit)
     message(STATUS "Copying pre-commit hook")
     file(COPY hooks/pre-commit
@@ -87,7 +91,11 @@ else()
     # /MP - Multi-threaded compilation
     # /Zi - Output debugging information
     # /Zo - enahnced debug info for optimized builds
-    set(CMAKE_C_FLAGS   "/W3 /MP /Zi /Zo" CACHE STRING "" FORCE)
+    if (USE_GCC_INTERPRETER)
+        set(CMAKE_C_FLAGS   "/W3 /MP /Zi /Zo" CACHE STRING "" FORCE)
+    else()
+        set(CMAKE_C_FLAGS   "/W3 /MP" CACHE STRING "" FORCE)
+    endif()
     # /EHsc - C++-only exception handling semantics
     set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} /EHsc" CACHE STRING "" FORCE)
 
@@ -103,6 +111,17 @@ else()
 
     set(CMAKE_EXE_LINKER_FLAGS_DEBUG   "/DEBUG" CACHE STRING "" FORCE)
     set(CMAKE_EXE_LINKER_FLAGS_RELEASE "/DEBUG /INCREMENTAL:NO /OPT:REF,ICF" CACHE STRING "" FORCE)
+
+    # if (USE_GCC_INTERPRETER)
+    #     # download the latest objconv and put it in the build dir. TODO: should this be rehosted in externals?
+    #     if (NOT EXISTS "${CMAKE_BINARY_DIR}/objconv")
+    #         file(DOWNLOAD http://agner.org/optimize/objconv.zip
+    #             "${CMAKE_BINARY_DIR}/objconv/objconv.zip" SHOW_PROGRESS)
+    #         execute_process(COMMAND ${CMAKE_COMMAND} -E tar xf "${CMAKE_BINARY_DIR}/objconv/objconv.zip"
+    #             WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/objconv")
+    #     endif()
+    #     # the rest of the work is done core/CMakeLists.txt
+    # endif()
 endif()
 
 add_definitions(-DSINGLETHREADED)

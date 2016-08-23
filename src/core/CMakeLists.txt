@@ -281,6 +281,55 @@ set(HEADERS
             system.h
             )
 
-create_directory_groups(${SRCS} ${HEADERS})
 
-add_library(core STATIC ${SRCS} ${HEADERS})
+if (MSVC AND USE_GCC_INTERPRETER)
+    # remove interpreter from the sources list since we'll turn it into an obj file
+    list(REMOVE_ITEM SRCS arm/dyncom/arm_dyncom_interpreter.cpp)
+
+    set(CPP_FILE arm/dyncom/arm_dyncom_interpreter.cpp)
+    set(MSYS2_MINGW64_BIN_DIR "C:/msys64/mingw64/bin/")
+    set(SOURCE_FILE "${CMAKE_SOURCE_DIR}/src/core/${CPP_FILE}")
+    set(OUTPUT_FILE "${CMAKE_BINARY_DIR}/src/core/CMakeFiles/core.dir/${CPP_FILE}")
+    set(OBJCONV "${CMAKE_BINARY_DIR}/objconv.exe")
+
+    string(REPLACE "/" "\\" MSYS2_MINGW64_BIN_DIR ${MSYS2_MINGW64_BIN_DIR})
+    string(REPLACE "/" "\\" SOURCE_FILE ${SOURCE_FILE})
+    string(REPLACE "/" "\\" OUTPUT_FILE ${OUTPUT_FILE})
+    string(REPLACE "/" "\\" OBJCONV ${OBJCONV})
+
+    # add prebuild step to compile interpreter with gcc
+    add_custom_command(
+        OUTPUT ${OUTPUT_FILE}.obj
+        MAIN_DEPENDENCY ${SOURCE_FILE}
+        COMMAND echo *** Rebuilding interpreter with gcc ***
+        # Add mingw64 to path
+        COMMAND set PATH=\%PATH\%\;${MSYS2_MINGW64_BIN_DIR}
+        # remove old obj files
+        COMMAND del ${OUTPUT_FILE}.o ${OUTPUT_FILE}.obj 2>NUL
+        COMMAND ${MSYS2_MINGW64_BIN_DIR}g++ -c -s -std=gnu++14 -mabi=ms -O3 -I${CMAKE_SOURCE_DIR}/src -I${CMAKE_SOURCE_DIR}/externals/microprofile ${SOURCE_FILE} -o ${OUTPUT_FILE}.obj
+        #COMMAND ${OBJCONV} -fcoff64 ${OUTPUT_FILE}.o ${OUTPUT_FILE}.obj
+    )
+    # setup msvc to link the new obj file
+    add_custom_target(gccinterpreter DEPENDS ${OUTPUT_FILE}.obj)
+    set_source_files_properties(
+        ${OUTPUT_FILE}.obj PROPERTIES
+        EXTERNAL_OBJECT TRUE  # Identifies this as an object file
+        GENERATED TRUE  # Avoids need for file to exist at configure-time
+    )
+
+    string(REPLACE "\\" "/" OUTPUT_FILE ${OUTPUT_FILE})
+    create_directory_groups(${SRCS} ${HEADERS})
+    add_library(core STATIC ${SRCS} ${HEADERS} ${OUTPUT_FILE}.obj)
+
+    message("Target gccinterpreter is setup")
+    unset(MSYS2_MINGW64_BIN_DIR)
+    unset(CPP_FILE)
+    unset(SOURCE_FILE)
+    unset(OUTPUT_FILE)
+    unset(OBJCONV)
+endif()
+
+
+if (NOT(MSVC AND USE_GCC_INTERPRETER))
+    add_library(core STATIC ${SRCS} ${HEADERS})
+endif()

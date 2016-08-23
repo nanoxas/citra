@@ -35,6 +35,7 @@
 #define ROTATE_RIGHT_32(n, i) ROTATE_RIGHT(n, i, 32)
 #define ROTATE_LEFT_32(n, i)  ROTATE_LEFT(n, i, 32)
 
+extern "C" {
 static bool CondPassed(const ARMul_State* cpu, unsigned int cond) {
     const bool n_flag = cpu->NFlag != 0;
     const bool z_flag = cpu->ZFlag != 0;
@@ -4267,3 +4268,4 @@ unsigned InterpreterMainLoop(ARMul_State* cpu) {
         return num_instrs;
     }
 }
+} // extern "C"
