@@ -112,16 +112,16 @@ else()
     set(CMAKE_EXE_LINKER_FLAGS_DEBUG   "/DEBUG" CACHE STRING "" FORCE)
     set(CMAKE_EXE_LINKER_FLAGS_RELEASE "/DEBUG /INCREMENTAL:NO /OPT:REF,ICF" CACHE STRING "" FORCE)
 
-    # if (USE_GCC_INTERPRETER)
-    #     # download the latest objconv and put it in the build dir. TODO: should this be rehosted in externals?
-    #     if (NOT EXISTS "${CMAKE_BINARY_DIR}/objconv")
-    #         file(DOWNLOAD http://agner.org/optimize/objconv.zip
-    #             "${CMAKE_BINARY_DIR}/objconv/objconv.zip" SHOW_PROGRESS)
-    #         execute_process(COMMAND ${CMAKE_COMMAND} -E tar xf "${CMAKE_BINARY_DIR}/objconv/objconv.zip"
-    #             WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/objconv")
-    #     endif()
-    #     # the rest of the work is done core/CMakeLists.txt
-    # endif()
+    if (USE_GCC_INTERPRETER)
+        # download the latest objconv and put it in the build dir. TODO: should this be rehosted in externals?
+        if (NOT EXISTS "${CMAKE_BINARY_DIR}/objconv")
+            file(DOWNLOAD http://agner.org/optimize/objconv.zip
+                "${CMAKE_BINARY_DIR}/objconv/objconv.zip" SHOW_PROGRESS)
+            execute_process(COMMAND ${CMAKE_COMMAND} -E tar xf "${CMAKE_BINARY_DIR}/objconv/objconv.zip"
+                WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/objconv")
+        endif()
+        # the rest of the work is done core/CMakeLists.txt
+    endif()
 endif()
 
 add_definitions(-DSINGLETHREADED)

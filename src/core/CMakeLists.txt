@@ -286,11 +286,11 @@ if (MSVC AND USE_GCC_INTERPRETER)
     # remove interpreter from the sources list since we'll turn it into an obj file
     list(REMOVE_ITEM SRCS arm/dyncom/arm_dyncom_interpreter.cpp)
 
-    set(CPP_FILE arm/dyncom/arm_dyncom_interpreter.cpp)
+    set(FILENAME arm_dyncom_interpreter)
     set(MSYS2_MINGW64_BIN_DIR "C:/msys64/mingw64/bin/")
-    set(SOURCE_FILE "${CMAKE_SOURCE_DIR}/src/core/${CPP_FILE}")
-    set(OUTPUT_FILE "${CMAKE_BINARY_DIR}/src/core/CMakeFiles/core.dir/${CPP_FILE}")
-    set(OBJCONV "${CMAKE_BINARY_DIR}/objconv.exe")
+    set(SOURCE_FILE "${CMAKE_SOURCE_DIR}/src/core/arm/dyncom/${FILENAME}.cpp")
+    set(OUTPUT_FILE "${CMAKE_BINARY_DIR}/src/gccinterpreter/${FILENAME}")
+    set(OBJCONV "${CMAKE_BINARY_DIR}/objconv/objconv.exe")
 
     string(REPLACE "/" "\\" MSYS2_MINGW64_BIN_DIR ${MSYS2_MINGW64_BIN_DIR})
     string(REPLACE "/" "\\" SOURCE_FILE ${SOURCE_FILE})
@@ -306,8 +306,8 @@ if (MSVC AND USE_GCC_INTERPRETER)
         COMMAND set PATH=\%PATH\%\;${MSYS2_MINGW64_BIN_DIR}
         # remove old obj files
         COMMAND del ${OUTPUT_FILE}.o ${OUTPUT_FILE}.obj 2>NUL
-        COMMAND ${MSYS2_MINGW64_BIN_DIR}g++ -c -s -std=gnu++14 -mabi=ms -O3 -I${CMAKE_SOURCE_DIR}/src -I${CMAKE_SOURCE_DIR}/externals/microprofile ${SOURCE_FILE} -o ${OUTPUT_FILE}.obj
-        #COMMAND ${OBJCONV} -fcoff64 ${OUTPUT_FILE}.o ${OUTPUT_FILE}.obj
+        COMMAND ${MSYS2_MINGW64_BIN_DIR}g++ -c -static -std=gnu++14 -O3 -I${CMAKE_SOURCE_DIR}/src -I${CMAKE_SOURCE_DIR}/externals/microprofile ${SOURCE_FILE} -o ${OUTPUT_FILE}.o
+        COMMAND ${OBJCONV} -fcoff64 ${OUTPUT_FILE}.o ${OUTPUT_FILE}.obj
     )
     # setup msvc to link the new obj file
     add_custom_target(gccinterpreter DEPENDS ${OUTPUT_FILE}.obj)

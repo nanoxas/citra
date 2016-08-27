@@ -4,7 +4,7 @@
 
 #define CITRA_IGNORE_EXIT(x)
 
-#include <algorithm>
+// #include <algorithm>
 #include <cstdio>
 
 #include "common/common_types.h"
