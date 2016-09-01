@@ -121,7 +121,11 @@ if (Qt5_FOUND AND MSVC)
         Qt5Widgets$<$<CONFIG:Debug>:d>.*
     )
     windows_copy_files(citra-qt ${Qt5_PLATFORMS_DIR} ${PLATFORMS} qwindows$<$<CONFIG:Debug>:d>.*)
+    # copy the msvc redistributable dlls to the folder
+    set(MSVC_REDIST_DIR "C:/Program Files (x86)/Microsoft Visual Studio 14.0/VC/redist/x64/Microsoft.VC140.CRT")
+    windows_copy_files(citra-qt ${MSVC_REDIST_DIR} ${DLL_DEST} *.dll)
 
+    unset(MSVC_REDIST_DIR)
     unset(Qt5_DLL_DIR)
     unset(Qt5_PLATFORMS_DIR)
     unset(DLL_DEST)
