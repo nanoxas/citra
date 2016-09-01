@@ -4,7 +4,7 @@ clone_depth: 5
 environment:
   matrix:
     - BUILD_TYPE: mingw
-    #- BUILD_TYPE: msvc
+    - BUILD_TYPE: msvc
   BUILD_PASSWORD:
     secure: EXGNlWKJsCtbeImEJ5EP9qrxZ+EqUFfNy+CP61nDOMA=
 
