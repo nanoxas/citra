@@ -1,3 +1,6 @@
+[submodule "externals/cpr"]
+    path = externals/cpr
+    url = https://github.com/whoshuu/cpr
 [submodule "inih"]
     path = externals/inih/inih
     url = https://github.com/svn2github/inih
