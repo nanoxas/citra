@@ -37,7 +37,7 @@ before_build:
           # Change path to just include the mingw gcc and *not* sh.exe (which breaks things when using MinGW Makefiles)
           $env:Path = "C:\msys64\mingw64\bin\;"
           # make sure error output from this command isn't interpreted as an error in powershell
-          C:\Windows\System32\cmd /c 'C:\msys64\mingw64\bin\cmake -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release -DQt5_DIR=C:/msys64/mingw64/qt5-static/lib/cmake/Qt5/ -DSDL2_INCLUDE_DIR=C:/msys64/mingw64/include/SDL2/ -DSDL2_LIBRARY=C:/msys64/mingw64/bin/SDL2.dll -DMINGW_STATIC_BUILD .. 2>&1'
+          C:\Windows\System32\cmd /c 'C:\msys64\mingw64\bin\cmake -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release -DQt5_DIR=C:/msys64/mingw64/qt5-static/lib/cmake/Qt5/ -DSDL2_INCLUDE_DIR=C:/msys64/mingw64/include/SDL2/ -DSDL2_LIBRARY=C:/msys64/mingw64/bin/SDL2.dll -DMINGW_STATIC_BUILD=ON .. 2>&1'
           $env:Path = $old_path
         }
   - cd ..
@@ -62,7 +62,7 @@ after_build:
           cd C:\msys64\mingw64\bin
           cmd /c "7z a ${env:APPVEYOR_BUILD_FOLDER}\citra.7z Qt5Core.dll Qt5Widgets.dll Qt5Gui.dll Qt5OpenGL.dll"
           cmd /c "7z a ${env:APPVEYOR_BUILD_FOLDER}\citra.7z libbz2-1.dll libicudt56.dll libicuin56.dll libicuuc56.dll libffi-6.dll libfreetype-6.dll libgcc_s_seh-1.dll libglib-2.0-0.dll libgobject-2.0-0.dll libgraphite2.dll libiconv-2.dll libharfbuzz-0.dll libintl-8.dll libpcre-1.dll libpcre16-0.dll libpng16-16.dll libstdc++-6.dll libwinpthread-1.dll SDL2.dll zlib1.dll"
-          cd C:\msys64\mingw64\share\qt5
+          cd C:\msys64\mingw64\share\qt5-static
           cmd /c "7z a ${env:APPVEYOR_BUILD_FOLDER}\citra.7z plugins\platforms\qwindows.dll"
           cd ${env:APPVEYOR_BUILD_FOLDER}
         }
