@@ -11,7 +11,6 @@
 #include <fstream>
 
 // Have to include getopt in the compilation unit or else its compiled with the wrong runtime
-#include <cpr/cpr.h>
 #include "getopt.h"
 #include "json.hpp"
 #include "tagname.h"
