@@ -82,59 +82,65 @@ void copyPreviousInstallsUserFolder(std::string path) {
     std::string new_user_dir;
     SHFILEOPSTRUCT s = { 0 };
     HANDLE h;
-    std::array<std::string, 2> app_folder_paths{ "", "" };
+    std::vector<std::string> app_folder_paths{ "" };
+    std::vector<__int64> folder_creation_time{ 0 };
     std::string user_folder_old;
     std::string user_folder_new;
     const char* search_path;
     DWORD ftyp;
     std::ofstream myfile;
     myfile.open (".\\log.txt");
-    myfile << "Starting copy of old user folder " << std::endl;
+    myfile << std::endl << "----------" << std::endl << "Starting copy of old user folder " << std::endl;
     myfile << "path " << path << std::endl;
 
     search_path = (path.substr(0, path.find_last_of("\\/")) + "\\*").c_str();
     myfile << "search path " << search_path << std::endl;
     h = FindFirstFileEx(search_path, FindExInfoStandard, &found_file, FindExSearchLimitToDirectories, NULL, 0);
     if (h != INVALID_HANDLE_VALUE) {
-        int index = 0;
-        __int64 first_folder_creation_time;
         do {
             if (found_file.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
-                // get the first two folders that starts with app.
-                // then sort them by creation time. We want the oldest folder in the array[0]
-                // Squirrel only keeps one old version so there should always be two folders at this point
                 std::string fname(found_file.cFileName);
+                // find the app folders. It can be 2 or 3 depending on if this is a first time upgrade, or a subsequent upgrade
                 if (fname.substr(0, 3) == "app") {
                     ULARGE_INTEGER ul;
                     ul.LowPart = found_file.ftCreationTime.dwLowDateTime;
                     ul.HighPart = found_file.ftCreationTime.dwHighDateTime;
-                    if (index == 0) {
-                        app_folder_paths[0] = path.substr(0, path.find_last_of("\\/")) + "\\" + fname;
-                        // get the creation time for this folder. if its newer than the second folder,
-                        // then we need to swap to make sure that we are copying from the old install
-                        first_folder_creation_time = ul.QuadPart;
-                        ++index;
-                    } else {
-                        // make sure that the current folder's creation date is later than the other one
-                        if (ul.QuadPart < first_folder_creation_time) {
-                            app_folder_paths[1] = app_folder_paths[0];
-                            app_folder_paths[0] = path.substr(0, path.find_last_of("\\/")) + "\\" + fname;
-                        } else {
-                            // first folder is already the old version, so just continue
-                            app_folder_paths[1] = path.substr(0, path.find_last_of("\\/")) + "\\" + fname;
-                        }
-                    }
+                    app_folder_paths.push_back(path.substr(0, path.find_last_of("\\/")) + "\\" + fname);
+                    // get the creation time for this folder. we want to make sure we are copying over from the second
+                    // most recently created folder (the previous version) into the latest version
+                    folder_creation_time.push_back(ul.QuadPart);
                 }
             }
-        } while (index < 2 && FindNextFile(h, &found_file));
+        } while (FindNextFile(h, &found_file));
         FindClose(h);
     }
-    // See if the old directory even has a user folder. (Note: It should unless they deleted it)
-    user_folder_old = app_folder_paths[0] + "\\user";
-    user_folder_new = app_folder_paths[1] + "\\user";
+    // We have two lists, one with timestamps and the other with the actual lists. TODO use a map.
+    // Try to find the newest (the currently installing version) and the second newest (the previous version)
+    int newest_index = 0;
+    int second_newest_index = 0;
+    for (int i=1; i < folder_creation_time.size(); ++i) {
+        if (folder_creation_time[i] > folder_creation_time[newest_index]) {
+            second_newest_index = newest_index;
+            newest_index = i;
+        }
+    }
+
+    myfile << "app_folder_paths " << std::endl;
+    for (const auto& i : app_folder_paths) {
+        myfile << '\t' << i << std::endl;
+    }
+    myfile << "folder_creation_time " << std::endl;
+    for (const auto& i : folder_creation_time) {
+        myfile << '\t' << i << std::endl;
+    }
+    myfile << "newest_index " << newest_index << std::endl;
+    myfile << "oldest_index " << second_newest_index << std::endl;
+    user_folder_old = app_folder_paths[second_newest_index] + "\\user";
+    user_folder_new = app_folder_paths[newest_index] + "\\user";
     myfile << "old " << user_folder_old << std::endl;
     myfile << "new " << user_folder_new << std::endl;
 
+    // See if the old directory even has a user folder. (Note: It should unless they deleted it)
     ftyp = GetFileAttributesA(user_folder_old.c_str());
     if (ftyp != INVALID_FILE_ATTRIBUTES && (ftyp & FILE_ATTRIBUTE_DIRECTORY)) {
         // copy the old user directory over. Yes. SHFileOperation requires double null terminated strings
