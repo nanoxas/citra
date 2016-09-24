@@ -40,6 +40,8 @@ option(CITRA_USE_BUNDLED_SDL2 "Download bundled SDL2 binaries" OFF)
 option(ENABLE_QT "Enable the Qt frontend" ON)
 option(CITRA_USE_BUNDLED_QT "Download bundled Qt binaries" OFF)
 
+option(WIN_CREATE_INSTALLER "Create a windows installer with Squirrel" OFF)
+
 if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/.git/hooks/pre-commit)
     message(STATUS "Copying pre-commit hook")
     file(COPY hooks/pre-commit
@@ -68,6 +70,17 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 if (NOT MSVC)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-attributes")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
+
+    if (MINGW)
+        add_definitions(-DMINGW_HAS_SECURE_API=1 -DMICROPROFILE_ENABLED=0)
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -msse -msse2")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -msse -msse2")
+        if (MINGW_STATIC_BUILD)
+            add_definitions(-DQT_STATICPLUGIN=1)
+            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static")
+            set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static")
+        endif()
+    endif()
 else()
     # Silence "deprecation" warnings
     add_definitions(/D_CRT_SECURE_NO_WARNINGS /D_CRT_NONSTDC_NO_DEPRECATE /D_SCL_SECURE_NO_WARNINGS)
@@ -86,8 +99,7 @@ else()
     # /W3 - Level 3 warnings
     # /MP - Multi-threaded compilation
     # /Zi - Output debugging information
-    # /Zo - enahnced debug info for optimized builds
-    set(CMAKE_C_FLAGS   "/W3 /MP /Zi /Zo" CACHE STRING "" FORCE)
+    set(CMAKE_C_FLAGS   "/W3 /MP /Zi" CACHE STRING "" FORCE)
     # /EHsc - C++-only exception handling semantics
     set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} /EHsc" CACHE STRING "" FORCE)
 
@@ -98,7 +110,8 @@ else()
     # /O2 - Optimization level 2
     # /GS- - No stack buffer overflow checks
     # /MD - Multi-threaded runtime DLL
-    set(CMAKE_C_FLAGS_RELEASE   "/O2 /GS- /MD" CACHE STRING "" FORCE)
+    # /Zo - enahnced debug info for optimized builds
+    set(CMAKE_C_FLAGS_RELEASE   "/Zo /O2 /GS- /MD" CACHE STRING "" FORCE)
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}" CACHE STRING "" FORCE)
 
     set(CMAKE_EXE_LINKER_FLAGS_DEBUG   "/DEBUG" CACHE STRING "" FORCE)
@@ -175,7 +188,7 @@ IF (APPLE)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -stdlib=libc++")
 ELSEIF(MINGW)
     # PSAPI is the Process Status API
-    set(PLATFORM_LIBRARIES winmm ws2_32 psapi)
+    set(PLATFORM_LIBRARIES winmm ws2_32 psapi imm32 version)
 
     # WSAPoll functionality doesn't exist before WinNT 6.x (Vista and up)
     add_definitions(-D_WIN32_WINNT=0x0600)
@@ -249,7 +262,7 @@ add_subdirectory(externals/glad)
 include_directories(externals/microprofile)
 include_directories(externals/nihstro/include)
 
-if (MSVC)
+if (WIN_CREATE_INSTALLER OR MSVC)
     add_subdirectory(externals/getopt)
 endif()
 
