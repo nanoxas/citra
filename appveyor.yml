@@ -1,5 +1,25 @@
 # shallow clone
-clone_depth: 5
+clone_depth: 10
+
+# don't build on tag
+skip_tags: true
+
+deploy:
+  - provider: GitHub
+    release: nightly-$(appveyor_build_number)
+    description: |
+      Download and extract the zip file for your operating system and run citra-qt
+
+      Nightly Build number $(appveyor_build_number)
+    auth_token:
+      secure: MeBSKRVxvUlkHpCbV+PhpGMmvM2Xh4gkjf4/gWvCtl1ix/VJQPbs7L/PNU7IS66C
+    artifact: msvcbuild,msvcdebug
+    draft: false
+    prerelease: false
+    on:
+      branch: master
+      # travis only releases on tag so have appveyor make the tag and let travis upload to it
+      appveyor_repo_tag: true
 
 environment:
   BUILD_PASSWORD:
@@ -30,42 +50,22 @@ build:
   project: build/citra.sln
   parallel: true
 
+after_build:
+  - ps: |
+        $GIT_SHORT_NAME = $(git show -s --format='%h')
+        $MSVC_BUILD_NAME = "citra-windows-msvc-amd64-$GIT_SHORT_NAME.zip"
+        $MSVC_BUILD_PDB = "citra-windows-msvc-amd64-$GIT_SHORT_NAME-debugsymbols.zip"
+        # set the build names as env vars so the artifacts can upload them
+        $env:MSVC_BUILD_NAME = $MSVC_BUILD_NAME
+        $env:MSVC_BUILD_PDB = $MSVC_BUILD_PDB
+        rm .\build\bin\release\*tests*
+        7z a -tzip $BUILD_NAME_PDB .\build\bin\release\*.pdb
+        rm .\build\bin\release\*.pdb
+        7z a -tzip $BUILD_NAME .\build\bin\release\* .\license.txt .\README.md
+
 test_script:
   - cd build && ctest -VV -C Release && cd ..
 
-on_success:
-    # copying the needed QT Dlls is now done post build. See the CMakeLists.txt file in the citra-qt folder
-  - ps: >
-        if (!"$env:APPVEYOR_PULL_REQUEST_TITLE" -and ("$env:APPVEYOR_REPO_BRANCH" -eq "master"))
-          {
-            $GITDATE = $(git show -s --date=short --format='%ad') -replace "-",""
-            $GITREV = $(git show -s --format='%h')
-            # Where are these spaces coming from? Regardless, let's remove them
-            $BUILD_NAME = "citra-${GITDATE}-${GITREV}-windows-amd64.7z" -replace " ",""
-            $BUILD_NAME_PDB = "citra-${GITDATE}-${GITREV}-windows-amd64-debugsymbols.7z" -replace " ",""
-            $BUILD_NAME_NOQT = "citra-noqt-${GITDATE}-${GITREV}-windows-amd64.7z" -replace " ",""
-
-            # Remove unnecessary files
-            rm .\build\bin\release\*tests*
-
-            # Put the pdb files in a separate archive and remove them from the main download
-            7z a $BUILD_NAME_PDB .\build\bin\release\*.pdb
-            rm .\build\bin\release\*.pdb
-
-            # Zip up the build folder and documentation
-            7z a $BUILD_NAME .\build\bin\release\* .\license.txt .\README.md
-            # Do a second archive with only the binaries (excludes dlls) and documentation
-            7z a $BUILD_NAME_NOQT .\build\bin\release\*.exe .\license.txt .\README.md
-
-
-            # Download WinSCP and upload to server
-            choco install winscp.portable
-            WinSCP.exe /command `
-                "option batch abort" `
-                "option confirm off" `
-                "open sftp://citra-builds:${env:BUILD_PASSWORD}@builds.citra-emu.org -hostkey=*" `
-                "put $BUILD_NAME /citra/nightly/windows-amd64/" `
-                "put $BUILD_NAME_NOQT /citra/nightly/windows-noqt-amd64/" `
-                "put $BUILD_NAME_PDB /citra/nightly/windows-amd64-debugsymbols/" `
-                "exit"
-          }
+artifacts:
+  - msvcbuild: $(MSVC_BUILD_NAME)
+  - msvcdebug: $(MSVC_BUILD_PDB)
