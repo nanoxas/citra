@@ -1,0 +1,27 @@
+{
+    "package": {
+        "name": "citra-nightly",
+        "repo": "citra-test-jroweboy",
+        "subject": "jroweboy",
+        "desc": "Build created on @BUILD_DATE@",
+        "website_url": "www.citra-emu.org",
+        "public_download_numbers": false,
+        "public_stats": false
+    },
+    "version": {
+        "name": "@GIT_REV@",
+        "released": "@BUILD_DATE@",
+        "gpgSign": false
+    },
+    "files": [
+        {
+            "includePattern": "artifacts/citra-linux-(.*\\.tar.xz)",
+            "uploadPattern": "linux/citra-linux-$1"
+        },
+        {
+            "includePattern": "build/citra-osx-(.*\\.tar.xz)",
+            "uploadPattern": "mac/citra-osx-$1"
+        }
+    ],
+    "publish": true
+}

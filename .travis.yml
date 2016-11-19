@@ -1,36 +1,37 @@
 language: cpp
-
 matrix:
   include:
-    - os: linux
-      sudo: true
-      dist: trusty
-    - os: osx
-      sudo: false
-      osx_image: xcode7.3
-
+  - os: linux
+    sudo: true
+    dist: trusty
+  - os: osx
+    sudo: false
+    osx_image: xcode7.3
 env:
   global:
-    - secure: "AXHFIafTmbGDsHD3mUVj5a4I397DQjti/WoqAJGUp2PglxTcc04BwxZ9Z+xLuf5N2Hs5r9ojAJLT8OGxJCLBDXzneQTNSqXbFuYSLbqrEAiIRlA9eRIotWCg+wYcO+5e8MKX+cHVKwiIWasUB21AtCdq6msh6Y3pUshZp212VPg="
-
+  - secure: AXHFIafTmbGDsHD3mUVj5a4I397DQjti/WoqAJGUp2PglxTcc04BwxZ9Z+xLuf5N2Hs5r9ojAJLT8OGxJCLBDXzneQTNSqXbFuYSLbqrEAiIRlA9eRIotWCg+wYcO+5e8MKX+cHVKwiIWasUB21AtCdq6msh6Y3pUshZp212VPg=
 addons:
   apt:
     sources:
-      - ubuntu-toolchain-r-test
-      - llvm-toolchain-precise
+    - ubuntu-toolchain-r-test
+    - llvm-toolchain-precise
     packages:
-      - gcc-6
-      - g++-6
-      - qt5-default
-      - libqt5opengl5-dev
-      - xorg-dev
-      - lib32stdc++6 # For CMake
-      - clang-format-4.0
-
+    - gcc-6
+    - g++-6
+    - qt5-default
+    - libqt5opengl5-dev
+    - xorg-dev
+    - lib32stdc++6
+    - clang-format-4.0
 cache:
   directories:
-    - $HOME/.local
-
-install: ./.travis-deps.sh
-script: ./.travis-build.sh
-after_success: ./.travis-upload.sh
+  - "$HOME/.local"
+install: "./.travis-deps.sh"
+script: "./.travis-build.sh"
+after_success: "./.travis-upload.sh"
+deploy:
+  provider: bintray
+  file: "${HOME}/build/${TRAVIS_REPO_SLUG}/.travis.descriptor.json"
+  user: jroweboy
+  key:
+    secure: A/KFJvs+mKECywo7Z7EZlBcHzDRD5nFbTpLwHWa7ZQrr49KJBZkZQqGZ/8qC1AMKki1lwpyVMhd/Q8PKnWOlcRR7/Cm/4l+t8InNsxIca0+2wd0ZKpYpP0kQ04ge8UeOUDOaHzBLlxV4YAcHxzVmYY8y4zVIYUxbfyrHtiYHrazXiZJ48tR7EopXzbvzAtUZ023H/v4PwUtYSO2/T0jxcoQNPjzAkHL9e//yohcmMRLDyuq+ncwlf9m3zJ8UwA5tO4YOU5RRAVoku6GqK3TjHKrFVqDtG1YBtMKq/BrzJxlzLLz7ha31v22WhZcVCAiDdjpOFuloelCBNqjaoGHZQTSyj5Miwb8qdbFGkp2eq8FEGYbPKnwo02uO7cRVYvtTqoTqNMqLW3hYZ6OQtAvg/4nEq2jEkrh+RwuoUEl70yM1Zw7XyxIjwpENUUcjXQpnFSbT44SDUD6wDERwTDj+4CeyTgbuELxwd7rzQwYBxZ2zXF9oXSwwZpE7uKjY9IL7i5g/mcoxSOAFFHO3dO3Smto5MdvZLIlKwaELSmv/HZoQbS1qwkGaU9SlF1/la7gJyapSYzUqGC7CNPcIkcENi10zJc6hR9wTjcKx9Gzy5AhI9lsGXL+hEwdpdCSZ8xVmtdaxle/0UmW/onR3rQIqmIBSyDVIJ0uMJrjFLFliFfQ=
