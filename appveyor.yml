@@ -1,6 +1,7 @@
 # shallow clone
 clone_depth: 10
 
+# don't build on tag
 skip_tags: true
 
 deploy:
@@ -60,12 +61,11 @@ before_build:
           cmake -G "Visual Studio 14 2015 Win64" -DCITRA_USE_BUNDLED_QT=1 -DCITRA_USE_BUNDLED_SDL2=1 ..
         } else {
           # make sure error output from the cmake command isn't interpreted as an error in powershell by redirecting stderr
-          # -l means that the shell started with mingw64, but in mingw64 user's home folder. So we cd to the current powershell directory
-          C:\msys64\usr\bin\bash -lc 'cd `cygpath -u $APPVEYOR_BUILD_FOLDER/mingwbuild` && cmake -G "MSYS Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_MAKE_PROGRAM=mingw32-make .. 2>&1'
+          # -l starts the shell with mingw64, but in mingw64 user's home folder. So we cd to the build directory
+          C:\msys64\usr\bin\bash -lc 'cd `cygpath -u $APPVEYOR_BUILD_FOLDER/mingwbuild` && cmake -G ''MSYS Makefiles'' -DCMAKE_BUILD_TYPE=Release -DCMAKE_MAKE_PROGRAM=mingw32-make .. 2>&1'
         }
   - cd ..
 
-# Need to build and package the results 
 build_script:
   - ps: |
         # Set a short commit environment variable to use in the artifacts defintion
@@ -76,7 +76,7 @@ build_script:
         if ($env:BUILD_TYPE -eq 'msvc') {
           # https://www.appveyor.com/docs/build-phase
           msbuild msvcbuild/citra.sln /maxcpucount /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
-          7z a -tzip $BUILD_NAME .\bin\release\* .\license.txt .\README.md
+          7z a -tzip $BUILD_NAME .\msvcbuild\bin\release\* .\license.txt .\README.md
         } else {
           C:\msys64\usr\bin\bash -lc 'cd `cygpath -u $APPVEYOR_BUILD_FOLDER/mingwbuild` && mingw32-make -j2 2>&1'
           # Package a zip for mingw build.
