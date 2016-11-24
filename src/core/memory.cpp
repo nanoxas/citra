@@ -45,8 +45,6 @@ struct SpecialRegion {
  * requires an indexed fetch and a check for NULL.
  */
 struct PageTable {
-    static const size_t NUM_ENTRIES = 1 << (32 - PAGE_BITS);
-
     /**
      * Array of memory pointers backing each page. An entry can only be non-null if the
      * corresponding entry in the `attributes` array is of type `Memory`.
@@ -77,6 +75,10 @@ static PageTable main_page_table;
 /// Currently active page table
 static PageTable* current_page_table = &main_page_table;
 
+std::array<u8*, NUM_ENTRIES>* GetCurrentPageTableBackingMemory() {
+    return &current_page_table->pointers;
+}
+
 static void MapPages(u32 base, u32 size, u8* memory, PageType type) {
     LOG_DEBUG(HW_Memory, "Mapping %p onto %08X-%08X", memory, base * PAGE_SIZE,
               (base + size) * PAGE_SIZE);
@@ -84,7 +86,7 @@ static void MapPages(u32 base, u32 size, u8* memory, PageType type) {
     u32 end = base + size;
 
     while (base != end) {
-        ASSERT_MSG(base < PageTable::NUM_ENTRIES, "out of range mapping at %08X", base);
+        ASSERT_MSG(base < NUM_ENTRIES, "out of range mapping at %08X", base);
 
         // Since pages are unmapped on shutdown after video core is shutdown, the renderer may be
         // null here
