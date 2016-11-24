@@ -215,18 +215,17 @@ static void WritePicaReg(u32 id, u32 value, u32 mask) {
 
         PrimitiveAssembler<Shader::OutputVertex>& primitive_assembler = g_state.primitive_assembler;
 
-        if (g_debug_context) {
+        if (g_debug_context && g_debug_context->recorder) {
             for (int i = 0; i < 3; ++i) {
                 const auto texture = regs.GetTextures()[i];
                 if (!texture.enabled)
                     continue;
 
                 u8* texture_data = Memory::GetPhysicalPointer(texture.config.GetPhysicalAddress());
-                if (g_debug_context && Pica::g_debug_context->recorder)
-                    g_debug_context->recorder->MemoryAccessed(
-                        texture_data, Pica::Regs::NibblesPerPixel(texture.format) *
-                                          texture.config.width / 2 * texture.config.height,
-                        texture.config.GetPhysicalAddress());
+                g_debug_context->recorder->MemoryAccessed(
+                    texture_data, Pica::Regs::NibblesPerPixel(texture.format) *
+                                      texture.config.width / 2 * texture.config.height,
+                    texture.config.GetPhysicalAddress());
             }
         }
 
@@ -236,7 +235,8 @@ static void WritePicaReg(u32 id, u32 value, u32 mask) {
         // The size has been tuned for optimal balance between hit-rate and the cost of lookup
         const size_t VERTEX_CACHE_SIZE = 32;
         std::array<u16, VERTEX_CACHE_SIZE> vertex_cache_ids;
-        std::array<Shader::OutputRegisters, VERTEX_CACHE_SIZE> vertex_cache;
+        std::array<Shader::OutputVertex, VERTEX_CACHE_SIZE> vertex_cache;
+        Shader::OutputVertex output_vertex;
 
         unsigned int vertex_cache_pos = 0;
         vertex_cache_ids.fill(-1);
@@ -266,7 +266,7 @@ static void WritePicaReg(u32 id, u32 value, u32 mask) {
 
                 for (unsigned int i = 0; i < VERTEX_CACHE_SIZE; ++i) {
                     if (vertex == vertex_cache_ids[i]) {
-                        output_registers = vertex_cache[i];
+                        output_vertex = vertex_cache[i];
                         vertex_cache_hit = true;
                         break;
                     }
@@ -285,15 +285,15 @@ static void WritePicaReg(u32 id, u32 value, u32 mask) {
                 g_state.vs.Run(shader_unit, input, loader.GetNumTotalAttributes());
                 output_registers = shader_unit.output_registers;
 
+                // Retrieve vertex from register data
+                output_vertex = output_registers.ToVertex(regs.vs);
+
                 if (is_indexed) {
-                    vertex_cache[vertex_cache_pos] = output_registers;
+                    vertex_cache[vertex_cache_pos] = output_vertex;
                     vertex_cache_ids[vertex_cache_pos] = vertex;
                     vertex_cache_pos = (vertex_cache_pos + 1) % VERTEX_CACHE_SIZE;
                 }
             }
-
-            // Retrieve vertex from register data
-            Shader::OutputVertex output_vertex = output_registers.ToVertex(regs.vs);
 
             // Send to renderer
             using Pica::Shader::OutputVertex;

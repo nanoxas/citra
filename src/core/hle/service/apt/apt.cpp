@@ -396,6 +396,15 @@ void StartLibraryApplet(Service::Interface* self) {
     cmd_buff[1] = applet->Start(parameter).raw;
 }
 
+void CancelLibraryApplet(Service::Interface* self) {
+    u32* cmd_buff = Kernel::GetCommandBuffer();
+    u32 exiting = cmd_buff[1] & 0xFF;
+
+    cmd_buff[1] = 1; // TODO: Find the return code meaning
+
+    LOG_WARNING(Service_APT, "(STUBBED) called exiting=%u", exiting);
+}
+
 void SetScreenCapPostPermission(Service::Interface* self) {
     u32* cmd_buff = Kernel::GetCommandBuffer();
 
@@ -523,7 +532,7 @@ void Init() {
     notification_event = Kernel::Event::Create(Kernel::ResetType::OneShot, "APT_U:Notification");
     parameter_event = Kernel::Event::Create(Kernel::ResetType::OneShot, "APT_U:Start");
 
-    next_parameter.signal = static_cast<u32>(SignalType::AppJustStarted);
+    next_parameter.signal = static_cast<u32>(SignalType::Wakeup);
     next_parameter.destination_id = 0x300;
 }
 
