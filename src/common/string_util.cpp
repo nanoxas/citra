@@ -462,4 +462,43 @@ std::string StringFromFixedZeroTerminatedBuffer(const char* buffer, size_t max_l
 
     return std::string(buffer, len);
 }
+
+std::string TrimLeft(const std::string& str, const std::string& delimiters = " \f\n\r\t\v") {
+    const auto pos = str.find_first_not_of(delimiters);
+    if (pos == std::string::npos)
+        return {};
+
+    return str.substr(pos);
+}
+
+std::string TrimRight(const std::string& str, const std::string delimiters = " \f\n\r\t\v") {
+    const auto pos = str.find_last_not_of(delimiters);
+    if (pos == std::string::npos)
+        return {};
+
+    return str.substr(0, pos + 1);
+}
+
+std::string Trim(const std::string& str, const std::string delimiters) {
+    return TrimLeft(TrimRight(str, delimiters), delimiters);
+}
+
+std::string Join(const std::vector<std::string>& elements, const char* const separator) {
+    switch (elements.size()) {
+    case 0:
+        return "";
+    case 1:
+        return elements[0];
+    default:
+        std::ostringstream os;
+        std::copy(elements.begin(), elements.end(),
+                  std::ostream_iterator<std::string>(os, separator));
+
+        // Drop the trailing delimiter.
+        std::string result = os.str();
+        result.pop_back();
+
+        return result;
+    }
+}
 }
