@@ -301,7 +301,7 @@ bool GMainWindow::LoadROM(const std::string& filename) {
             break;
 
         case Core::System::ResultStatus::ErrorSystemMode:
-            LOG_CRITICAL(Frontend, "Failed to load ROM!");
+            LOG_CRITICAL(Frontend, "Failed to load ROM!!!");
             QMessageBox::critical(this, tr("Error while loading ROM!"),
                                   tr("Could not determine the system mode."));
             break;
