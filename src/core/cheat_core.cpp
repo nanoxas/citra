@@ -371,8 +371,34 @@ void GatewayCheat::Execute() {
             }
             }
         }
-        case 0x0E: { // EXXXXXXX YYYYYYYY   Copy YYYYYYYY parameter bytes to [XXXXXXXX+offset...]
-            // TODO: Implement whatever this is...
+        case 0x0E: {
+            // Patch Code (Miscellaneous Memory Manipulation Codes)
+            // EXXXXXXX YYYYYYYY
+            // Copies YYYYYYYY bytes from (current code location + 8) to [XXXXXXXX + offset].
+            auto x = line.address & 0x0FFFFFFF;
+            auto y = line.value;
+            addr = x + offset;
+            {
+                u32 j = 0, t = 0, b = 0;
+                if (y > 0)
+                    i++; // skip over the current code
+                while (y >= 4) {
+                    u32 tmp = (t == 0) ? cheat_lines[i].address : cheat_lines[i].value;
+                    if (t == 1)
+                        i++;
+                    t ^= 1;
+                    Memory::Write32(addr, tmp);
+                    addr += 4;
+                    y -= 4;
+                }
+                while (y > 0) {
+                    u32 tmp = ((t == 0) ? cheat_lines[i].address : cheat_lines[i].value) >> b;
+                    Memory::Write8(addr, tmp);
+                    addr += 1;
+                    y -= 1;
+                    b += 4;
+                }
+            }
             break;
         }
         }
