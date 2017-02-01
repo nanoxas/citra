@@ -260,7 +260,7 @@ void GatewayCheat::Execute() {
             if (line.address == 0)
                 line.address = offset;
             val = Memory::Read16(line.address);
-            if (static_cast<u16>(line.value) == val) {
+            if (static_cast<u16>(line.value) == (!static_cast<u16>(line.value >> 16) & val)) {
                 if (if_flag > 0)
                     if_flag--;
             } else {

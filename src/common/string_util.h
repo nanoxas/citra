@@ -10,7 +10,6 @@
 #include <cstddef>
 #include <functional>
 #include <iomanip>
-#include <locale>
 #include <sstream>
 #include <string>
 #include <vector>

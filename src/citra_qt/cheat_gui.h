@@ -5,9 +5,7 @@
 #pragma once
 
 #include <memory>
-
 #include <QDialog>
-
 #include "core/cheat_core.h"
 
 class QComboBox;

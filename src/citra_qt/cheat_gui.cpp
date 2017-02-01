@@ -3,7 +3,6 @@
 #include <QDialogButtonBox>
 #include <QLineEdit>
 #include <QTableWidgetItem>
-
 #include "citra_qt/cheat_gui.h"
 #include "core/hle/kernel/process.h"
 #include "ui_cheat_gui.h"
