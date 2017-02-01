@@ -366,7 +366,9 @@ void GatewayCheat::Execute() {
                 break;
             }
             case 0x0D: {
-                // TODO: Implement Joker codes
+                bool pressed = false; // TODO replace after input overhaul
+                if (!pressed)
+                    if_flag++;
                 break;
             }
             }
