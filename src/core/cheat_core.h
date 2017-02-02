@@ -5,7 +5,6 @@
 #include <map>
 #include <memory>
 #include <vector>
-
 #include "common/string_util.h"
 #include "core/core_timing.h"
 
@@ -18,6 +17,38 @@ void Shutdown();
 void RefreshCheats();
 }
 namespace CheatEngine {
+
+enum class CheatType {
+    Null = -0x1,
+    Write32 = 0x00,
+    Write16 = 0x01,
+    Write8 = 0x02,
+    GreaterThan32 = 0x03,
+    LessThan32 = 0x04,
+    EqualTo32 = 0x05,
+    NotEqualTo32 = 0x06,
+    GreaterThan16 = 0x07,
+    LessThan16 = 0x08,
+    EqualTo16 = 0x09,
+    NotEqualTo16 = 0x0A,
+    LoadOffset = 0x0B,
+    Loop = 0x0C,
+    Terminator = 0xD0,
+    LoopExecuteVariant = 0xD1,
+    FullTerminator = 0xD2,
+    SetOffset = 0xD3,
+    AddValue = 0xD4,
+    SetValue = 0xD5,
+    IncrementiveWrite32 = 0xD6,
+    IncrementiveWrite16 = 0xD7,
+    IncrementiveWrite8 = 0xD8,
+    Load32 = 0xD9,
+    Load16 = 0xDA,
+    Load8 = 0xDB,
+    AddOffset = 0xDC,
+    Joker = 0xDD,
+    Patch = 0x0E,
+};
 /*
  * Represents a single line of a cheat, i.e. 1xxxxxxxx yyyyyyyy
  */
@@ -27,26 +58,28 @@ struct CheatLine {
         line = Common::Trim(line);
         constexpr int cheat_length = 17;
         if (line.length() != cheat_length) {
-            type = -1;
+            type = CheatType::Null;
             cheat_line = line;
             return;
         }
         try {
-            type = std::stoi(line.substr(0, 1), 0, 16);
+            std::string type_temp = line.substr(0, 1);
+
             // 0xD types have extra subtype value, i.e. 0xDA
-            if (type == 0xD)
-                sub_type = std::stoi(line.substr(1, 1), 0, 16);
+            std::string sub_type_temp;
+            if (type_temp == "D" || type_temp == "d")
+                sub_type_temp = line.substr(1, 1);
+            type = static_cast<CheatType>(std::stoi(type_temp + sub_type_temp, 0, 16));
             address = std::stoi(line.substr(1, 8), 0, 16);
             value = std::stoi(line.substr(10, 8), 0, 16);
             cheat_line = line;
         } catch (std::exception e) {
-            type = -1;
+            type = CheatType::Null;
             cheat_line = line;
             return;
         }
     }
-    int type;
-    int sub_type;
+    CheatType type;
     u32 address;
     u32 value;
     std::string cheat_line;
