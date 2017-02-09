@@ -123,6 +123,7 @@ private slots:
     void OnMenuLoadSymbolMap();
     /// Called whenever a user selects the "File->Select Game List Root" menu item
     void OnMenuSelectGameListRoot();
+    void OnMenuRefreshGameDirectory();
     void OnMenuRecentFile();
     void OnSwapScreens();
     void OnConfigure();
