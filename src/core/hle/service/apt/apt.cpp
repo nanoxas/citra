@@ -74,6 +74,7 @@ void GetSharedFont(Service::Interface* self) {
         LOG_ERROR(Service_APT, "shared font file missing - go dump it from your 3ds");
         cmd_buff[0] = IPC::MakeHeader(0x44, 2, 2);
         cmd_buff[1] = -1; // TODO: Find the right error code
+        Core::System::GetInstance().SetStatus(Core::System::ResultStatus::ErrorSharedFont);
         return;
     }
 

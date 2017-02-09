@@ -515,7 +515,8 @@ void GMainWindow::OnMenuRecentFile() {
 void GMainWindow::OnStartGame() {
     emu_thread->SetRunning(true);
     qRegisterMetaType<Core::System::ResultStatus>("Core::System::ResultStatus");
-    connect(emu_thread.get(), SIGNAL(ErrorThrown(Core::System::ResultStatus)), this, SLOT(OnCoreError(Core::System::ResultStatus)));
+    connect(emu_thread.get(), SIGNAL(ErrorThrown(Core::System::ResultStatus)), this,
+            SLOT(OnCoreError(Core::System::ResultStatus)));
 
     ui.action_Start->setEnabled(false);
     ui.action_Start->setText(tr("Continue"));
@@ -584,10 +585,20 @@ void GMainWindow::OnCreateGraphicsSurfaceViewer() {
 }
 
 void GMainWindow::OnCoreError(Core::System::ResultStatus result) {
-  LOG_CRITICAL(Core, "error: %i", result);
     switch (result) {
     case Core::System::ResultStatus::ErrorSystemFiles:
-        QMessageBox::critical(this, "System Files Missing", "blah blah blah temporary text koopa rulez");
+        QMessageBox::critical(this, tr("System Files Missing"),
+                              tr("blah blah blah temporary text koopa rulez"));
+        break;
+
+    case Core::System::ResultStatus::ErrorSharedFont:
+        QMessageBox::critical(this, tr("Shared Font Missing"),
+                              tr(":)"));
+        break;
+
+    default:
+        QMessageBox::critical(this, tr("Unkown Error"),
+                              tr("temp"));
     }
     ShutdownGame();
 }

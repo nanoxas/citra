@@ -39,7 +39,8 @@ public:
         ErrorLoader_ErrorEncrypted, ///< Error loading the specified application due to encryption
         ErrorLoader_ErrorInvalidFormat, ///< Error loading the specified application due to an
                                         /// invalid format
-        ErrorSystemFiles,           ///< Error in finding system files
+        ErrorSystemFiles,               ///< Error in finding system files
+        ErrorSharedFont,
         ErrorVideoCore,                 ///< Error in the video core
     };
 
@@ -95,8 +96,8 @@ public:
     ResultStatus GetStatus() {
         return status;
     }
-    void SetStatus(ResultStatus status) {
-        this->status = status;
+    void SetStatus(ResultStatus newStatus) {
+        status = newStatus;
     }
 
 private:
