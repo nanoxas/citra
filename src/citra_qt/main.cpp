@@ -506,9 +506,18 @@ void GMainWindow::OnMenuLoadSymbolMap() {
 
 void GMainWindow::OnMenuSelectGameListRoot() {
     QString dir_path = QFileDialog::getExistingDirectory(this, tr("Select Directory"));
+    if (!UISettings::values.gamedir.isEmpty()) {
+        watcher.removePath(UISettings::values.gamedir);
+    }
     if (!dir_path.isEmpty()) {
         UISettings::values.gamedir = dir_path;
         game_list->PopulateAsync(dir_path, UISettings::values.gamedir_deepscan);
+        watcher.addPath(dir_path);
+    }
+}
+void GMainWindow::RefreshGameDirectory() {
+    if (!UISettings::values.gamedir.isEmpty()) {
+        game_list->PopulateAsync(UISettings::values.gamedir, UISettings::values.gamedir_deepscan);
     }
 }
 

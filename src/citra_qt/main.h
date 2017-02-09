@@ -6,6 +6,7 @@
 #define _CITRA_QT_MAIN_HXX_
 
 #include <memory>
+#include <QFileSystemWatcher>
 #include <QMainWindow>
 #include "ui_main.h"
 
@@ -119,6 +120,7 @@ private slots:
     void OnMenuLoadSymbolMap();
     /// Called whenever a user selects the "File->Select Game List Root" menu item
     void OnMenuSelectGameListRoot();
+    void RefreshGameDirectory();
     void OnMenuRecentFile();
     void OnSwapScreens();
     void OnConfigure();
@@ -149,6 +151,7 @@ private:
     GraphicsVertexShaderWidget* graphicsVertexShaderWidget;
     GraphicsTracingWidget* graphicsTracingWidget;
     WaitTreeWidget* waitTreeWidget;
+    QFileSystemWatcher watcher;
 
     QAction* actions_recent_files[max_recent_files_item];
 
