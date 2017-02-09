@@ -230,8 +230,7 @@ void GMainWindow::ConnectWidgetEvents() {
     connect(ui.action_Load_Symbol_Map, SIGNAL(triggered()), this, SLOT(OnMenuLoadSymbolMap()));
     connect(ui.action_Select_Game_List_Root, SIGNAL(triggered()), this,
             SLOT(OnMenuSelectGameListRoot()));
-    connect(ui.action_Refresh_Game_Directory, SIGNAL(triggered()), this,
-            SLOT(OnMenuRefreshGameDirectory()));
+    connect(&watcher, SIGNAL(directoryChanged(QString)), SLOT(RefreshGameDirectory()));
     connect(ui.action_Start, SIGNAL(triggered()), this, SLOT(OnStartGame()));
     connect(ui.action_Pause, SIGNAL(triggered()), this, SLOT(OnPauseGame()));
     connect(ui.action_Stop, SIGNAL(triggered()), this, SLOT(OnStopGame()));
@@ -490,12 +489,16 @@ void GMainWindow::OnMenuLoadSymbolMap() {
 
 void GMainWindow::OnMenuSelectGameListRoot() {
     QString dir_path = QFileDialog::getExistingDirectory(this, tr("Select Directory"));
+    if (!UISettings::values.gamedir.isEmpty()) {
+        watcher.removePath(UISettings::values.gamedir);
+    }
     if (!dir_path.isEmpty()) {
         UISettings::values.gamedir = dir_path;
         game_list->PopulateAsync(dir_path, UISettings::values.gamedir_deepscan);
+        watcher.addPath(dir_path);
     }
 }
-void GMainWindow::OnMenuRefreshGameDirectory() {
+void GMainWindow::RefreshGameDirectory() {
     if (!UISettings::values.gamedir.isEmpty()) {
         game_list->PopulateAsync(UISettings::values.gamedir, UISettings::values.gamedir_deepscan);
     }

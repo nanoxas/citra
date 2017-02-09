@@ -61,7 +61,6 @@
     <addaction name="action_Load_Symbol_Map"/>
     <addaction name="separator"/>
     <addaction name="action_Select_Game_List_Root"/>
-    <addaction name="action_Refresh_Game_Directory"/>
     <addaction name="menu_recent_files"/>
     <addaction name="separator"/>
     <addaction name="action_Exit"/>
@@ -166,11 +165,6 @@
    </property>
    <property name="toolTip">
     <string>Selects a folder to display in the game list</string>
-   </property>
-  </action>
-  <action name="action_Refresh_Game_Directory">
-   <property name="text">
-    <string>Refresh Game Directory</string>
    </property>
   </action>
  </widget>
