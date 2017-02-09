@@ -36,11 +36,9 @@ void EmuThread::run() {
             if (!was_active)
                 emit DebugModeLeft();
 
-            Core::System::GetInstance().RunLoop();
-            int error = Core::System::GetInstance().GetError();
-            if (error != 0) {
-                LOG_CRITICAL(Core, "test");
-                emit ErrorThrown(error);
+            Core::System::ResultStatus result = Core::System::GetInstance().RunLoop();
+            if (result != Core::System::ResultStatus::Success) {
+                emit ErrorThrown(result);
                 break;
             }
 

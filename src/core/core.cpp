@@ -39,7 +39,8 @@ System::ResultStatus System::RunLoop(int tight_loop) {
             if (GDBStub::GetCpuStepFlag()) {
                 GDBStub::SetCpuStepFlag(false);
                 tight_loop = 1;
-            } else {
+            }
+            else {
                 return ResultStatus::Success;
             }
         }
@@ -59,7 +60,7 @@ System::ResultStatus System::RunLoop(int tight_loop) {
     HW::Update();
     Reschedule();
 
-    return ResultStatus::Success;
+    return GetStatus();
 }
 
 System::ResultStatus System::SingleStep() {
@@ -115,7 +116,8 @@ System::ResultStatus System::Load(EmuWindow* emu_window, const std::string& file
             return ResultStatus::ErrorLoader;
         }
     }
-    this->err = 0;
+    // this->status will be used for errors while actually running the game
+    status = ResultStatus::Success;
     return ResultStatus::Success;
 }
 

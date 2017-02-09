@@ -10,6 +10,7 @@
 #include <QGLWidget>
 #include <QThread>
 #include "common/thread.h"
+#include "core/core.h"
 #include "core/frontend/emu_window.h"
 #include "core/frontend/motion_emu.h"
 
@@ -98,7 +99,7 @@ signals:
      */
     void DebugModeLeft();
 
-    void ErrorThrown(int);
+    void ErrorThrown(Core::System::ResultStatus);
 };
 
 class GRenderWindow : public QWidget, public EmuWindow {

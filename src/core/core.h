@@ -39,6 +39,7 @@ public:
         ErrorLoader_ErrorEncrypted, ///< Error loading the specified application due to encryption
         ErrorLoader_ErrorInvalidFormat, ///< Error loading the specified application due to an
                                         /// invalid format
+        ErrorSystemFiles,           ///< Error in finding system files
         ErrorVideoCore,                 ///< Error in the video core
     };
 
@@ -91,11 +92,11 @@ public:
         return *cpu_core;
     }
 
-    int GetError() {
-        return this->err;
+    ResultStatus GetStatus() {
+        return status;
     }
-    void throwErr(int num) {
-        this->err = num;
+    void SetStatus(ResultStatus status) {
+        this->status = status;
     }
 
 private:
@@ -120,7 +121,7 @@ private:
     bool reschedule_pending{};
 
     static System s_instance;
-    int err;
+    ResultStatus status;
 };
 
 inline ARM_Interface& CPU() {

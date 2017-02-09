@@ -514,7 +514,8 @@ void GMainWindow::OnMenuRecentFile() {
 
 void GMainWindow::OnStartGame() {
     emu_thread->SetRunning(true);
-    connect(emu_thread.get(), SIGNAL(ErrorThrown(int)), this, SLOT(OnCoreError(int)));
+    qRegisterMetaType<Core::System::ResultStatus>("Core::System::ResultStatus");
+    connect(emu_thread.get(), SIGNAL(ErrorThrown(Core::System::ResultStatus)), this, SLOT(OnCoreError(Core::System::ResultStatus)));
 
     ui.action_Start->setEnabled(false);
     ui.action_Start->setText(tr("Continue"));
@@ -582,11 +583,13 @@ void GMainWindow::OnCreateGraphicsSurfaceViewer() {
     graphicsSurfaceViewerWidget->show();
 }
 
-void GMainWindow::OnCoreError(int error) {
-    switch (error) {
-    case -1:
-        QMessageBox::critical(this, "zerp", "message");
+void GMainWindow::OnCoreError(Core::System::ResultStatus result) {
+  LOG_CRITICAL(Core, "error: %i", result);
+    switch (result) {
+    case Core::System::ResultStatus::ErrorSystemFiles:
+        QMessageBox::critical(this, "System Files Missing", "blah blah blah temporary text koopa rulez");
     }
+    ShutdownGame();
 }
 
 bool GMainWindow::ConfirmClose() {
