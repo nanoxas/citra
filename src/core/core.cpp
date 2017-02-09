@@ -115,6 +115,7 @@ System::ResultStatus System::Load(EmuWindow* emu_window, const std::string& file
             return ResultStatus::ErrorLoader;
         }
     }
+    this->err = 0;
     return ResultStatus::Success;
 }
 

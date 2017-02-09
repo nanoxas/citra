@@ -125,6 +125,11 @@ static void OpenFileDirectly(Service::Interface* self) {
 
     ResultVal<ArchiveHandle> archive_handle = OpenArchive(archive_id, archive_path);
     if (archive_handle.Failed()) {
+        if (static_cast<u32>(archive_id) == 0x2345678A) {
+            LOG_ERROR(Service_FS, "oh noes");
+            Core::System::GetInstance().throwErr(-1);
+            return;
+        }
         LOG_ERROR(Service_FS,
                   "failed to get a handle for archive archive_id=0x%08X archive_path=%s",
                   static_cast<u32>(archive_id), archive_path.DebugStr().c_str());

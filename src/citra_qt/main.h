@@ -129,6 +129,7 @@ private slots:
     void OnDisplayTitleBars(bool);
     void ToggleWindowMode();
     void OnCreateGraphicsSurfaceViewer();
+    void OnCoreError(int);
 
 private:
     Ui::MainWindow ui;

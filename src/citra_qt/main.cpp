@@ -514,6 +514,7 @@ void GMainWindow::OnMenuRecentFile() {
 
 void GMainWindow::OnStartGame() {
     emu_thread->SetRunning(true);
+    connect(emu_thread.get(), SIGNAL(ErrorThrown(int)), this, SLOT(OnCoreError(int)));
 
     ui.action_Start->setEnabled(false);
     ui.action_Start->setText(tr("Continue"));
@@ -579,6 +580,13 @@ void GMainWindow::OnCreateGraphicsSurfaceViewer() {
     addDockWidget(Qt::RightDockWidgetArea, graphicsSurfaceViewerWidget);
     // TODO: Maybe graphicsSurfaceViewerWidget->setFloating(true);
     graphicsSurfaceViewerWidget->show();
+}
+
+void GMainWindow::OnCoreError(int error) {
+    switch (error) {
+    case -1:
+        QMessageBox::critical(this, "zerp", "message");
+    }
 }
 
 bool GMainWindow::ConfirmClose() {

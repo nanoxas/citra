@@ -91,6 +91,13 @@ public:
         return *cpu_core;
     }
 
+    int GetError() {
+        return this->err;
+    }
+    void throwErr(int num) {
+        this->err = num;
+    }
+
 private:
     /**
      * Initialize the emulated system.
@@ -113,6 +120,7 @@ private:
     bool reschedule_pending{};
 
     static System s_instance;
+    int err;
 };
 
 inline ARM_Interface& CPU() {

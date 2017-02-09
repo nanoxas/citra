@@ -97,6 +97,8 @@ signals:
      * Qt::BlockingQueuedConnection (additionally block source thread until slot returns)
      */
     void DebugModeLeft();
+
+    void ErrorThrown(int);
 };
 
 class GRenderWindow : public QWidget, public EmuWindow {
