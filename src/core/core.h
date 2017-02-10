@@ -40,8 +40,9 @@ public:
         ErrorLoader_ErrorInvalidFormat, ///< Error loading the specified application due to an
                                         /// invalid format
         ErrorSystemFiles,               ///< Error in finding system files
-        ErrorSharedFont,
+        ErrorSharedFont,                ///< Error in finding shared font
         ErrorVideoCore,                 ///< Error in the video core
+        ErrorUnknown                    ///< Any other error
     };
 
     /**

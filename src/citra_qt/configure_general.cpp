@@ -22,6 +22,7 @@ ConfigureGeneral::~ConfigureGeneral() {}
 void ConfigureGeneral::setConfiguration() {
     ui->toggle_deepscan->setChecked(UISettings::values.gamedir_deepscan);
     ui->toggle_check_exit->setChecked(UISettings::values.confirm_before_closing);
+    ui->toggle_messagebox_error->setChecked(Settings::values.messagebox_error);
     ui->toggle_cpu_jit->setChecked(Settings::values.use_cpu_jit);
 
     // The first item is "auto-select" with actual value -1, so plus one here will do the trick
@@ -32,6 +33,7 @@ void ConfigureGeneral::applyConfiguration() {
     UISettings::values.gamedir_deepscan = ui->toggle_deepscan->isChecked();
     UISettings::values.confirm_before_closing = ui->toggle_check_exit->isChecked();
     Settings::values.region_value = ui->region_combobox->currentIndex() - 1;
+    Settings::values.messagebox_error = ui->toggle_messagebox_error->isChecked();
     Settings::values.use_cpu_jit = ui->toggle_cpu_jit->isChecked();
     Settings::Apply();
 }

@@ -100,6 +100,7 @@ struct Values {
     float bg_blue;
 
     std::string log_filter;
+    bool messagebox_error;
 
     // Audio
     std::string sink_id;

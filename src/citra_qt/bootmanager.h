@@ -4,11 +4,11 @@
 
 #pragma once
 
-#include <atomic>
 #include <condition_variable>
 #include <mutex>
 #include <QGLWidget>
 #include <QThread>
+#include <boost/optional.hpp>
 #include "common/thread.h"
 #include "core/core.h"
 #include "core/frontend/emu_window.h"
@@ -75,6 +75,7 @@ private:
     bool exec_step;
     bool running;
     std::atomic<bool> stop_run;
+    std::atomic<bool> ready;
     std::mutex running_mutex;
     std::condition_variable running_cv;
 
@@ -99,7 +100,7 @@ signals:
      */
     void DebugModeLeft();
 
-    void ErrorThrown(Core::System::ResultStatus);
+    void ErrorThrown(Core::System::ResultStatus, std::atomic<bool>*, std::atomic<bool>*);
 };
 
 class GRenderWindow : public QWidget, public EmuWindow {

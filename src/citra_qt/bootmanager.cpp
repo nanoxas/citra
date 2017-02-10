@@ -37,9 +37,17 @@ void EmuThread::run() {
                 emit DebugModeLeft();
 
             Core::System::ResultStatus result = Core::System::GetInstance().RunLoop();
-            if (result != Core::System::ResultStatus::Success) {
-                emit ErrorThrown(result);
-                break;
+            if (result != Core::System::ResultStatus::Success)
+            {
+                ready = false;
+                emit ErrorThrown(result, &stop_run, &ready);
+                // TODO: there's probably a better way to wait for the dialog to be closed
+                while (!ready);
+                if (stop_run)
+                    break;
+
+                // Reset status to success so we dont run into the same error every time
+                Core::System::GetInstance().SetStatus(Core::System::ResultStatus::Success);
             }
 
             was_active = running || exec_step;

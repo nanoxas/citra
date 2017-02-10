@@ -129,7 +129,7 @@ private slots:
     void OnDisplayTitleBars(bool);
     void ToggleWindowMode();
     void OnCreateGraphicsSurfaceViewer();
-    void OnCoreError(Core::System::ResultStatus);
+    void OnCoreError(Core::System::ResultStatus, std::atomic<bool>*, std::atomic<bool>*);
 
 private:
     Ui::MainWindow ui;
@@ -157,5 +157,8 @@ private:
 
     QAction* actions_recent_files[max_recent_files_item];
 };
+
+#define ASK_MESSAGEBOX(title, message)                                                                 \
+QMessageBox::question(this, tr(title), tr(message "<br/><br/>Quit back to game list?"), QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes)
 
 #endif // _CITRA_QT_MAIN_HXX_

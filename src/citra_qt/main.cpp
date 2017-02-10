@@ -515,8 +515,8 @@ void GMainWindow::OnMenuRecentFile() {
 void GMainWindow::OnStartGame() {
     emu_thread->SetRunning(true);
     qRegisterMetaType<Core::System::ResultStatus>("Core::System::ResultStatus");
-    connect(emu_thread.get(), SIGNAL(ErrorThrown(Core::System::ResultStatus)), this,
-            SLOT(OnCoreError(Core::System::ResultStatus)));
+    connect(emu_thread.get(), SIGNAL(ErrorThrown(Core::System::ResultStatus, std::atomic<bool>*, std::atomic<bool>*)), this,
+            SLOT(OnCoreError(Core::System::ResultStatus, std::atomic<bool>*, std::atomic<bool>*)));
 
     ui.action_Start->setEnabled(false);
     ui.action_Start->setText(tr("Continue"));
@@ -584,33 +584,64 @@ void GMainWindow::OnCreateGraphicsSurfaceViewer() {
     graphicsSurfaceViewerWidget->show();
 }
 
-void GMainWindow::OnCoreError(Core::System::ResultStatus result) {
-    switch (result) {
-    case Core::System::ResultStatus::ErrorSystemFiles:
-        QMessageBox::critical(this, tr("System Files Missing"),
-                              tr("blah blah blah temporary text koopa rulez"));
-        break;
+void GMainWindow::OnCoreError(Core::System::ResultStatus result, std::atomic<bool>* stop, std::atomic<bool>* ready) {
+    if (Settings::values.messagebox_error) {
+      switch (result) {
+      case Core::System::ResultStatus::ErrorSystemFiles:
+      if (ASK_MESSAGEBOX("System Archive Not Found", "The game that you are trying to load requires a system archive that wasn't found.<br/><br/>"
+         "For more information on dumping those files, please see: <a "
+         "href='https://citra-emu.org/wiki/dumping-system-archives-and-the-shared-fonts-from-a-3ds-console'>"
+         "https://citra-emu.org/wiki/dumping-system-archives-and-the-shared-fonts-from-a-3ds-console</a>") == QMessageBox::No) {
+             *stop = false;
+             *ready = true;
+          } else {
+              *stop = true;
+              *ready = true;
+              // By setting stop the thread will have already ended but we still have to clean up the ui
+              ShutdownGame();
+          }
+          break;
 
-    case Core::System::ResultStatus::ErrorSharedFont:
-        QMessageBox::critical(this, tr("Shared Font Missing"),
-                              tr(":)"));
-        break;
+      case Core::System::ResultStatus::ErrorSharedFont:
+          if (ASK_MESSAGEBOX("Shared Font Missing", "The game that you are trying to load requires the shared font to be dumped from a 3DS.<br/><br/>"
+             "For more information on dumping it, please see: <a "
+             "href='https://citra-emu.org/wiki/dumping-system-archives-and-the-shared-fonts-from-a-3ds-console'>"
+             "https://citra-emu.org/wiki/dumping-system-archives-and-the-shared-fonts-from-a-3ds-console</a>") == QMessageBox::Yes) {
+              *stop = true;
+              *ready = true;
+              ShutdownGame();
+          } else {
+              *stop = false;
+              *ready = true;
+          }
+          break;
 
-    default:
-        QMessageBox::critical(this, tr("Unkown Error"),
-                              tr("temp"));
+      case Core::System::ResultStatus::ErrorUnknown:
+          if (ASK_MESSAGEBOX("Fatal Error", "Citra has encountered a fatal error, please see the log for more details.") == QMessageBox::Yes) {
+               *stop = true;
+               *ready = true;
+               ShutdownGame();
+          } else {
+               *stop = false;
+               *ready = true;
+          }
+          break;
+
+      default:
+         *ready = true;
+          break;
+      }
+    } else {
+      *stop = false;
+      *ready = true;
     }
-    ShutdownGame();
 }
 
 bool GMainWindow::ConfirmClose() {
     if (emu_thread == nullptr || !UISettings::values.confirm_before_closing)
         return true;
 
-    auto answer =
-        QMessageBox::question(this, tr("Citra"), tr("Are you sure you want to close Citra?"),
-                              QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
-    return answer != QMessageBox::No;
+    return QMessageBox::question(this, tr("Citra"), tr("Are you sure you want to close Citra?"), QMessageBox::Yes | QMessageBox::No, QMessageBox::No) != QMessageBox::No;
 }
 
 void GMainWindow::closeEvent(QCloseEvent* event) {

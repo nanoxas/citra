@@ -172,6 +172,7 @@ static void ThrowFatalError(Interface* self) {
     const ErrInfo* errinfo = reinterpret_cast<ErrInfo*>(&cmd_buff[1]);
     LOG_CRITICAL(Service_ERR, "Fatal error type: %s",
                  GetErrType(errinfo->errinfo_common.specifier).c_str());
+     Core::System::GetInstance().SetStatus(Core::System::ResultStatus::ErrorUnknown);
 
     // Generic Info
     LogGenericInfo(errinfo->errinfo_common);
