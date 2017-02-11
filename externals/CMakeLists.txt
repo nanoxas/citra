@@ -9,3 +9,6 @@ endif()
 
 add_subdirectory(cryptopp)
 
+add_library(asio INTERFACE)
+target_include_directories(asio INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/asio/asio/include)
+target_compile_definitions(asio INTERFACE -DASIO_STANDALONE=1)
