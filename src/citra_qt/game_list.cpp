@@ -17,6 +17,7 @@
 
 GameList::GameList(QWidget* parent) : QWidget{parent} {
     QVBoxLayout* layout = new QVBoxLayout;
+    watcher = std::make_unique<QFileSystemWatcher>();
 
     tree_view = new QTreeView;
     item_model = new QStandardItemModel(tree_view);
@@ -39,6 +40,7 @@ GameList::GameList(QWidget* parent) : QWidget{parent} {
 
     connect(tree_view, &QTreeView::activated, this, &GameList::ValidateEntry);
     connect(tree_view, &QTreeView::customContextMenuRequested, this, &GameList::PopupContextMenu);
+    connect(watcher.get(), SIGNAL(directoryChanged(QString)), SLOT(RefreshGameDirectory()));
 
     // We must register all custom types with the Qt Automoc system so that we are able to use it
     // with signals/slots. In this case, QList falls under the umbrells of custom types.
@@ -91,8 +93,7 @@ void GameList::PopupContextMenu(const QPoint& menu_location) {
     context_menu.exec(tree_view->viewport()->mapToGlobal(menu_location));
 }
 
-void GameList::PopulateAsync(const QString& dir_path, bool deep_scan,
-                             std::shared_ptr<QFileSystemWatcher> watcher) {
+void GameList::PopulateAsync(const QString& dir_path, bool deep_scan) {
     if (!FileUtil::Exists(dir_path.toStdString()) ||
         !FileUtil::IsDirectory(dir_path.toStdString())) {
         LOG_ERROR(Frontend, "Could not find game list folder at %s", dir_path.toLocal8Bit().data());
@@ -104,7 +105,13 @@ void GameList::PopulateAsync(const QString& dir_path, bool deep_scan,
     item_model->removeRows(0, item_model->rowCount());
 
     emit ShouldCancelWorker();
-    GameListWorker* worker = new GameListWorker(dir_path, deep_scan, watcher);
+
+    auto watch_dirs = watcher->directories();
+    if (!watch_dirs.isEmpty()) {
+        watcher->removePaths(watch_dirs);
+    }
+    UpdateWatcherList(dir_path.toStdString(), deep_scan ? 256 : 0);
+    GameListWorker* worker = new GameListWorker(dir_path, deep_scan);
 
     connect(worker, &GameListWorker::EntryReady, this, &GameList::AddEntry, Qt::QueuedConnection);
     connect(worker, &GameListWorker::Finished, this, &GameList::DonePopulating,
@@ -141,6 +148,29 @@ static bool HasSupportedFileExtension(const std::string& file_name) {
     return GameList::supported_file_extensions.contains(file.suffix(), Qt::CaseInsensitive);
 }
 
+void GameList::RefreshGameDirectory() {
+    if (!UISettings::values.gamedir.isEmpty() && current_worker != nullptr) {
+        LOG_INFO(Frontend, "Change detected in the games directory. Reloading game list.");
+        PopulateAsync(UISettings::values.gamedir, UISettings::values.gamedir_deepscan);
+    }
+}
+
+void GameList::UpdateWatcherList(const std::string& dir, unsigned int recursion) {
+    const auto callback = [this, recursion](unsigned* num_entries_out, const std::string& directory,
+                                            const std::string& virtual_name) -> bool {
+        std::string physical_name = directory + DIR_SEP + virtual_name;
+
+        if (FileUtil::IsDirectory(physical_name)) {
+            UpdateWatcherList(physical_name, recursion - 1);
+        }
+        return true;
+    };
+    if (FileUtil::IsDirectory(dir)) {
+        watcher->addPath(QString::fromStdString(dir));
+    }
+    FileUtil::ForeachDirectoryEntry(nullptr, dir, callback);
+}
+
 void GameListWorker::AddFstEntriesToGameList(const std::string& dir_path, unsigned int recursion) {
     const auto callback = [this, recursion](unsigned* num_entries_out, const std::string& directory,
                                             const std::string& virtual_name) -> bool {
@@ -167,23 +197,16 @@ void GameListWorker::AddFstEntriesToGameList(const std::string& dir_path, unsign
                 new GameListItemSize(FileUtil::GetSize(physical_name)),
             });
         } else if (recursion > 0) {
-            watcher->addPath(QString::fromStdString(physical_name));
             AddFstEntriesToGameList(physical_name, recursion - 1);
         }
 
         return true;
     };
-    // add the base directory to the watch path as well
-    watcher->addPath(QString::fromStdString(dir_path));
     FileUtil::ForeachDirectoryEntry(nullptr, dir_path, callback);
 }
 
 void GameListWorker::run() {
     stop_processing = false;
-    auto watch_dirs = watcher->directories();
-    if (!watch_dirs.isEmpty()) {
-        watcher->removePaths(watch_dirs);
-    }
     AddFstEntriesToGameList(dir_path.toStdString(), deep_scan ? 256 : 0);
     emit Finished();
 }
