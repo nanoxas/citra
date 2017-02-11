@@ -68,11 +68,11 @@ GMainWindow::GMainWindow() : config(new Config()), emu_thread(nullptr) {
 
     ConnectMenuEvents();
     ConnectWidgetEvents();
-
     setWindowTitle(QString("Citra | %1-%2").arg(Common::g_scm_branch, Common::g_scm_desc));
     show();
 
-    game_list->PopulateAsync(UISettings::values.gamedir, UISettings::values.gamedir_deepscan);
+    game_list->PopulateAsync(UISettings::values.gamedir, UISettings::values.gamedir_deepscan,
+                             watcher);
 
     QStringList args = QApplication::arguments();
     if (args.length() >= 2) {
@@ -506,18 +506,16 @@ void GMainWindow::OnMenuLoadSymbolMap() {
 
 void GMainWindow::OnMenuSelectGameListRoot() {
     QString dir_path = QFileDialog::getExistingDirectory(this, tr("Select Directory"));
-    if (!UISettings::values.gamedir.isEmpty()) {
-        watcher.removePath(UISettings::values.gamedir);
-    }
     if (!dir_path.isEmpty()) {
         UISettings::values.gamedir = dir_path;
-        game_list->PopulateAsync(dir_path, UISettings::values.gamedir_deepscan);
-        watcher.addPath(dir_path);
+        game_list->PopulateAsync(dir_path, UISettings::values.gamedir_deepscan, watcher);
     }
 }
 void GMainWindow::RefreshGameDirectory() {
     if (!UISettings::values.gamedir.isEmpty()) {
-        game_list->PopulateAsync(UISettings::values.gamedir, UISettings::values.gamedir_deepscan);
+        LOG_INFO(Frontend, "Change detected in the games directory. Reloading game list.");
+        game_list->PopulateAsync(UISettings::values.gamedir, UISettings::values.gamedir_deepscan,
+                                 watcher);
     }
 }
 

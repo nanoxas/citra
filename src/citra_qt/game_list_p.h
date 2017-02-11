@@ -5,6 +5,7 @@
 #pragma once
 
 #include <atomic>
+#include <QFileSystemWatcher>
 #include <QImage>
 #include <QRunnable>
 #include <QStandardItem>
@@ -154,8 +155,8 @@ class GameListWorker : public QObject, public QRunnable {
     Q_OBJECT
 
 public:
-    GameListWorker(QString dir_path, bool deep_scan)
-        : QObject(), QRunnable(), dir_path(dir_path), deep_scan(deep_scan) {}
+    GameListWorker(QString dir_path, bool deep_scan, std::shared_ptr<QFileSystemWatcher> watcher)
+        : QObject(), QRunnable(), dir_path(dir_path), deep_scan(deep_scan), watcher(watcher) {}
 
 public slots:
     /// Starts the processing of directory tree information.
@@ -176,6 +177,7 @@ private:
     QString dir_path;
     bool deep_scan;
     std::atomic_bool stop_processing;
+    std::shared_ptr<QFileSystemWatcher> watcher;
 
     void AddFstEntriesToGameList(const std::string& dir_path, unsigned int recursion = 0);
 };

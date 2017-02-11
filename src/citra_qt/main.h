@@ -151,7 +151,7 @@ private:
     GraphicsVertexShaderWidget* graphicsVertexShaderWidget;
     GraphicsTracingWidget* graphicsTracingWidget;
     WaitTreeWidget* waitTreeWidget;
-    QFileSystemWatcher watcher;
+    std::shared_ptr<QFileSystemWatcher> watcher;
 
     QAction* actions_recent_files[max_recent_files_item];
 

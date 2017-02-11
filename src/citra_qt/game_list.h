@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <QFileSystemWatcher>
 #include <QModelIndex>
 #include <QSettings>
 #include <QStandardItem>
@@ -28,7 +29,7 @@ public:
     explicit GameList(QWidget* parent = nullptr);
     ~GameList() override;
 
-    void PopulateAsync(const QString& dir_path, bool deep_scan);
+    void PopulateAsync(const QString& dir_path, bool deep_scan, std::shared_ptr<QFileSystemWatcher> watcher);
 
     void SaveInterfaceLayout();
     void LoadInterfaceLayout();

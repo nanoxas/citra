@@ -91,7 +91,8 @@ void GameList::PopupContextMenu(const QPoint& menu_location) {
     context_menu.exec(tree_view->viewport()->mapToGlobal(menu_location));
 }
 
-void GameList::PopulateAsync(const QString& dir_path, bool deep_scan) {
+void GameList::PopulateAsync(const QString& dir_path, bool deep_scan,
+                             std::shared_ptr<QFileSystemWatcher> watcher) {
     if (!FileUtil::Exists(dir_path.toStdString()) ||
         !FileUtil::IsDirectory(dir_path.toStdString())) {
         LOG_ERROR(Frontend, "Could not find game list folder at %s", dir_path.toLocal8Bit().data());
@@ -103,7 +104,7 @@ void GameList::PopulateAsync(const QString& dir_path, bool deep_scan) {
     item_model->removeRows(0, item_model->rowCount());
 
     emit ShouldCancelWorker();
-    GameListWorker* worker = new GameListWorker(dir_path, deep_scan);
+    GameListWorker* worker = new GameListWorker(dir_path, deep_scan, watcher);
 
     connect(worker, &GameListWorker::EntryReady, this, &GameList::AddEntry, Qt::QueuedConnection);
     connect(worker, &GameListWorker::Finished, this, &GameList::DonePopulating,
@@ -166,22 +167,28 @@ void GameListWorker::AddFstEntriesToGameList(const std::string& dir_path, unsign
                 new GameListItemSize(FileUtil::GetSize(physical_name)),
             });
         } else if (recursion > 0) {
+            watcher->addPath(QString::fromStdString(physical_name));
             AddFstEntriesToGameList(physical_name, recursion - 1);
         }
 
         return true;
     };
-
+    // add the base directory to the watch path as well
+    watcher->addPath(QString::fromStdString(dir_path));
     FileUtil::ForeachDirectoryEntry(nullptr, dir_path, callback);
 }
 
 void GameListWorker::run() {
     stop_processing = false;
+    auto watch_dirs = watcher->directories();
+    if (!watch_dirs.isEmpty()) {
+        watcher->removePaths(watch_dirs);
+    }
     AddFstEntriesToGameList(dir_path.toStdString(), deep_scan ? 256 : 0);
     emit Finished();
 }
 
 void GameListWorker::Cancel() {
-    disconnect(this, nullptr, nullptr, nullptr);
+    this->disconnect();
     stop_processing = true;
 }
