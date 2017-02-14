@@ -68,6 +68,7 @@ GMainWindow::GMainWindow() : config(new Config()), emu_thread(nullptr) {
 
     ConnectMenuEvents();
     ConnectWidgetEvents();
+
     setWindowTitle(QString("Citra | %1-%2").arg(Common::g_scm_branch, Common::g_scm_desc));
     show();
 

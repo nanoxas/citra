@@ -6,7 +6,6 @@
 #define _CITRA_QT_MAIN_HXX_
 
 #include <memory>
-#include <QFileSystemWatcher>
 #include <QMainWindow>
 #include "ui_main.h"
 

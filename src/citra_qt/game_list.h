@@ -41,9 +41,6 @@ signals:
     void ShouldCancelWorker();
     void OpenSaveFolderRequested(u64 program_id);
 
-private slots:
-    void RefreshGameDirectory();
-
 private:
     void AddEntry(const QList<QStandardItem*>& entry_items);
     void ValidateEntry(const QModelIndex& item);
@@ -51,9 +48,10 @@ private:
 
     void PopupContextMenu(const QPoint& menu_location);
     void UpdateWatcherList(const std::string& path, unsigned int recursion);
+    void RefreshGameDirectory();
 
     QTreeView* tree_view = nullptr;
     QStandardItemModel* item_model = nullptr;
     GameListWorker* current_worker = nullptr;
-    std::unique_ptr<QFileSystemWatcher> watcher;
+    QFileSystemWatcher watcher;
 };
