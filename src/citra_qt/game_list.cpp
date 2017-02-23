@@ -15,7 +15,7 @@
 #include "game_list_p.h"
 #include "ui_settings.h"
 
-GameList::GameList(QWidget* parent) : QWidget{parent}, watcher{} {
+GameList::GameList(QWidget* parent) : QWidget{parent} {
     QVBoxLayout* layout = new QVBoxLayout;
 
     tree_view = new QTreeView;
@@ -161,7 +161,7 @@ void GameList::RefreshGameDirectory() {
  * list folder.
  *
  * Notice: This method is run on the UI thread because QFileSystemWatcher is not thread safe and
- * this function is fast enough to not stall the UI thread.  If performance is an issue, it should
+ * this function is fast enough to not stall the UI thread. If performance is an issue, it should
  * be moved to another thread and properly locked to prevent concurrency issues.
  *
  * @param dir folder to check for changes in
@@ -179,10 +179,11 @@ void GameList::UpdateWatcherList(const std::string& dir, unsigned int recursion)
         }
         return true;
     };
-    if (FileUtil::IsDirectory(dir)) {
-        watcher.addPath(QString::fromStdString(dir));
+
+    watcher.addPath(QString::fromStdString(dir));
+    if (recursion > 0) {
+        FileUtil::ForeachDirectoryEntry(nullptr, dir, callback);
     }
-    FileUtil::ForeachDirectoryEntry(nullptr, dir, callback);
 }
 
 void GameListWorker::AddFstEntriesToGameList(const std::string& dir_path, unsigned int recursion) {
@@ -216,6 +217,7 @@ void GameListWorker::AddFstEntriesToGameList(const std::string& dir_path, unsign
 
         return true;
     };
+
     FileUtil::ForeachDirectoryEntry(nullptr, dir_path, callback);
 }
 
