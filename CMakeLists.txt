@@ -72,9 +72,11 @@ if (NOT MSVC)
 
     if (MINGW)
         add_definitions(-DMINGW_HAS_SECURE_API)
-
+        SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -flto")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -flto")
+        SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -flto")
         if (MINGW_STATIC_BUILD)
-            add_definitions(-DQT_STATICPLUGIN)
+            add_definitions(-DQT_STATICPLUGIN=1)
             set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static")
             set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static")
         endif()
@@ -108,12 +110,13 @@ else()
 
     # /O2 - Optimization level 2
     # /GS- - No stack buffer overflow checks
+    # /GL - Link time optimization
     # /MD - Multi-threaded runtime DLL
-    set(CMAKE_C_FLAGS_RELEASE   "/O2 /GS- /MD" CACHE STRING "" FORCE)
+    set(CMAKE_C_FLAGS_RELEASE   "/O2 /GS- /MD /GL" CACHE STRING "" FORCE)
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}" CACHE STRING "" FORCE)
 
     set(CMAKE_EXE_LINKER_FLAGS_DEBUG   "/DEBUG" CACHE STRING "" FORCE)
-    set(CMAKE_EXE_LINKER_FLAGS_RELEASE "/DEBUG /INCREMENTAL:NO /OPT:REF,ICF" CACHE STRING "" FORCE)
+    set(CMAKE_EXE_LINKER_FLAGS_RELEASE "/DEBUG /INCREMENTAL:NO /OPT:REF,ICF /LTCG" CACHE STRING "" FORCE)
 endif()
 
 # Set file offset size to 64 bits.

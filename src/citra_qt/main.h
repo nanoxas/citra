@@ -2,8 +2,7 @@
 // Licensed under GPLv2 or any later version
 // Refer to the license.txt file included.
 
-#ifndef _CITRA_QT_MAIN_HXX_
-#define _CITRA_QT_MAIN_HXX_
+#pragma once
 
 #include <memory>
 #include <QMainWindow>
@@ -157,5 +156,3 @@ protected:
     void dragEnterEvent(QDragEnterEvent* event) override;
     void dragMoveEvent(QDragMoveEvent* event) override;
 };
-
-#endif // _CITRA_QT_MAIN_HXX_

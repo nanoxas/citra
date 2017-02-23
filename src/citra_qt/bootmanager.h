@@ -104,7 +104,7 @@ class GRenderWindow : public QWidget, public EmuWindow {
 
 public:
     GRenderWindow(QWidget* parent, EmuThread* emu_thread);
-
+    ~GRenderWindow();
     // EmuWindow implementation
     void SwapBuffers() override;
     void MakeCurrent() override;

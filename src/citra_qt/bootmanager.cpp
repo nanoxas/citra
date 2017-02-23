@@ -109,6 +109,8 @@ GRenderWindow::GRenderWindow(QWidget* parent, EmuThread* emu_thread)
     ReloadSetKeymaps();
 }
 
+GRenderWindow::~GRenderWindow() = default;
+
 void GRenderWindow::moveContext() {
     DoneCurrent();
 // We need to move GL context to the swapping thread in Qt5
