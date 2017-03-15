@@ -48,3 +48,7 @@ if (ARCHITECTURE_x86_64)
     target_include_directories(xbyak INTERFACE ./xbyak/xbyak)
     target_compile_definitions(xbyak INTERFACE XBYAK_NO_OP_NAMES)
 endif()
+
+# Spdlog
+add_library(spdlog INTERFACE)
+target_include_directories(spdlog INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/spdlog/include)

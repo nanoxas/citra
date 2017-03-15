@@ -25,3 +25,6 @@
 [submodule "fmt"]
     path = externals/fmt
     url = https://github.com/fmtlib/fmt.git
+[submodule "spdlog"]
+    path = externals/spdlog
+    url = https://github.com/gabime/spdlog.git
