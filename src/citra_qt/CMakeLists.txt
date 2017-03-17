@@ -10,6 +10,7 @@ set(SRCS
             configuration/configure_general.cpp
             configuration/configure_graphics.cpp
             configuration/configure_input.cpp
+            configuration/configure_input_widget.cpp
             configuration/configure_system.cpp
             debugger/graphics/graphics.cpp
             debugger/graphics/graphics_breakpoint_observer.cpp
@@ -40,6 +41,7 @@ set(HEADERS
             configuration/configure_general.h
             configuration/configure_graphics.h
             configuration/configure_input.h
+            configuration/configure_input_widget.h
             configuration/configure_system.h
             debugger/graphics/graphics.h
             debugger/graphics/graphics_breakpoint_observer.h
