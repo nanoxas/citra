@@ -29,9 +29,8 @@ set(SRCS
             file_util.cpp
             framebuffer_layout.cpp
             hash.cpp
-            logging/filter.cpp
-            logging/text_formatter.cpp
             logging/backend.cpp
+            logging/filter.cpp
             memory_util.cpp
             microprofile.cpp
             misc.cpp
@@ -58,10 +57,9 @@ set(HEADERS
             framebuffer_layout.h
             hash.h
             linear_disk_cache.h
-            logging/text_formatter.h
+            logging/backend.h
             logging/filter.h
             logging/log.h
-            logging/backend.h
             math_util.h
             memory_util.h
             microprofile.h

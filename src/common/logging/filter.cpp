@@ -91,7 +91,8 @@ bool Filter::ParseFilterRule(const std::string::const_iterator begin,
     return true;
 }
 
-bool Filter::CheckMessage(Class log_class, Level level) const {
-    return static_cast<u8>(level) >= static_cast<u8>(class_levels[static_cast<size_t>(log_class)]);
-}
+// bool Filter::CheckMessage(Class log_class, Level level) const {
+//     return static_cast<u8>(level) >=
+//     static_cast<u8>(class_levels[static_cast<size_t>(log_class)]);
+// }
 }

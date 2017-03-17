@@ -107,8 +107,9 @@ void LogMessage(Class log_class, Level log_level, const char* filename, unsigned
 
 } // namespace Log
 
-#define LOG_GENERIC(log_class, log_level, ...)                                                     \
-    ::Log::LogMessage(log_class, log_level, __FILE__, __LINE__, __func__, __VA_ARGS__)
+#define LOG_GENERIC(log_class, log_level, format, ...)                                             \
+    ::Log::LogMessage(log_class, log_level, __FILE__, __LINE__, __func__, "{}:{}:{}: " format,     \
+                      ##__VA_ARGS__)
 
 #ifdef _DEBUG
 #define LOG_TRACE(log_class, ...)                                                                  \
