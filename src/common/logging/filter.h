@@ -19,7 +19,7 @@ namespace Log {
 class Filter {
 public:
     /// Initializes the filter with all classes having `default_level` as the minimum level.
-    Filter(Level default_level = Level::Info);
+    Filter(Level default_level);
 
     /// Resets the filter so that all classes have `level` as the minimum displayed level.
     void ResetAll(Level level);
@@ -44,16 +44,10 @@ public:
     bool ParseFilterRule(const std::string::const_iterator start,
                          const std::string::const_iterator end);
 
-    /// Exposes an iterator to the backing array of Levels
-    using levels_t = std::array<Level, (size_t)Class::Count>;
-    levels_t::const_iterator begin() const {
-        return class_levels.cbegin();
-    }
-    levels_t::const_iterator end() const {
-        return class_levels.cend();
-    }
+    /// Matches class/level combination against the filter, returning true if it passed.
+    bool CheckMessage(Class log_class, Level level) const;
 
 private:
-    levels_t class_levels;
+    std::array<Level, (size_t)Class::Count> class_levels;
 };
 }

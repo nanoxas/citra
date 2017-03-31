@@ -15,6 +15,23 @@ namespace Log {
 class Filter;
 
 /**
+ * A log entry. Log entries are store in a structured format to permit more varied output
+ * formatting on different frontends, as well as facilitating filtering and aggregation.
+ */
+struct Entry {
+    std::chrono::microseconds timestamp;
+    Class log_class;
+    Level log_level;
+    std::string location;
+    std::string message;
+
+    Entry() = default;
+    Entry(Entry&& o) = default;
+
+    Entry& operator=(Entry&& o) = default;
+};
+
+/**
  * Returns the name of the passed log class as a C-string. Subclasses are separated by periods
  * instead of underscores as in the enumeration.
  */
@@ -25,8 +42,9 @@ const char* GetLogClassName(Class log_class);
  */
 const char* GetLevelName(Level log_level);
 
-/**
- * Updates the log level for each of the logging classes
- */
-void SetFilter(const Filter& filter);
+/// Creates a log entry by formatting the given source location, and message.
+Entry CreateEntry(Class log_class, Level log_level, const char* filename, unsigned int line_nr,
+                  const char* function, const char* format, va_list args);
+
+void SetFilter(Filter* filter);
 }

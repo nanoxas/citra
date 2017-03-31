@@ -108,6 +108,9 @@ int main(int argc, char** argv) {
     LocalFree(argv_w);
 #endif
 
+    Log::Filter log_filter(Log::Level::Debug);
+    Log::SetFilter(&log_filter);
+
     MicroProfileOnThreadCreate("EmuThread");
     SCOPE_EXIT({ MicroProfileShutdown(); });
 
@@ -115,9 +118,8 @@ int main(int argc, char** argv) {
         LOG_CRITICAL(Frontend, "Failed to load ROM: No ROM specified");
         return -1;
     }
-    Log::Filter log_filter;
+
     log_filter.ParseFilterString(Settings::values.log_filter);
-    Log::SetFilter(log_filter);
 
     // Apply the command line arguments
     Settings::values.gdbstub_port = gdb_port;

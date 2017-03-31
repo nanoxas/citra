@@ -5,13 +5,12 @@
 #include <algorithm>
 #include <array>
 #include <cstdio>
-#include <vector>
-#include <spdlog/spdlog.h>
 #include "common/assert.h"
+#include "common/common_funcs.h" // snprintf compatibility define
 #include "common/logging/backend.h"
 #include "common/logging/filter.h"
 #include "common/logging/log.h"
-#include "common/string_util.h"
+#include "common/logging/text_formatter.h"
 
 namespace Log {
 
@@ -109,106 +108,46 @@ const char* GetLevelName(Level log_level) {
 #undef LVL
 }
 
-class Filter;
+Entry CreateEntry(Class log_class, Level log_level, const char* filename, unsigned int line_nr,
+                  const char* function, const char* format, va_list args) {
+    using std::chrono::steady_clock;
+    using std::chrono::duration_cast;
 
-class SpdLogBackend {
-public:
-    SpdLogBackend() {
-        // set the log pattern to [HH:MM:SS.nano]
-        spdlog::set_pattern("[%T.%F] %n <%I> %v");
-        // Define the sinks to be passed to the loggers
-        std::vector<spdlog::sink_ptr> sinks;
+    static steady_clock::time_point time_origin = steady_clock::now();
 
-        // true means truncate file
-        auto file_sink =
-            std::make_shared<spdlog::sinks::simple_file_sink_mt>("citra_log.txt", true);
-#ifdef _WIN32
-        auto color_sink = std::make_shared<spdlog::sinks::wincolor_stderr_sink_mt>();
-#else
-        auto stderr_sink = spdlog::sinks::stderr_sink_mt::instance();
-        auto color_sink = std::make_shared<spdlog::sinks::ansicolor_sink>(stderr_sink);
-#endif
-        sinks.push_back(file_sink);
-        sinks.push_back(color_sink);
+    std::array<char, 4 * 1024> formatting_buffer;
 
-        // setup the loggers
-        for (u8 i = 0; i < static_cast<u8>(Class::Count); ++i) {
-            loggers[i] = std::make_shared<spdlog::logger>(GetLogClassName(static_cast<Class>(i)),
-                                                          begin(sinks), end(sinks));
-        }
-    }
-    ~SpdLogBackend() {
-        spdlog::drop_all();
-    }
+    Entry entry;
+    entry.timestamp = duration_cast<std::chrono::microseconds>(steady_clock::now() - time_origin);
+    entry.log_class = log_class;
+    entry.log_level = log_level;
 
-    const std::shared_ptr<spdlog::logger> GetLogger(Class log_class) const {
-        return loggers[static_cast<u8>(log_class)];
-    }
+    snprintf(formatting_buffer.data(), formatting_buffer.size(), "%s:%s:%u", filename, function,
+             line_nr);
+    entry.location = std::string(formatting_buffer.data());
 
-private:
-    std::array<std::shared_ptr<spdlog::logger>, (size_t)Class::Count> loggers;
-};
+    vsnprintf(formatting_buffer.data(), formatting_buffer.size(), format, args);
+    entry.message = std::string(formatting_buffer.data());
 
-static SpdLogBackend backend;
+    return entry;
+}
 
-void SetFilter(const Filter& new_filter) {
-    int i = 0;
-    for (const auto level : new_filter) {
-        auto logger = backend.GetLogger(static_cast<Class>(i++));
-        switch (level) {
-        case Level::Trace:
-            logger->set_level(spdlog::level::trace);
-            break;
-        case Level::Debug:
-            logger->set_level(spdlog::level::debug);
-            break;
-        case Level::Info:
-            logger->set_level(spdlog::level::info);
-            break;
-        case Level::Warning:
-            logger->set_level(spdlog::level::warn);
-            break;
-        case Level::Error:
-            logger->set_level(spdlog::level::err);
-            break;
-        case Level::Critical:
-            logger->set_level(spdlog::level::critical);
-            break;
-        default:
-            UNREACHABLE();
-            break;
-        }
-    }
+static Filter* filter = nullptr;
+
+void SetFilter(Filter* new_filter) {
+    filter = new_filter;
 }
 
 void LogMessage(Class log_class, Level log_level, const char* filename, unsigned int line_nr,
                 const char* function, const char* format, ...) {
-    auto logger = backend.GetLogger(log_class);
+    if (filter != nullptr && !filter->CheckMessage(log_class, log_level))
+        return;
+
     va_list args;
     va_start(args, format);
-    switch (log_level) {
-    case Level::Trace:
-        logger->trace(format, Common::TrimSourcePath(filename), function, line_nr, args);
-        break;
-    case Level::Debug:
-        logger->debug(format, Common::TrimSourcePath(filename), function, line_nr, args);
-        break;
-    case Level::Info:
-        logger->info(format, Common::TrimSourcePath(filename), function, line_nr, args);
-        break;
-    case Level::Warning:
-        logger->warn(format, Common::TrimSourcePath(filename), function, line_nr, args);
-        break;
-    case Level::Error:
-        logger->error(format, Common::TrimSourcePath(filename), function, line_nr, args);
-        break;
-    case Level::Critical:
-        logger->critical(format, Common::TrimSourcePath(filename), function, line_nr, args);
-        break;
-    default:
-        UNREACHABLE();
-        break;
-    }
+    Entry entry = CreateEntry(log_class, log_level, filename, line_nr, function, format, args);
     va_end(args);
+
+    PrintColoredMessage(entry);
 }
 }
