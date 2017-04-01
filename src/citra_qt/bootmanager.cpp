@@ -100,13 +100,18 @@ private:
     bool do_painting;
 };
 
+Stylus* GRenderWindow::GetStylus() {
+    return stylus.get();
+}
+
 GRenderWindow::GRenderWindow(QWidget* parent, EmuThread* emu_thread)
     : QWidget(parent), child(nullptr), emu_thread(emu_thread) {
 
     std::string window_title = Common::StringFromFormat("Citra %s| %s-%s", Common::g_build_name,
                                                         Common::g_scm_branch, Common::g_scm_desc);
     setWindowTitle(QString::fromStdString(window_title));
-
+    setFocusPolicy(Qt::StrongFocus);
+    setMouseTracking(true);
     InputCommon::Init();
 }
 
@@ -148,6 +153,16 @@ void GRenderWindow::DoneCurrent() {
 
 void GRenderWindow::PollEvents() {}
 
+void GRenderWindow::UpdateStylusSize(unsigned width, unsigned height) {
+    if (overlay) {
+        QRect rect = QApplication::desktop()->screenGeometry();
+        LOG_WARNING(Frontend, "rect %d, %d", rect.width(), rect.height());
+        overlay->setFixedWidth(rect.width());
+        overlay->setFixedHeight(rect.height() - 1);
+        overlay->update();
+    }
+}
+
 // On Qt 5.0+, this correctly gets the size of the framebuffer (pixels).
 //
 // Older versions get the window size (density independent pixels),
@@ -159,6 +174,7 @@ void GRenderWindow::OnFramebufferSizeChanged() {
     qreal pixelRatio = windowPixelRatio();
     unsigned width = child->QPaintDevice::width() * pixelRatio;
     unsigned height = child->QPaintDevice::height() * pixelRatio;
+    UpdateStylusSize(width, height);
     UpdateCurrentFramebufferLayout(width, height);
 }
 
@@ -209,12 +225,22 @@ void GRenderWindow::keyReleaseEvent(QKeyEvent* event) {
     InputCommon::GetKeyboard()->ReleaseKey(event->key());
 }
 
+void GRenderWindow::UpdateStylusPosition(QMouseEvent* event) {
+    auto pos = event->pos();
+    stylus->UpdatePosition(pos.x(), pos.y());
+    overlay->update();
+}
+
 void GRenderWindow::mousePressEvent(QMouseEvent* event) {
     auto pos = event->pos();
-    if (event->button() == Qt::LeftButton) {
-        qreal pixelRatio = windowPixelRatio();
-        this->TouchPressed(static_cast<unsigned>(pos.x() * pixelRatio),
-                           static_cast<unsigned>(pos.y() * pixelRatio));
+    if (event->button() == Qt::LeftButton && stylus->Contains(pos)) {
+        stylus->SetHoldPoint(pos);
+        if (stylus->IsNearCenter(pos)) {
+            stylus->SetState(StylusState::HOLD);
+        } else {
+            stylus->SetState(StylusState::ROTATE);
+        }
+        QApplication::setOverrideCursor(Qt::ClosedHandCursor);
     } else if (event->button() == Qt::RightButton) {
         motion_emu->BeginTilt(pos.x(), pos.y());
     }
@@ -222,17 +248,44 @@ void GRenderWindow::mousePressEvent(QMouseEvent* event) {
 
 void GRenderWindow::mouseMoveEvent(QMouseEvent* event) {
     auto pos = event->pos();
-    qreal pixelRatio = windowPixelRatio();
-    this->TouchMoved(std::max(static_cast<unsigned>(pos.x() * pixelRatio), 0u),
-                     std::max(static_cast<unsigned>(pos.y() * pixelRatio), 0u));
-    motion_emu->Tilt(pos.x(), pos.y());
+
+    if (stylus->GetState() == StylusState::HOLD) {
+        UpdateStylusPosition(event);
+        qreal pixelRatio = windowPixelRatio();
+        QPoint p = stylus->GetTouchPoint();
+        QPoint screen = mapToGlobal(QWidget::geometry().topLeft());
+        this->TouchMoved(std::max(static_cast<unsigned>((p.x() - screen.x()) * pixelRatio), 0u),
+                         std::max(static_cast<unsigned>((p.y() - screen.y()) * pixelRatio), 0u));
+    } else if (stylus->GetState() == StylusState::ROTATE) {
+        stylus->Rotate(pos);
+        overlay->update();
+    }
+    if (event->button() == Qt::LeftButton) {
+    } else if (event->button() == Qt::RightButton) {
+        motion_emu->Tilt(pos.x(), pos.y());
+    }
+}
+void GRenderWindow::mouseDoubleClickEvent(QMouseEvent* e) {
+    if (e->button() == Qt::LeftButton && stylus->Contains(e->pos())) {
+        qreal pixelRatio = windowPixelRatio();
+        QPoint p = stylus->GetTouchPoint();
+        QPoint screen = mapToGlobal(QWidget::geometry().topLeft());
+        LOG_ERROR(Frontend, "screen %d, %d", screen.x(), screen.y());
+        this->TouchPressed(static_cast<unsigned>((p.x() - screen.x()) * pixelRatio),
+                           static_cast<unsigned>((p.y() - screen.y()) * pixelRatio));
+        stylus->SetState(StylusState::HOLD);
+        stylus->SetHoldPoint(e->pos());
+    }
 }
 
 void GRenderWindow::mouseReleaseEvent(QMouseEvent* event) {
-    if (event->button() == Qt::LeftButton)
+    if (event->button() == Qt::LeftButton) {
         this->TouchReleased();
-    else if (event->button() == Qt::RightButton)
+        stylus->SetState(StylusState::DROP);
+        QApplication::restoreOverrideCursor();
+    } else if (event->button() == Qt::RightButton) {
         motion_emu->EndTilt();
+    }
 }
 
 void GRenderWindow::focusOutEvent(QFocusEvent* event) {
@@ -287,13 +340,18 @@ void GRenderWindow::OnMinimalClientAreaChangeRequest(
 
 void GRenderWindow::OnEmulationStarting(EmuThread* emu_thread) {
     motion_emu = std::make_unique<Motion::MotionEmu>(*this);
+    stylus = std::make_unique<Stylus>();
+    overlay = std::make_unique<Overlay>(this);
     this->emu_thread = emu_thread;
     child->DisablePainting();
+    overlay->show();
 }
 
 void GRenderWindow::OnEmulationStopping() {
     motion_emu = nullptr;
+    stylus = nullptr;
     emu_thread = nullptr;
+    overlay = nullptr;
     child->EnablePainting();
 }
 

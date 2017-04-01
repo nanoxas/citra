@@ -1,0 +1,7 @@
+<!DOCTYPE RCC>
+<RCC version="1.0">
+<qresource>
+    <file alias="citra_icon.ico">../../dist/citra.ico</file>
+    <file alias="stylus.png">../../dist/stylus.png</file>
+</qresource>
+</RCC>

@@ -9,9 +9,12 @@
 #include <mutex>
 #include <QGLWidget>
 #include <QThread>
+#include "citra_qt/overlay.h"
+#include "citra_qt/stylus.h"
 #include "common/thread.h"
 #include "core/frontend/emu_window.h"
 #include "core/frontend/motion_emu.h"
+
 
 class QKeyEvent;
 class QScreen;
@@ -127,12 +130,14 @@ public:
     void mousePressEvent(QMouseEvent* event) override;
     void mouseMoveEvent(QMouseEvent* event) override;
     void mouseReleaseEvent(QMouseEvent* event) override;
+    void GRenderWindow::mouseDoubleClickEvent(QMouseEvent* e) override;
 
     void focusOutEvent(QFocusEvent* event) override;
 
     void OnClientAreaResized(unsigned width, unsigned height);
 
     void InitRenderTarget();
+    Stylus* GRenderWindow::GetStylus();
 
 public slots:
     void moveContext(); // overridden
@@ -146,6 +151,8 @@ signals:
     void Closed();
 
 private:
+    void UpdateStylusPosition(QMouseEvent* event);
+    void UpdateStylusSize(unsigned width, unsigned height);
     void OnMinimalClientAreaChangeRequest(
         const std::pair<unsigned, unsigned>& minimal_size) override;
 
@@ -157,6 +164,10 @@ private:
 
     /// Motion sensors emulation
     std::unique_ptr<Motion::MotionEmu> motion_emu;
+    std::unique_ptr<Stylus> stylus;
+    std::unique_ptr<Overlay> overlay;
+
+    StylusState stylus_state;
 
 protected:
     void showEvent(QShowEvent* event) override;

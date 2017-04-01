@@ -1,4 +1,5 @@
 set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTORCC ON)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/CMakeModules)
 
@@ -29,6 +30,8 @@ set(SRCS
             game_list.cpp
             hotkeys.cpp
             main.cpp
+            overlay.cpp
+            stylus.cpp
             ui_settings.cpp
             citra-qt.rc
             Info.plist
@@ -63,6 +66,8 @@ set(HEADERS
             game_list_p.h
             hotkeys.h
             main.h
+            overlay.h
+            stylus.h
             ui_settings.h
             )
 
@@ -92,10 +97,10 @@ endif()
 if (APPLE)
     set(MACOSX_ICON "../../dist/citra.icns")
     set_source_files_properties(${MACOSX_ICON} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
-    add_executable(citra-qt MACOSX_BUNDLE ${SRCS} ${HEADERS} ${UI_HDRS} ${MACOSX_ICON})
+    add_executable(citra-qt MACOSX_BUNDLE ${SRCS} ${HEADERS} ${UI_HDRS} ${MACOSX_ICON} resources.qrc)
     set_target_properties(citra-qt PROPERTIES MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/Info.plist)
 else()
-    add_executable(citra-qt ${SRCS} ${HEADERS} ${UI_HDRS})
+    add_executable(citra-qt ${SRCS} ${HEADERS} ${UI_HDRS} resources.qrc)
 endif()
 target_link_libraries(citra-qt core video_core audio_core common input_common)
 target_link_libraries(citra-qt ${OPENGL_gl_LIBRARY} ${CITRA_QT_LIBS})
