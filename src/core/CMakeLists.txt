@@ -34,6 +34,7 @@ set(SRCS
             frontend/camera/factory.cpp
             frontend/camera/interface.cpp
             frontend/emu_window.cpp
+            frontend/framebuffer.cpp
             frontend/framebuffer_layout.cpp
             frontend/motion_emu.cpp
             gdbstub/gdbstub.cpp
@@ -218,6 +219,7 @@ set(HEADERS
             frontend/camera/factory.h
             frontend/camera/interface.h
             frontend/emu_window.h
+            frontend/framebuffer.h
             frontend/framebuffer_layout.h
             frontend/input.h
             frontend/motion_emu.h

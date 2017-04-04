@@ -7,6 +7,7 @@
 #include <mutex>
 #include <tuple>
 #include <utility>
+#include <vector>
 #include "common/common_types.h"
 #include "common/math_util.h"
 #include "core/frontend/framebuffer.h"
@@ -127,12 +128,12 @@ public:
      * and r is the gyroscope state.
      * @return float-type coefficient
      */
-    constexpr f32 GetGyroscopeRawToDpsCoefficient() const {
+    f32 GetGyroscopeRawToDpsCoefficient() const {
         return 14.375f; // taken from hw test, and gyroscope's document
     }
 
 protected:
-    EmuWindow(std::vector<Framebuffer*> screens) {
+    EmuWindow(std::vector<std::shared_ptr<Framebuffer>> screens) {
         screens = screens;
         touch_x = 0;
         touch_y = 0;
