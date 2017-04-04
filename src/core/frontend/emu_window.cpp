@@ -10,21 +10,7 @@
 #include "core/settings.h"
 #include "video_core/video_core.h"
 
-/**
- * Check if the given x/y coordinates are within the touchpad specified by the framebuffer layout
- * @param layout FramebufferLayout object describing the framebuffer size and screen positions
- * @param framebuffer_x Framebuffer x-coordinate to check
- * @param framebuffer_y Framebuffer y-coordinate to check
- * @return True if the coordinates are within the touchpad, otherwise false
- */
-static bool IsWithinTouchscreen(const Layout::FramebufferLayout& layout, unsigned framebuffer_x,
-                                unsigned framebuffer_y) {
-    return (
-        framebuffer_y >= layout.bottom_screen.top && framebuffer_y < layout.bottom_screen.bottom &&
-        framebuffer_x >= layout.bottom_screen.left && framebuffer_x < layout.bottom_screen.right);
-}
-
-std::tuple<unsigned, unsigned> EmuWindow::ClipToTouchScreen(unsigned new_x, unsigned new_y) {
+static std::tuple<unsigned, unsigned> ClipToTouchScreen(unsigned new_x, unsigned new_y) {
     new_x = std::max(new_x, framebuffer_layout.bottom_screen.left);
     new_x = std::min(new_x, framebuffer_layout.bottom_screen.right - 1);
 
@@ -34,17 +20,27 @@ std::tuple<unsigned, unsigned> EmuWindow::ClipToTouchScreen(unsigned new_x, unsi
     return std::make_tuple(new_x, new_y);
 }
 
-void EmuWindow::TouchPressed(unsigned framebuffer_x, unsigned framebuffer_y) {
-    if (!IsWithinTouchscreen(framebuffer_layout, framebuffer_x, framebuffer_y))
-        return;
+void EmuWindow::TouchPressed(unsigned x, unsigned y) {
 
-    touch_x = VideoCore::kScreenBottomWidth *
-              (framebuffer_x - framebuffer_layout.bottom_screen.left) /
-              (framebuffer_layout.bottom_screen.right - framebuffer_layout.bottom_screen.left);
-    touch_y = VideoCore::kScreenBottomHeight *
-              (framebuffer_y - framebuffer_layout.bottom_screen.top) /
-              (framebuffer_layout.bottom_screen.bottom - framebuffer_layout.bottom_screen.top);
-
+    // if (!IsWithinTouchscreen(framebuffer_layout, framebuffer_x, framebuffer_y))
+    //     return;
+    // if (!std::any_of(input.begin(), input.end(),
+    //                  [](const Framebuffer& f) { return f.IsWithinTouchscreen(); })) {
+    //     return;
+    // }
+    // for (const auto framebuffer : screens) {
+    //     if (framebuffer->IsWithinTouchscreen(x, y)) {
+    //     }
+    // }
+    // touch_x = VideoCore::kScreenBottomWidth *
+    //           (framebuffer_x - framebuffer_layout.bottom_screen.left) /
+    //           (framebuffer_layout.bottom_screen.right - framebuffer_layout.bottom_screen.left);
+    // touch_y = VideoCore::kScreenBottomHeight *
+    //           (framebuffer_y - framebuffer_layout.bottom_screen.top) /
+    //           (framebuffer_layout.bottom_screen.bottom - framebuffer_layout.bottom_screen.top);
+    std::lock_guard<std::mutex> lock(touch_mutex);
+    touch_x = x;
+    touch_y = y;
     touch_pressed = true;
 }
 

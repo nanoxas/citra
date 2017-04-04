@@ -384,32 +384,34 @@ void RendererOpenGL::DrawSingleScreenRotated(const ScreenInfo& screen_info, floa
  * Draws the emulated screens to the emulator window.
  */
 void RendererOpenGL::DrawScreens() {
-    auto layout = render_window->GetFramebufferLayout();
-    const auto& top_screen = layout.top_screen;
-    const auto& bottom_screen = layout.bottom_screen;
+    auto buffers = render_window->GetFramebuffer();
 
-    glViewport(0, 0, layout.width, layout.height);
-    glClear(GL_COLOR_BUFFER_BIT);
+    for (const auto& buffer : buffers) {
+        const auto& top_screen = buffer.layout.top_screen;
+        const auto& bottom_screen = buffer.layout.bottom_screen;
 
-    // Set projection matrix
-    std::array<GLfloat, 3 * 2> ortho_matrix =
-        MakeOrthographicMatrix((float)layout.width, (float)layout.height);
-    glUniformMatrix3x2fv(uniform_modelview_matrix, 1, GL_FALSE, ortho_matrix.data());
+        glViewport(0, 0, layout.width, layout.height);
+        glClear(GL_COLOR_BUFFER_BIT);
 
-    // Bind texture in Texture Unit 0
-    glActiveTexture(GL_TEXTURE0);
-    glUniform1i(uniform_color_texture, 0);
+        // Set projection matrix
+        std::array<GLfloat, 3 * 2> ortho_matrix =
+            MakeOrthographicMatrix((float)layout.width, (float)layout.height);
+        glUniformMatrix3x2fv(uniform_modelview_matrix, 1, GL_FALSE, ortho_matrix.data());
 
-    if (layout.top_screen_enabled) {
-        DrawSingleScreenRotated(screen_infos[0], (float)top_screen.left, (float)top_screen.top,
-                                (float)top_screen.GetWidth(), (float)top_screen.GetHeight());
+        // Bind texture in Texture Unit 0
+        glActiveTexture(GL_TEXTURE0);
+        glUniform1i(uniform_color_texture, 0);
+
+        if (layout.top_screen_enabled) {
+            DrawSingleScreenRotated(screen_infos[0], (float)top_screen.left, (float)top_screen.top,
+                                    (float)top_screen.GetWidth(), (float)top_screen.GetHeight());
+        }
+        if (layout.bottom_screen_enabled) {
+            DrawSingleScreenRotated(screen_infos[1], (float)bottom_screen.left,
+                                    (float)bottom_screen.top, (float)bottom_screen.GetWidth(),
+                                    (float)bottom_screen.GetHeight());
+        }
     }
-    if (layout.bottom_screen_enabled) {
-        DrawSingleScreenRotated(screen_infos[1], (float)bottom_screen.left,
-                                (float)bottom_screen.top, (float)bottom_screen.GetWidth(),
-                                (float)bottom_screen.GetHeight());
-    }
-
     m_current_frame++;
 }
 

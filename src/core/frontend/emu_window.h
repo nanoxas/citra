@@ -8,8 +8,8 @@
 #include <tuple>
 #include <utility>
 #include "common/common_types.h"
-#include "common/framebuffer_layout.h"
 #include "common/math_util.h"
+#include "core/frontend/framebuffer.h"
 
 /**
  * Abstraction class used to provide an interface between emulation code and the frontend
@@ -31,43 +31,6 @@
  */
 class EmuWindow {
 public:
-    /// Data structure to store emuwindow configuration
-    struct WindowConfig {
-        bool fullscreen;
-        int res_width;
-        int res_height;
-        std::pair<unsigned, unsigned> min_client_area_size;
-    };
-
-    /// Swap buffers to display the next frame
-    virtual void SwapBuffers() = 0;
-
-    /// Polls window events
-    virtual void PollEvents() = 0;
-
-    /// Makes the graphics context current for the caller thread
-    virtual void MakeCurrent() = 0;
-
-    /// Releases (dunno if this is the "right" word) the GLFW context from the caller thread
-    virtual void DoneCurrent() = 0;
-
-    /**
-     * Signal that a touch pressed event has occurred (e.g. mouse click pressed)
-     * @param framebuffer_x Framebuffer x-coordinate that was pressed
-     * @param framebuffer_y Framebuffer y-coordinate that was pressed
-     */
-    void TouchPressed(unsigned framebuffer_x, unsigned framebuffer_y);
-
-    /// Signal that a touch released event has occurred (e.g. mouse click released)
-    void TouchReleased();
-
-    /**
-     * Signal that a touch movement event has occurred (e.g. mouse was moved over the emu window)
-     * @param framebuffer_x Framebuffer x-coordinate
-     * @param framebuffer_y Framebuffer y-coordinate
-     */
-    void TouchMoved(unsigned framebuffer_x, unsigned framebuffer_y);
-
     /**
      * Signal accelerometer state has changed.
      * @param x X-axis accelerometer value
@@ -90,13 +53,35 @@ public:
     void GyroscopeChanged(float x, float y, float z);
 
     /**
+     * Called by a Framebuffer to set the touch state for the core.
+     * @param x Native 3ds x coordinate
+     * @param y Native 3ds y coordinate
+     */
+    void TouchPressed(u16 x, u16 y) {
+        std::lock_guard<std::mutex> lock(touch_mutex);
+        touch_x = x;
+        touch_y = y;
+        touch_pressed = true;
+    }
+
+    /**
+     * Called by a Framebuffer to clear any touch state
+     */
+    void TouchReleased() {
+        std::lock_guard<std::mutex> lock(touch_mutex);
+        touch_x = 0;
+        touch_y = 0;
+        touch_pressed = false;
+    }
+
+    /**
      * Gets the current touch screen state (touch X/Y coordinates and whether or not it is pressed).
      * @note This should be called by the core emu thread to get a state set by the window thread.
-     * @todo Fix this function to be thread-safe.
      * @return std::tuple of (x, y, pressed) where `x` and `y` are the touch coordinates and
      *         `pressed` is true if the touch screen is currently being pressed
      */
     std::tuple<u16, u16, bool> GetTouchState() const {
+        std::lock_guard<std::mutex> lock(touch_mutex);
         return std::make_tuple(touch_x, touch_y, touch_pressed);
     }
 
@@ -112,7 +97,7 @@ public:
      * @note This should be called by the core emu thread to get a state set by the window thread.
      * @return std::tuple of (x, y, z)
      */
-    std::tuple<s16, s16, s16> GetAccelerometerState() {
+    std::tuple<s16, s16, s16> GetAccelerometerState() const {
         std::lock_guard<std::mutex> lock(accel_mutex);
         return std::make_tuple(accel_x, accel_y, accel_z);
     }
@@ -130,7 +115,7 @@ public:
      * @note This should be called by the core emu thread to get a state set by the window thread.
      * @return std::tuple of (x, y, z)
      */
-    std::tuple<s16, s16, s16> GetGyroscopeState() {
+    std::tuple<s16, s16, s16> GetGyroscopeState() const {
         std::lock_guard<std::mutex> lock(gyro_mutex);
         return std::make_tuple(gyro_x, gyro_y, gyro_z);
     }
@@ -142,48 +127,13 @@ public:
      * and r is the gyroscope state.
      * @return float-type coefficient
      */
-    f32 GetGyroscopeRawToDpsCoefficient() const {
+    constexpr f32 GetGyroscopeRawToDpsCoefficient() const {
         return 14.375f; // taken from hw test, and gyroscope's document
     }
 
-    /**
-     * Returns currently active configuration.
-     * @note Accesses to the returned object need not be consistent because it may be modified in
-     * another thread
-     */
-    const WindowConfig& GetActiveConfig() const {
-        return active_config;
-    }
-
-    /**
-     * Requests the internal configuration to be replaced by the specified argument at some point in
-     * the future.
-     * @note This method is thread-safe, because it delays configuration changes to the GUI event
-     * loop. Hence there is no guarantee on when the requested configuration will be active.
-     */
-    void SetConfig(const WindowConfig& val) {
-        config = val;
-    }
-
-    /**
-      * Gets the framebuffer layout (width, height, and screen regions)
-      * @note This method is thread-safe
-      */
-    const Layout::FramebufferLayout& GetFramebufferLayout() const {
-        return framebuffer_layout;
-    }
-
-    /**
-     * Convenience method to update the current frame layout
-     * Read from the current settings to determine which layout to use.
-     */
-    void UpdateCurrentFramebufferLayout(unsigned width, unsigned height);
-
 protected:
-    EmuWindow() {
-        // TODO: Find a better place to set this.
-        config.min_client_area_size = std::make_pair(400u, 480u);
-        active_config = config;
+    EmuWindow(std::vector<Framebuffer*> screens) {
+        screens = screens;
         touch_x = 0;
         touch_y = 0;
         touch_pressed = false;
@@ -196,64 +146,12 @@ protected:
     }
     virtual ~EmuWindow() {}
 
-    /**
-     * Processes any pending configuration changes from the last SetConfig call.
-     * This method invokes OnMinimalClientAreaChangeRequest if the corresponding configuration
-     * field changed.
-     * @note Implementations will usually want to call this from the GUI thread.
-     * @todo Actually call this in existing implementations.
-     */
-    void ProcessConfigurationChanges() {
-        // TODO: For proper thread safety, we should eventually implement a proper
-        // multiple-writer/single-reader queue...
-
-        if (config.min_client_area_size != active_config.min_client_area_size) {
-            OnMinimalClientAreaChangeRequest(config.min_client_area_size);
-            config.min_client_area_size = active_config.min_client_area_size;
-        }
-    }
-
-    /**
-     * Update framebuffer layout with the given parameter.
-     * @note EmuWindow implementations will usually use this in window resize event handlers.
-     */
-    void NotifyFramebufferLayoutChanged(const Layout::FramebufferLayout& layout) {
-        framebuffer_layout = layout;
-    }
-
-    /**
-     * Update internal client area size with the given parameter.
-     * @note EmuWindow implementations will usually use this in window resize event handlers.
-     */
-    void NotifyClientAreaSizeChanged(const std::pair<unsigned, unsigned>& size) {
-        client_area_width = size.first;
-        client_area_height = size.second;
-    }
-
 private:
-    /**
-     * Handler called when the minimal client area was requested to be changed via SetConfig.
-     * For the request to be honored, EmuWindow implementations will usually reimplement this
-     * function.
-     */
-    virtual void OnMinimalClientAreaChangeRequest(
-        const std::pair<unsigned, unsigned>& minimal_size) {
-        // By default, ignore this request and do nothing.
-    }
-
-    Layout::FramebufferLayout framebuffer_layout; ///< Current framebuffer layout
-
-    unsigned client_area_width;  ///< Current client width, should be set by window impl.
-    unsigned client_area_height; ///< Current client height, should be set by window impl.
-
-    WindowConfig config;        ///< Internal configuration (changes pending for being applied in
-                                /// ProcessConfigurationChanges)
-    WindowConfig active_config; ///< Internal active configuration
-
+    std::vector<std::shared_ptr<Framebuffer>> screens;
+    std::mutex touch_mutex;
+    u16 touch_x;        ///< Touchpad X-position in native 3DS pixel coordinates (0-320)
+    u16 touch_y;        ///< Touchpad Y-position in native 3DS pixel coordinates (0-240)
     bool touch_pressed; ///< True if touchpad area is currently pressed, otherwise false
-
-    u16 touch_x; ///< Touchpad X-position in native 3DS pixel coordinates (0-320)
-    u16 touch_y; ///< Touchpad Y-position in native 3DS pixel coordinates (0-240)
 
     std::mutex accel_mutex;
     s16 accel_x; ///< Accelerometer X-axis value in native 3DS units
@@ -264,9 +162,4 @@ private:
     s16 gyro_x; ///< Gyroscope X-axis value in native 3DS units
     s16 gyro_y; ///< Gyroscope Y-axis value in native 3DS units
     s16 gyro_z; ///< Gyroscope Z-axis value in native 3DS units
-
-    /**
-     * Clip the provided coordinates to be inside the touchscreen area.
-     */
-    std::tuple<unsigned, unsigned> ClipToTouchScreen(unsigned new_x, unsigned new_y);
 };
