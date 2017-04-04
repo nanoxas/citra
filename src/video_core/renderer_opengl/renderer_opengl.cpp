@@ -387,8 +387,9 @@ void RendererOpenGL::DrawScreens() {
     auto buffers = render_window->GetFramebuffer();
 
     for (const auto& buffer : buffers) {
-        const auto& top_screen = buffer.layout.top_screen;
-        const auto& bottom_screen = buffer.layout.bottom_screen;
+        const auto& layout = buffer->GetFramebufferLayout();
+        const auto& top_screen = layout.top_screen;
+        const auto& bottom_screen = layout.bottom_screen;
 
         glViewport(0, 0, layout.width, layout.height);
         glClear(GL_COLOR_BUFFER_BIT);

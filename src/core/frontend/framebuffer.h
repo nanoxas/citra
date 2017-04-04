@@ -7,6 +7,9 @@
 #include "core/frontend/framebuffer_layout.h"
 
 class EmuWindow;
+namespace Settings {
+enum class LayoutOption;
+}
 
 /**
  * Abstraction for any compatible buffer to draw a screen. Touch input should be handled as part of
@@ -55,7 +58,8 @@ public:
      * Convenience method to update the current frame layout
      * Read from the current settings to determine which layout to use.
      */
-    void UpdateCurrentFramebufferLayout(unsigned width, unsigned height);
+    void UpdateCurrentFramebufferLayout(Settings::LayoutOption option, unsigned width,
+                                        unsigned height);
 
 protected:
     Framebuffer(std::weak_ptr<EmuWindow> parent) {
@@ -68,8 +72,8 @@ protected:
      * Update framebuffer layout with the given parameter.
      * @note EmuWindow implementations will usually use this in window resize event handlers.
      */
-    void NotifyFramebufferLayoutChanged(const Layout::FramebufferLayout& layout) {
-        layout = layout;
+    void NotifyFramebufferLayoutChanged(const Layout::FramebufferLayout& l) {
+        layout = l;
     }
 
     /**

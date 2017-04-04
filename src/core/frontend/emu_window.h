@@ -9,7 +9,6 @@
 #include <utility>
 #include <vector>
 #include "common/common_types.h"
-#include "common/math_util.h"
 #include "core/frontend/framebuffer.h"
 
 /**
@@ -130,6 +129,13 @@ public:
      */
     f32 GetGyroscopeRawToDpsCoefficient() const {
         return 14.375f; // taken from hw test, and gyroscope's document
+    }
+
+    std::vector<std::shared_ptr<Framebuffer>>& GetFramebuffer() {
+        return screens;
+    }
+    const std::vector<std::shared_ptr<Framebuffer>>& GetFramebuffer() const {
+        return screens;
     }
 
 protected:

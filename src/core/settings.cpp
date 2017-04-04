@@ -24,8 +24,10 @@ void Apply() {
     VideoCore::g_toggle_framelimit_enabled = values.toggle_framelimit;
 
     if (VideoCore::g_emu_window) {
-        auto layout = VideoCore::g_emu_window->GetFramebufferLayout();
-        VideoCore::g_emu_window->UpdateCurrentFramebufferLayout(layout.width, layout.height);
+        for (auto& screen : VideoCore::g_emu_window->GetFramebuffer()) {
+            auto layout = ;
+            screen->UpdateCurrentFramebufferLayout(layout.width, layout.height);
+        }
     }
 
     AudioCore::SelectSink(values.sink_id);
@@ -34,4 +36,4 @@ void Apply() {
     Service::HID::ReloadInputDevices();
 }
 
-} // namespace
+} // namespace Settings
