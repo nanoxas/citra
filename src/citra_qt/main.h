@@ -120,7 +120,6 @@ private slots:
     /// Called whenever a user selects the "File->Select Game List Root" menu item
     void OnMenuSelectGameListRoot();
     void OnMenuRecentFile();
-    void OnSwapScreens();
     void OnConfigure();
     void OnDisplayTitleBars(bool);
     void ToggleWindowMode();

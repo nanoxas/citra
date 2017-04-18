@@ -1,18 +1,18 @@
 #include <QApplication>
 #include <QHBoxLayout>
 #include <QKeyEvent>
-
-#if QT_VERSION >= QT_VERSION_CHECK(5, 0, 0)
-// Required for screen DPI information
+#include <QOpenGLContext>
 #include <QScreen>
 #include <QWindow>
-#endif
 
 #include "citra_qt/bootmanager.h"
+#include "citra_qt/gbuffer.h"
+#include "citra_qt/ui_settings.h"
 #include "common/microprofile.h"
 #include "common/scm_rev.h"
 #include "common/string_util.h"
 #include "core/core.h"
+#include "core/frontend/motion_emu.h"
 #include "core/settings.h"
 #include "input_common/keyboard.h"
 #include "input_common/main.h"
@@ -23,7 +23,7 @@ EmuThread::EmuThread(GRenderWindow* render_window)
     : exec_step(false), running(false), stop_run(false), render_window(render_window) {}
 
 void EmuThread::run() {
-    render_window->MakeCurrent();
+    render_window->GetDefaultScreen()->MakeCurrent();
 
     MicroProfileOnThreadCreate("EmuThread");
 
@@ -66,46 +66,17 @@ void EmuThread::run() {
     MicroProfileOnThreadExit();
 #endif
 
-    render_window->moveContext();
+    // render_window->moveContext();
 }
 
-// This class overrides paintEvent and resizeEvent to prevent the GUI thread from stealing GL
-// context.
-// The corresponding functionality is handled in EmuThread instead
-class GGLWidgetInternal : public QGLWidget {
-public:
-    GGLWidgetInternal(QGLFormat fmt, GRenderWindow* parent)
-        : QGLWidget(fmt, parent), parent(parent) {}
-
-    void paintEvent(QPaintEvent* ev) override {
-        if (do_painting) {
-            QPainter painter(this);
-        }
-    }
-
-    void resizeEvent(QResizeEvent* ev) override {
-        parent->OnClientAreaResized(ev->size().width(), ev->size().height());
-        parent->OnFramebufferSizeChanged();
-    }
-
-    void DisablePainting() {
-        do_painting = false;
-    }
-    void EnablePainting() {
-        do_painting = true;
-    }
-
-private:
-    GRenderWindow* parent;
-    bool do_painting;
-};
-
 GRenderWindow::GRenderWindow(QWidget* parent, EmuThread* emu_thread)
-    : QWidget(parent), child(nullptr), emu_thread(emu_thread) {
+    : QWidget(parent), emu_thread(emu_thread) {
 
     std::string window_title = Common::StringFromFormat("Citra %s| %s-%s", Common::g_build_name,
                                                         Common::g_scm_branch, Common::g_scm_desc);
     setWindowTitle(QString::fromStdString(window_title));
+
+    UpdateScreensFromSettings();
 
     InputCommon::Init();
 }
@@ -114,56 +85,23 @@ GRenderWindow::~GRenderWindow() {
     InputCommon::Shutdown();
 }
 
-void GRenderWindow::moveContext() {
-    DoneCurrent();
-// We need to move GL context to the swapping thread in Qt5
-#if QT_VERSION > QT_VERSION_CHECK(5, 0, 0)
-    // If the thread started running, move the GL Context to the new thread. Otherwise, move it
-    // back.
-    auto thread = (QThread::currentThread() == qApp->thread() && emu_thread != nullptr)
-                      ? emu_thread
-                      : qApp->thread();
-    child->context()->moveToThread(thread);
-#endif
-}
-
 void GRenderWindow::SwapBuffers() {
-#if !defined(QT_NO_DEBUG)
-    // Qt debug runtime prints a bogus warning on the console if you haven't called makeCurrent
-    // since the last time you called swapBuffers. This presumably means something if you're using
-    // QGLWidget the "regular" way, but in our multi-threaded use case is harmless since we never
-    // call doneCurrent in this thread.
-    child->makeCurrent();
-#endif
-    child->swapBuffers();
+    render_context->moveToThread(qApp->thread());
+    qApp->processEvents();
+    frame_finished = false;
+    std::unique_lock<std::mutex> lock(frame_drawing_mutex);
+    frame_drawing_cv.wait(lock, [this] { return frame_finished == true; });
 }
 
-void GRenderWindow::MakeCurrent() {
-    child->makeCurrent();
-}
-
-void GRenderWindow::DoneCurrent() {
-    child->doneCurrent();
+void GRenderWindow::FrameFinished() {
+    MoveContext();
+    frame_finished = true;
 }
 
 void GRenderWindow::PollEvents() {}
 
-// On Qt 5.0+, this correctly gets the size of the framebuffer (pixels).
-//
-// Older versions get the window size (density independent pixels),
-// and hence, do not support DPI scaling ("retina" displays).
-// The result will be a viewport that is smaller than the extent of the window.
-void GRenderWindow::OnFramebufferSizeChanged() {
-    // Screen changes potentially incur a change in screen DPI, hence we should update the
-    // framebuffer size
-    qreal pixelRatio = windowPixelRatio();
-    unsigned width = child->QPaintDevice::width() * pixelRatio;
-    unsigned height = child->QPaintDevice::height() * pixelRatio;
-    UpdateCurrentFramebufferLayout(width, height);
-}
-
 void GRenderWindow::BackupGeometry() {
-    geometry = ((QGLWidget*)this)->saveGeometry();
+    geometry = QWidget::saveGeometry();
 }
 
 void GRenderWindow::RestoreGeometry() {
@@ -177,22 +115,46 @@ void GRenderWindow::restoreGeometry(const QByteArray& geometry) {
     BackupGeometry();
 }
 
+void GRenderWindow::MoveContext() {
+    GetDefaultScreen()->DoneCurrent();
+    // If the thread started running, move the GL Context to the new thread. Otherwise, move it
+    // back.
+    auto thread = (QThread::currentThread() == qApp->thread() && emu_thread != nullptr)
+                      ? emu_thread
+                      : qApp->thread();
+    GBuffer* screen = dynamic_cast<GBuffer*>(GetDefaultScreen());
+    screen->GetContext()->moveToThread(thread);
+}
+
+void GRenderWindow::ShowFrames() {
+    if (UISettings::values.single_window_mode) {
+        QBoxLayout* layout = new QHBoxLayout(this);
+        // if single window mode
+        for (auto& screen : screens) {
+            auto s = std::dynamic_pointer_cast<GBuffer>(screen);
+            s->initializeGL();
+            layout->addWidget(s.get());
+        }
+        setLayout(layout);
+    } else {
+        // else
+        for (auto& screen : screens) {
+            auto s = std::dynamic_pointer_cast<GBuffer>(screen);
+            s->initializeGL();
+            s->show();
+            // layout->addWidget(s.get());
+        }
+    }
+    show();
+}
+
 QByteArray GRenderWindow::saveGeometry() {
     // If we are a top-level widget, store the current geometry
     // otherwise, store the last backup
     if (parent() == nullptr)
-        return ((QGLWidget*)this)->saveGeometry();
+        return QWidget::saveGeometry();
     else
         return geometry;
-}
-
-qreal GRenderWindow::windowPixelRatio() {
-#if QT_VERSION >= QT_VERSION_CHECK(5, 0, 0)
-    // windowHandle() might not be accessible until the window is displayed to screen.
-    return windowHandle() ? windowHandle()->screen()->devicePixelRatio() : 1.0f;
-#else
-    return 1.0f;
-#endif
 }
 
 void GRenderWindow::closeEvent(QCloseEvent* event) {
@@ -201,108 +163,63 @@ void GRenderWindow::closeEvent(QCloseEvent* event) {
     QWidget::closeEvent(event);
 }
 
-void GRenderWindow::keyPressEvent(QKeyEvent* event) {
-    InputCommon::GetKeyboard()->PressKey(event->key());
-}
-
-void GRenderWindow::keyReleaseEvent(QKeyEvent* event) {
-    InputCommon::GetKeyboard()->ReleaseKey(event->key());
-}
-
-void GRenderWindow::mousePressEvent(QMouseEvent* event) {
-    auto pos = event->pos();
-    if (event->button() == Qt::LeftButton) {
-        qreal pixelRatio = windowPixelRatio();
-        this->TouchPressed(static_cast<unsigned>(pos.x() * pixelRatio),
-                           static_cast<unsigned>(pos.y() * pixelRatio));
-    } else if (event->button() == Qt::RightButton) {
-        motion_emu->BeginTilt(pos.x(), pos.y());
-    }
-}
-
-void GRenderWindow::mouseMoveEvent(QMouseEvent* event) {
-    auto pos = event->pos();
-    qreal pixelRatio = windowPixelRatio();
-    this->TouchMoved(std::max(static_cast<unsigned>(pos.x() * pixelRatio), 0u),
-                     std::max(static_cast<unsigned>(pos.y() * pixelRatio), 0u));
-    motion_emu->Tilt(pos.x(), pos.y());
-}
-
-void GRenderWindow::mouseReleaseEvent(QMouseEvent* event) {
-    if (event->button() == Qt::LeftButton)
-        this->TouchReleased();
-    else if (event->button() == Qt::RightButton)
-        motion_emu->EndTilt();
-}
-
-void GRenderWindow::focusOutEvent(QFocusEvent* event) {
-    QWidget::focusOutEvent(event);
-    InputCommon::GetKeyboard()->ReleaseAllKeys();
-}
-
-void GRenderWindow::OnClientAreaResized(unsigned width, unsigned height) {
-    NotifyClientAreaSizeChanged(std::make_pair(width, height));
-}
-
-void GRenderWindow::InitRenderTarget() {
-    if (child) {
-        delete child;
-    }
-
-    if (layout()) {
-        delete layout();
-    }
-
-    // TODO: One of these flags might be interesting: WA_OpaquePaintEvent, WA_NoBackground,
-    // WA_DontShowOnScreen, WA_DeleteOnClose
-    QGLFormat fmt;
-    fmt.setVersion(3, 3);
-    fmt.setProfile(QGLFormat::CoreProfile);
-    fmt.setSwapInterval(Settings::values.use_vsync);
-
-    // Requests a forward-compatible context, which is required to get a 3.2+ context on OS X
-    fmt.setOption(QGL::NoDeprecatedFunctions);
-
-    child = new GGLWidgetInternal(fmt, this);
-    QBoxLayout* layout = new QHBoxLayout(this);
-
-    resize(VideoCore::kScreenTopWidth,
-           VideoCore::kScreenTopHeight + VideoCore::kScreenBottomHeight);
-    layout->addWidget(child);
-    layout->setMargin(0);
-    setLayout(layout);
-
-    OnMinimalClientAreaChangeRequest(GetActiveConfig().min_client_area_size);
-
-    OnFramebufferSizeChanged();
-    NotifyClientAreaSizeChanged(std::pair<unsigned, unsigned>(child->width(), child->height()));
-
-    BackupGeometry();
-}
-
-void GRenderWindow::OnMinimalClientAreaChangeRequest(
-    const std::pair<unsigned, unsigned>& minimal_size) {
-    setMinimumSize(minimal_size.first, minimal_size.second);
-}
-
 void GRenderWindow::OnEmulationStarting(EmuThread* emu_thread) {
     motion_emu = std::make_unique<Motion::MotionEmu>(*this);
     this->emu_thread = emu_thread;
-    child->DisablePainting();
+    // create child windows
+    // todo add motion_emu to all children here because it was null when i set it...
+    // QBoxLayout* layout = new QHBoxLayout(this);
+    // resize(VideoCore::kScreenTopWidth,
+    //       VideoCore::kScreenTopHeight + VideoCore::kScreenBottomHeight);
+    // layout->setMargin(0);
+    // setLayout(layout);
+    for (auto& screen : screens) {
+    }
+    // grab the context from the main window
+    auto screen = std::dynamic_pointer_cast<GBuffer>(screens[0]);
+    render_context = screen->GetContext();
+}
+
+void GRenderWindow::UpdateScreensFromSettings() {
+    for (const auto& screen : Settings::values.screens) {
+        if (!screen.is_active)
+            continue;
+        std::shared_ptr<GBuffer> buffer;
+        if (UISettings::values.single_window_mode) {
+            buffer = std::make_shared<GBuffer>(this);
+        } else {
+            buffer = std::make_shared<GBuffer>(nullptr);
+        }
+        buffer->resize(screen.size_height, screen.size_height);
+        // QScreen* monitor = qApp->screens().value(screen.monitor);
+        // if (monitor == nullptr) {
+        //    buffer->windowHandle()->setScreen(qApp->primaryScreen());
+        // } else {
+        //     buffer->windowHandle()->setScreen(monitor);
+        // }
+        buffer->move(screen.position_x, screen.position_y);
+        buffer->ChangeFramebufferLayout(screen.layout_option, screen.swap_screen);
+        buffer->NotifyClientAreaSizeChanged(screen.size_width, screen.size_height);
+        // buffer->setParent(nullptr);
+        // buffer->show();
+        screens.push_back(buffer);
+    }
+}
+
+Framebuffer* GRenderWindow::GetDefaultScreen() {
+    return screens[0].get();
 }
 
 void GRenderWindow::OnEmulationStopping() {
     motion_emu = nullptr;
     emu_thread = nullptr;
-    child->EnablePainting();
 }
 
 void GRenderWindow::showEvent(QShowEvent* event) {
     QWidget::showEvent(event);
-
-#if QT_VERSION >= QT_VERSION_CHECK(5, 0, 0)
+    GBuffer* buffer = dynamic_cast<GBuffer*>(this->GetDefaultScreen());
+    connect(buffer, &QOpenGLWidget::frameSwapped, this, &GRenderWindow::FrameFinished);
     // windowHandle() is not initialized until the Window is shown, so we connect it here.
     connect(this->windowHandle(), SIGNAL(screenChanged(QScreen*)), this,
             SLOT(OnFramebufferSizeChanged()), Qt::UniqueConnection);
-#endif
 }

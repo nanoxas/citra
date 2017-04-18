@@ -40,21 +40,11 @@ void Framebuffer::TouchPressed(unsigned framebuffer_x, unsigned framebuffer_y) {
               (layout.bottom_screen.bottom - layout.bottom_screen.top);
     touch_pressed = true;
 
-    auto p = parent.lock();
-    if (!p) {
-        LOG_ERROR(Frontend, "EmuWindow Deleted before a Framebuffer!");
-        return;
-    }
-    p->TouchPressed(touch_x, touch_y);
+    parent_window->TouchPressed(touch_x, touch_y);
 }
 
 void Framebuffer::TouchReleased() {
-    auto p = parent.lock();
-    if (!p) {
-        LOG_ERROR(Frontend, "EmuWindow Deleted before a Framebuffer!");
-        return;
-    }
-    p->TouchReleased();
+    parent_window->TouchReleased();
 }
 
 void Framebuffer::TouchMoved(unsigned framebuffer_x, unsigned framebuffer_y) {
@@ -68,27 +58,33 @@ void Framebuffer::TouchMoved(unsigned framebuffer_x, unsigned framebuffer_y) {
     TouchPressed(framebuffer_x, framebuffer_y);
 }
 
-void Framebuffer::UpdateCurrentFramebufferLayout(Settings::LayoutOption option, unsigned width,
-                                                 unsigned height) {
-    Layout::FramebufferLayout layout;
-    if (Settings::values.custom_layout == true) {
-        layout = Layout::CustomFrameLayout(width, height);
-    } else {
-        switch (Settings::values.layout_option) {
-        case Settings::LayoutOption::SingleScreen:
-            layout = Layout::SingleFrameLayout(width, height, Settings::values.swap_screen);
-            break;
-        case Settings::LayoutOption::LargeScreen:
-            layout = Layout::LargeFrameLayout(width, height, Settings::values.swap_screen);
-            break;
-        case Settings::LayoutOption::Custom:
-            layout = Layout::CustomFrameLayout(width, height);
-            break;
-        case Settings::LayoutOption::Default:
-        default:
-            layout = Layout::DefaultFrameLayout(width, height, Settings::values.swap_screen);
-            break;
-        }
+void Framebuffer::ResizeFramebufferLayout() {
+    Layout::FramebufferLayout l;
+    switch (layout_option) {
+    case Settings::LayoutOption::SingleScreen:
+        l = Layout::SingleFrameLayout(client_area_width, client_area_height, swap_screen);
+        break;
+    case Settings::LayoutOption::LargeScreen:
+        l = Layout::LargeFrameLayout(client_area_width, client_area_height, swap_screen);
+        break;
+    case Settings::LayoutOption::Default:
+    default:
+        l = Layout::DefaultFrameLayout(client_area_width, client_area_height, swap_screen);
+        break;
     }
-    NotifyFramebufferLayoutChanged(layout);
+    layout = l;
+}
+
+void Framebuffer::ChangeFramebufferLayout(Settings::LayoutOption option, bool swap) {
+    if (layout_option == option && swap_screen == swap)
+        return;
+    layout_option = option;
+    swap_screen = swap;
+    ResizeFramebufferLayout();
+}
+
+void Framebuffer::NotifyClientAreaSizeChanged(unsigned width, unsigned height) {
+    client_area_width = width;
+    client_area_height = height;
+    ResizeFramebufferLayout();
 }

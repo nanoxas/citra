@@ -5,7 +5,7 @@
 #include <cmath>
 
 #include "common/assert.h"
-#include "common/framebuffer_layout.h"
+#include "core/frontend/framebuffer_layout.h"
 #include "core/settings.h"
 #include "video_core/video_core.h"
 
@@ -105,11 +105,10 @@ FramebufferLayout LargeFrameLayout(unsigned width, unsigned height, bool swapped
     // To do that, find the total emulation box and maximize that based on window size
     float window_aspect_ratio = static_cast<float>(height) / width;
     float emulation_aspect_ratio =
-        swapped
-            ? VideoCore::kScreenBottomHeight * 4 /
-                  (VideoCore::kScreenBottomWidth * 4.0f + VideoCore::kScreenTopWidth)
-            : VideoCore::kScreenTopHeight * 4 /
-                  (VideoCore::kScreenTopWidth * 4.0f + VideoCore::kScreenBottomWidth);
+        swapped ? VideoCore::kScreenBottomHeight * 4 /
+                      (VideoCore::kScreenBottomWidth * 4.0f + VideoCore::kScreenTopWidth)
+                : VideoCore::kScreenTopHeight * 4 /
+                      (VideoCore::kScreenTopWidth * 4.0f + VideoCore::kScreenBottomWidth);
     float large_screen_aspect_ratio = swapped ? BOT_SCREEN_ASPECT_RATIO : TOP_SCREEN_ASPECT_RATIO;
     float small_screen_aspect_ratio = swapped ? TOP_SCREEN_ASPECT_RATIO : BOT_SCREEN_ASPECT_RATIO;
 
@@ -136,22 +135,4 @@ FramebufferLayout LargeFrameLayout(unsigned width, unsigned height, bool swapped
     res.bottom_screen = swapped ? large_screen : small_screen;
     return res;
 }
-
-FramebufferLayout CustomFrameLayout(unsigned width, unsigned height) {
-    ASSERT(width > 0);
-    ASSERT(height > 0);
-
-    FramebufferLayout res{width, height, true, true, {}, {}};
-
-    MathUtil::Rectangle<unsigned> top_screen{
-        Settings::values.custom_top_left, Settings::values.custom_top_top,
-        Settings::values.custom_top_right, Settings::values.custom_top_bottom};
-    MathUtil::Rectangle<unsigned> bot_screen{
-        Settings::values.custom_bottom_left, Settings::values.custom_bottom_top,
-        Settings::values.custom_bottom_right, Settings::values.custom_bottom_bottom};
-
-    res.top_screen = top_screen;
-    res.bottom_screen = bot_screen;
-    return res;
-}
-}
+} // namespace Layout

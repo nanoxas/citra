@@ -17,12 +17,6 @@ enum class LayoutOption;
  */
 class Framebuffer {
 public:
-    /// Swap buffers to display the next frame
-    virtual void SwapBuffers() = 0;
-
-    /// Polls window events
-    virtual void PollEvents() = 0;
-
     /// Makes the graphics context current for the caller thread
     virtual void MakeCurrent() = 0;
 
@@ -55,44 +49,33 @@ public:
     }
 
     /**
-     * Convenience method to update the current frame layout
-     * Read from the current settings to determine which layout to use.
+     * Changes the framebuffer layout while keeping the previous width and height
      */
-    void UpdateCurrentFramebufferLayout(Settings::LayoutOption option, unsigned width,
-                                        unsigned height);
+    void ChangeFramebufferLayout(Settings::LayoutOption option, bool swap_screen);
 
-protected:
-    Framebuffer(std::weak_ptr<EmuWindow> parent) {
-        parent = parent;
-    }
-
-    virtual ~Framebuffer() {}
-
-    /**
-     * Update framebuffer layout with the given parameter.
-     * @note EmuWindow implementations will usually use this in window resize event handlers.
-     */
-    void NotifyFramebufferLayoutChanged(const Layout::FramebufferLayout& l) {
-        layout = l;
-    }
+    EmuWindow* parent_window; ///< Reference used to update the emulation state for touch input
 
     /**
      * Update internal client area size with the given parameter.
-     * @note EmuWindow implementations will usually use this in window resize event handlers.
+     * @note Framebuffer implementations will usually use this in window resize event handlers.
      */
-    void NotifyClientAreaSizeChanged(const std::pair<unsigned, unsigned>& size) {
-        client_area_width = size.first;
-        client_area_height = size.second;
-    }
+    void NotifyClientAreaSizeChanged(unsigned width, unsigned height);
+
+protected:
+    Framebuffer(EmuWindow* p) : parent_window(p) {}
+
+    virtual ~Framebuffer() {}
 
 private:
-    std::weak_ptr<EmuWindow>
-        parent;                  ///< Reference used to update the emulation state for touch input
+    void ResizeFramebufferLayout();
+
     unsigned client_area_width;  ///< Current client width, should be set by window impl.
     unsigned client_area_height; ///< Current client height, should be set by window impl.
 
     u16 touch_x;
     u16 touch_y;
     bool touch_pressed;
+    Settings::LayoutOption layout_option;
+    bool swap_screen;
     Layout::FramebufferLayout layout;
 };

@@ -31,6 +31,12 @@
  */
 class EmuWindow {
 public:
+    /// Swap buffers to display the next frame
+    virtual void SwapBuffers() = 0;
+
+    /// Polls window events
+    virtual void PollEvents() = 0;
+
     /**
      * Signal accelerometer state has changed.
      * @param x X-axis accelerometer value
@@ -57,22 +63,12 @@ public:
      * @param x Native 3ds x coordinate
      * @param y Native 3ds y coordinate
      */
-    void TouchPressed(u16 x, u16 y) {
-        std::lock_guard<std::mutex> lock(touch_mutex);
-        touch_x = x;
-        touch_y = y;
-        touch_pressed = true;
-    }
+    void TouchPressed(u16 x, u16 y);
 
     /**
      * Called by a Framebuffer to clear any touch state
      */
-    void TouchReleased() {
-        std::lock_guard<std::mutex> lock(touch_mutex);
-        touch_x = 0;
-        touch_y = 0;
-        touch_pressed = false;
-    }
+    void TouchReleased();
 
     /**
      * Gets the current touch screen state (touch X/Y coordinates and whether or not it is pressed).
@@ -80,7 +76,7 @@ public:
      * @return std::tuple of (x, y, pressed) where `x` and `y` are the touch coordinates and
      *         `pressed` is true if the touch screen is currently being pressed
      */
-    std::tuple<u16, u16, bool> GetTouchState() const {
+    std::tuple<u16, u16, bool> GetTouchState() {
         std::lock_guard<std::mutex> lock(touch_mutex);
         return std::make_tuple(touch_x, touch_y, touch_pressed);
     }
@@ -97,7 +93,7 @@ public:
      * @note This should be called by the core emu thread to get a state set by the window thread.
      * @return std::tuple of (x, y, z)
      */
-    std::tuple<s16, s16, s16> GetAccelerometerState() const {
+    std::tuple<s16, s16, s16> GetAccelerometerState() {
         std::lock_guard<std::mutex> lock(accel_mutex);
         return std::make_tuple(accel_x, accel_y, accel_z);
     }
@@ -115,7 +111,7 @@ public:
      * @note This should be called by the core emu thread to get a state set by the window thread.
      * @return std::tuple of (x, y, z)
      */
-    std::tuple<s16, s16, s16> GetGyroscopeState() const {
+    std::tuple<s16, s16, s16> GetGyroscopeState() {
         std::lock_guard<std::mutex> lock(gyro_mutex);
         return std::make_tuple(gyro_x, gyro_y, gyro_z);
     }
@@ -139,8 +135,7 @@ public:
     }
 
 protected:
-    EmuWindow(std::vector<std::shared_ptr<Framebuffer>> screens) {
-        screens = screens;
+    EmuWindow() {
         touch_x = 0;
         touch_y = 0;
         touch_pressed = false;
@@ -153,8 +148,9 @@ protected:
     }
     virtual ~EmuWindow() {}
 
-private:
     std::vector<std::shared_ptr<Framebuffer>> screens;
+
+private:
     std::mutex touch_mutex;
     u16 touch_x;        ///< Touchpad X-position in native 3DS pixel coordinates (0-320)
     u16 touch_y;        ///< Touchpad Y-position in native 3DS pixel coordinates (0-240)

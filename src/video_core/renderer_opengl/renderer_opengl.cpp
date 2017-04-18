@@ -483,7 +483,7 @@ static void APIENTRY DebugHandler(GLenum source, GLenum type, GLuint id, GLenum 
 
 /// Initialize the renderer
 bool RendererOpenGL::Init() {
-    render_window->MakeCurrent();
+    // render_window->MakeCurrent();
 
     if (GLAD_GL_KHR_debug) {
         glEnable(GL_DEBUG_OUTPUT);

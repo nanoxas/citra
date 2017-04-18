@@ -561,8 +561,10 @@ RasterizerCacheOpenGL::GetFramebufferSurfaces(
     color_params.is_tiled = depth_params.is_tiled = true;
 
     // Set the internal resolution, assume the same scaling factor for top and bottom screens
-    const Layout::FramebufferLayout& layout = VideoCore::g_emu_window->GetFramebufferLayout();
     if (Settings::values.resolution_factor == 0.0f) {
+        // Get the framelayout for the first window to guess the resolution scale
+        const Layout::FramebufferLayout& layout =
+            VideoCore::g_emu_window->GetFramebuffer()[0]->GetFramebufferLayout();
         // Auto - scale resolution to the window size
         color_params.res_scale_width = depth_params.res_scale_width =
             (float)layout.top_screen.GetWidth() / VideoCore::kScreenTopWidth;

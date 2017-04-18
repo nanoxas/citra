@@ -79,34 +79,36 @@ bg_red =
 bg_blue =
 bg_green =
 
-[Layout]
+# Whether to toggle frame limiter on or off.
+# false: Off , true (default): On
+toggle_framelimit =
+
+[Layout.0]
 # Layout for the screen inside the render window.
 # 0 (default): Default Top Bottom Screen, 1: Single Screen Only, 2: Large Screen Small Screen
 layout_option =
-
-# Toggle custom layout (using the settings below) on or off.
-# 0 (default): Off , 1: On
-custom_layout =
-
-# Screen placement when using Custom layout option
-# 0x, 0y is the top left corner of the render window.
-custom_top_left =
-custom_top_top =
-custom_top_right =
-custom_top_bottom =
-custom_bottom_left =
-custom_bottom_top =
-custom_bottom_right =
-custom_bottom_bottom =
-
-#Whether to toggle frame limiter on or off.
-# 0: Off , 1  (default): On
-toggle_framelimit =
 
 # Swaps the prominent screen with the other screen.
 # For example, if Single Screen is chosen, setting this to 1 will display the bottom screen instead of the top screen.
 # 0 (default): Top Screen is prominent, 1: Bottom Screen is prominent
 swap_screen =
+
+# Full screen option for this window
+# false (default): loads in windowed mode true: loads in fullscreen on the monitor device selected
+full_screen =
+
+# Which monitor should this window be drawn to by default
+# 0 (default): Your primary monitor. Any number > 0 is accepted as long as you have more monitors
+monitor = 
+
+# Size of the window. If this window is fullscreen, then its not used.
+# This information is persisted when you change the window size at runtime
+size_width = 
+size_height = 
+
+# Position of the window. If this window is fullscreen, then its not used.
+position_x = 
+position_y =
 
 [Audio]
 # Which audio output engine to use.

@@ -75,20 +75,22 @@ void Config::ReadValues() {
     Settings::values.bg_blue = qt_config->value("bg_blue", 1.0).toFloat();
     qt_config->endGroup();
 
-    qt_config->beginGroup("Layout");
-    Settings::values.layout_option =
-        static_cast<Settings::LayoutOption>(qt_config->value("layout_option").toInt());
-    Settings::values.swap_screen = qt_config->value("swap_screen", false).toBool();
-    Settings::values.custom_layout = qt_config->value("custom_layout", false).toBool();
-    Settings::values.custom_top_left = qt_config->value("custom_top_left", 0).toInt();
-    Settings::values.custom_top_top = qt_config->value("custom_top_top", 0).toInt();
-    Settings::values.custom_top_right = qt_config->value("custom_top_right", 400).toInt();
-    Settings::values.custom_top_bottom = qt_config->value("custom_top_bottom", 240).toInt();
-    Settings::values.custom_bottom_left = qt_config->value("custom_bottom_left", 40).toInt();
-    Settings::values.custom_bottom_top = qt_config->value("custom_bottom_top", 240).toInt();
-    Settings::values.custom_bottom_right = qt_config->value("custom_bottom_right", 360).toInt();
-    Settings::values.custom_bottom_bottom = qt_config->value("custom_bottom_bottom", 480).toInt();
-    qt_config->endGroup();
+    for (int i = 0; i < Settings::MAX_SCREENS; ++i) {
+        qt_config->beginGroup(("Layout." + std::to_string(i)).c_str());
+        Settings::ScreenSettings screen;
+        screen.layout_option =
+            static_cast<Settings::LayoutOption>(qt_config->value("layout_option").toInt());
+        screen.swap_screen = qt_config->value("swap_screen", false).toBool();
+        screen.full_screen = qt_config->value("full_screen", false).toBool();
+        screen.is_active = qt_config->value("is_active", false).toBool();
+        screen.monitor = qt_config->value("monitor", 0).toInt();
+        screen.size_width = qt_config->value("size_width", 400).toInt();
+        screen.size_height = qt_config->value("size_height", 640).toInt();
+        screen.position_x = qt_config->value("position_x", 0).toInt();
+        screen.position_y = qt_config->value("position_y", 0).toInt();
+        Settings::values.screens[i] = screen;
+        qt_config->endGroup();
+    }
 
     qt_config->beginGroup("Audio");
     Settings::values.sink_id = qt_config->value("output_engine", "auto").toString().toStdString();
@@ -213,19 +215,20 @@ void Config::SaveValues() {
     qt_config->setValue("bg_blue", (double)Settings::values.bg_blue);
     qt_config->endGroup();
 
-    qt_config->beginGroup("Layout");
-    qt_config->setValue("layout_option", static_cast<int>(Settings::values.layout_option));
-    qt_config->setValue("swap_screen", Settings::values.swap_screen);
-    qt_config->setValue("custom_layout", Settings::values.custom_layout);
-    qt_config->setValue("custom_top_left", Settings::values.custom_top_left);
-    qt_config->setValue("custom_top_top", Settings::values.custom_top_top);
-    qt_config->setValue("custom_top_right", Settings::values.custom_top_right);
-    qt_config->setValue("custom_top_bottom", Settings::values.custom_top_bottom);
-    qt_config->setValue("custom_bottom_left", Settings::values.custom_bottom_left);
-    qt_config->setValue("custom_bottom_top", Settings::values.custom_bottom_top);
-    qt_config->setValue("custom_bottom_right", Settings::values.custom_bottom_right);
-    qt_config->setValue("custom_bottom_bottom", Settings::values.custom_bottom_bottom);
-    qt_config->endGroup();
+    for (int i = 0; i < Settings::MAX_SCREENS; ++i) {
+        qt_config->beginGroup(("Layout." + std::to_string(i)).c_str());
+        qt_config->setValue("layout_option",
+                            static_cast<int>(Settings::values.screens[i].layout_option));
+        qt_config->setValue("swap_screen", Settings::values.screens[i].swap_screen);
+        qt_config->setValue("full_screen", Settings::values.screens[i].full_screen);
+        qt_config->setValue("is_active", Settings::values.screens[i].is_active);
+        qt_config->setValue("monitor", Settings::values.screens[i].monitor);
+        qt_config->setValue("size_width", Settings::values.screens[i].size_width);
+        qt_config->setValue("size_height", Settings::values.screens[i].size_height);
+        qt_config->setValue("position_x", Settings::values.screens[i].position_x);
+        qt_config->setValue("position_y", Settings::values.screens[i].position_y);
+        qt_config->endGroup();
+    }
 
     qt_config->beginGroup("Audio");
     qt_config->setValue("output_engine", QString::fromStdString(Settings::values.sink_id));

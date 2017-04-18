@@ -24,9 +24,11 @@ void Apply() {
     VideoCore::g_toggle_framelimit_enabled = values.toggle_framelimit;
 
     if (VideoCore::g_emu_window) {
-        for (auto& screen : VideoCore::g_emu_window->GetFramebuffer()) {
-            auto layout = ;
-            screen->UpdateCurrentFramebufferLayout(layout.width, layout.height);
+        auto screens = VideoCore::g_emu_window->GetFramebuffer();
+        for (int i = 0; i < screens.size(); ++i) {
+            auto layout = Settings::values.screens[i].layout_option;
+            auto swap_screen = Settings::values.screens[i].swap_screen;
+            screens[i]->ChangeFramebufferLayout(layout, swap_screen);
         }
     }
 

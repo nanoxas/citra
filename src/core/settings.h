@@ -73,6 +73,21 @@ static const std::array<const char*, NumAnalogs> mapping = {{
 }};
 } // namespace NativeAnalog
 
+static constexpr int MAX_SCREENS = 3;
+
+struct ScreenSettings {
+    LayoutOption layout_option;
+    bool swap_screen;
+    bool full_screen;
+    bool is_active;
+    int rotation;
+    int monitor;
+    int size_width;
+    int size_height;
+    int position_x;
+    int position_y;
+};
+
 struct Values {
     // CheckNew3DS
     bool is_new_3ds;
@@ -97,18 +112,7 @@ struct Values {
     bool use_vsync;
     bool toggle_framelimit;
 
-    int screens_;
-    LayoutOption layout_option;
-    bool swap_screen;
-    bool custom_layout;
-    u16 custom_top_left;
-    u16 custom_top_top;
-    u16 custom_top_right;
-    u16 custom_top_bottom;
-    u16 custom_bottom_left;
-    u16 custom_bottom_top;
-    u16 custom_bottom_right;
-    u16 custom_bottom_bottom;
+    std::array<ScreenSettings, Settings::MAX_SCREENS> screens;
 
     float bg_red;
     float bg_green;

@@ -91,26 +91,22 @@ void Config::ReadValues() {
     Settings::values.bg_blue = (float)sdl2_config->GetReal("Renderer", "bg_blue", 1.0);
 
     // Layout
-    Settings::values.layout_option =
-        static_cast<Settings::LayoutOption>(sdl2_config->GetInteger("Layout", "layout_option", 0));
-    Settings::values.swap_screen = sdl2_config->GetBoolean("Layout", "swap_screen", false);
-    Settings::values.custom_layout = sdl2_config->GetBoolean("Layout", "custom_layout", false);
-    Settings::values.custom_top_left =
-        static_cast<u16>(sdl2_config->GetInteger("Layout", "custom_top_left", 0));
-    Settings::values.custom_top_top =
-        static_cast<u16>(sdl2_config->GetInteger("Layout", "custom_top_top", 0));
-    Settings::values.custom_top_right =
-        static_cast<u16>(sdl2_config->GetInteger("Layout", "custom_top_right", 400));
-    Settings::values.custom_top_bottom =
-        static_cast<u16>(sdl2_config->GetInteger("Layout", "custom_top_bottom", 240));
-    Settings::values.custom_bottom_left =
-        static_cast<u16>(sdl2_config->GetInteger("Layout", "custom_bottom_left", 40));
-    Settings::values.custom_bottom_top =
-        static_cast<u16>(sdl2_config->GetInteger("Layout", "custom_bottom_top", 240));
-    Settings::values.custom_bottom_right =
-        static_cast<u16>(sdl2_config->GetInteger("Layout", "custom_bottom_right", 360));
-    Settings::values.custom_bottom_bottom =
-        static_cast<u16>(sdl2_config->GetInteger("Layout", "custom_bottom_bottom", 480));
+    for (int i = 0; i < Settings::MAX_SCREENS; ++i) {
+        const char* screen_id = "Layout." + i;
+        Settings::ScreenSettings screen;
+        screen.layout_option = static_cast<Settings::LayoutOption>(
+            sdl2_config->GetInteger(screen_id, "layout_option", 0));
+        screen.swap_screen = sdl2_config->GetBoolean(screen_id, "swap_screen", false);
+        screen.full_screen = sdl2_config->GetBoolean(screen_id, "full_screen", false);
+        screen.monitor = sdl2_config->GetInteger(screen_id, "monitor", 0);
+        screen.size_width = sdl2_config->GetInteger(screen_id, "size_width", false);
+        screen.size_height = sdl2_config->GetInteger(screen_id, "size_height", false);
+        screen.position_x = sdl2_config->GetInteger(screen_id, "position_x", false);
+        screen.position_y = sdl2_config->GetInteger(screen_id, "position_y", false);
+
+        // TODO handle empty values for screen stuff
+        Settings::values.screens[i] = screen;
+    }
 
     // Audio
     Settings::values.sink_id = sdl2_config->Get("Audio", "output_engine", "auto");

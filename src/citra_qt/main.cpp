@@ -11,6 +11,7 @@
 #include <QDesktopWidget>
 #include <QFileDialog>
 #include <QMessageBox>
+#include <QOpenGLWidget>
 #include <QtGui>
 #include <QtWidgets>
 #include "citra_qt/bootmanager.h"
@@ -213,8 +214,6 @@ void GMainWindow::InitializeHotkeys() {
             SLOT(OnMenuLoadFile()));
     connect(GetHotkey("Main Window", "Start Emulation", this), SIGNAL(activated()), this,
             SLOT(OnStartGame()));
-    connect(GetHotkey("Main Window", "Swap Screens", render_window), SIGNAL(activated()), this,
-            SLOT(OnSwapScreens()));
 }
 
 void GMainWindow::SetDefaultUIGeometry() {
@@ -310,9 +309,6 @@ bool GMainWindow::LoadROM(const QString& filename) {
     if (emu_thread != nullptr)
         ShutdownGame();
 
-    render_window->InitRenderTarget();
-    render_window->MakeCurrent();
-
     if (!gladLoadGL()) {
         QMessageBox::critical(this, tr("Error while starting Citra!"),
                               tr("Failed to initialize the video core!\n\n"
@@ -373,13 +369,22 @@ void GMainWindow::BootGame(const QString& filename) {
     LOG_INFO(Frontend, "Citra starting...");
     StoreRecentFile(filename); // Put the filename on top of the list
 
+    if (ui.action_Single_Window_Mode->isChecked()) {
+        game_list->hide();
+    }
+    status_bar_update_timer.start(2000);
+
+    render_window->ShowFrames();
+    // render_window->show();
+    render_window->setFocus();
+
     if (!LoadROM(filename))
         return;
 
     // Create and start the emulation thread
     emu_thread = std::make_unique<EmuThread>(render_window);
     emit EmulationStarting(emu_thread.get());
-    render_window->moveContext();
+    render_window->MoveContext();
     emu_thread->start();
 
     connect(render_window, SIGNAL(Closed()), this, SLOT(OnStopGame()));
@@ -405,13 +410,6 @@ void GMainWindow::BootGame(const QString& filename) {
     // Update the GUI
     registersWidget->OnDebugModeEntered();
     callstackWidget->OnDebugModeEntered();
-    if (ui.action_Single_Window_Mode->isChecked()) {
-        game_list->hide();
-    }
-    status_bar_update_timer.start(2000);
-
-    render_window->show();
-    render_window->setFocus();
 
     emulation_running = true;
     OnStartGame();
@@ -583,28 +581,28 @@ void GMainWindow::OnStopGame() {
 }
 
 void GMainWindow::ToggleWindowMode() {
-    if (ui.action_Single_Window_Mode->isChecked()) {
-        // Render in the main window...
-        render_window->BackupGeometry();
-        ui.horizontalLayout->addWidget(render_window);
-        render_window->setFocusPolicy(Qt::ClickFocus);
-        if (emulation_running) {
-            render_window->setVisible(true);
-            render_window->setFocus();
-            game_list->hide();
-        }
+    // if (ui.action_Single_Window_Mode->isChecked()) {
+    //    // Render in the main window...
+    //    render_window->BackupGeometry();
+    //    ui.horizontalLayout->addWidget(render_window);
+    //    render_window->setFocusPolicy(Qt::ClickFocus);
+    //    if (emulation_running) {
+    //        render_window->setVisible(true);
+    //        render_window->setFocus();
+    //        game_list->hide();
+    //    }
 
-    } else {
-        // Render in a separate window...
-        ui.horizontalLayout->removeWidget(render_window);
-        render_window->setParent(nullptr);
-        render_window->setFocusPolicy(Qt::NoFocus);
-        if (emulation_running) {
-            render_window->setVisible(true);
-            render_window->RestoreGeometry();
-            game_list->show();
-        }
-    }
+    //} else {
+    //    // Render in a separate window...
+    //    ui.horizontalLayout->removeWidget(render_window);
+    //    render_window->setParent(nullptr);
+    //    render_window->setFocusPolicy(Qt::NoFocus);
+    //    if (emulation_running) {
+    //        render_window->setVisible(true);
+    //        render_window->RestoreGeometry();
+    //        game_list->show();
+    //    }
+    //}
 }
 
 void GMainWindow::OnConfigure() {
@@ -614,11 +612,6 @@ void GMainWindow::OnConfigure() {
         configureDialog.applyConfiguration();
         config->Save();
     }
-}
-
-void GMainWindow::OnSwapScreens() {
-    Settings::values.swap_screen = !Settings::values.swap_screen;
-    Settings::Apply();
 }
 
 void GMainWindow::OnCreateGraphicsSurfaceViewer() {
@@ -734,6 +727,14 @@ int main(int argc, char* argv[]) {
     QCoreApplication::setOrganizationName("Citra team");
     QCoreApplication::setApplicationName("Citra");
 
+    QSurfaceFormat fmt;
+    fmt.setVersion(3, 3);
+    fmt.setProfile(QSurfaceFormat::CoreProfile);
+    fmt.setSwapInterval(Settings::values.use_vsync);
+    // fmt.setOption(QGL::NoDeprecatedFunctions);
+    QSurfaceFormat::setDefaultFormat(fmt);
+
+    QApplication::setAttribute(Qt::AA_ShareOpenGLContexts);
     QApplication::setAttribute(Qt::AA_X11InitThreads);
     QApplication app(argc, argv);
 
