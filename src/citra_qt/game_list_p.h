@@ -157,6 +157,10 @@ public:
     GameListWorker(QString dir_path, bool deep_scan)
         : QObject(), QRunnable(), dir_path(dir_path), deep_scan(deep_scan) {}
 
+    QFileSystemWatcher* GetFileWatcher() {
+        return &watcher;
+    }
+
 public slots:
     /// Starts the processing of directory tree information.
     void run() override;
@@ -173,6 +177,7 @@ signals:
     void Finished();
 
 private:
+    QFileSystemWatcher watcher;
     QString dir_path;
     bool deep_scan;
     std::atomic_bool stop_processing;
