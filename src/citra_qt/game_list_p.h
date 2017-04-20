@@ -6,9 +6,9 @@
 
 #include <atomic>
 #include <QImage>
-#include <QRunnable>
 #include <QStandardItem>
 #include <QString>
+#include <QThread>
 #include "citra_qt/util/util.h"
 #include "common/color.h"
 #include "common/string_util.h"
@@ -150,22 +150,15 @@ public:
  * Asynchronous worker object for populating the game list.
  * Communicates with other threads through Qt's signal/slot system.
  */
-class GameListWorker : public QObject, public QRunnable {
+class GameListWorker : public QObject {
     Q_OBJECT
 
 public:
-    GameListWorker(QString dir_path, bool deep_scan)
-        : QObject(), QRunnable(), dir_path(dir_path), deep_scan(deep_scan) {}
-
-    QFileSystemWatcher* GetFileWatcher() {
-        return &watcher;
-    }
+    explicit GameListWorker(QFileSystemWatcher* watcher, std::string dir_path, bool deep_scan)
+        : QObject(nullptr), watcher(watcher), dir_path(dir_path), deep_scan(deep_scan) {}
 
 public slots:
-    /// Starts the processing of directory tree information.
-    void run() override;
-    /// Tells the worker that it should no longer continue processing. Thread-safe.
-    void Cancel();
+    void UpdateGameList();
 
 signals:
     /**
@@ -174,13 +167,12 @@ signals:
      * @param entry_items a list with `QStandardItem`s that make up the columns of the new entry.
      */
     void EntryReady(QList<QStandardItem*> entry_items);
-    void Finished();
+    void DoneProcessing();
 
 private:
-    QFileSystemWatcher watcher;
-    QString dir_path;
+    QFileSystemWatcher* watcher;
+    std::string dir_path;
     bool deep_scan;
-    std::atomic_bool stop_processing;
 
     void AddFstEntriesToGameList(const std::string& dir_path, unsigned int recursion = 0);
 };

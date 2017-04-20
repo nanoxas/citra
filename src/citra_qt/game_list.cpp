@@ -2,9 +2,11 @@
 // Licensed under GPLv2 or any later version
 // Refer to the license.txt file included.
 
+#include <QApplication>
 #include <QFileInfo>
 #include <QHeaderView>
 #include <QMenu>
+#include <QObject>
 #include <QThreadPool>
 #include <QVBoxLayout>
 #include "common/common_paths.h"
@@ -16,6 +18,9 @@
 #include "ui_settings.h"
 
 GameList::GameList(QWidget* parent) : QWidget{parent} {
+    watcher = std::make_unique<QFileSystemWatcher>();
+    worker_thread = std::make_unique<QThread>();
+
     QVBoxLayout* layout = new QVBoxLayout;
 
     tree_view = new QTreeView;
@@ -50,7 +55,9 @@ GameList::GameList(QWidget* parent) : QWidget{parent} {
 }
 
 GameList::~GameList() {
-    emit ShouldCancelWorker();
+    worker_thread->requestInterruption();
+    worker_thread->wait(1000);
+    worker_thread->terminate();
 }
 
 void GameList::AddEntry(const QList<QStandardItem*>& entry_items) {
@@ -72,6 +79,7 @@ void GameList::ValidateEntry(const QModelIndex& item) {
 }
 
 void GameList::DonePopulating() {
+    connect(watcher.get(), &QFileSystemWatcher::directoryChanged, this, &GameList::Refresh);
     tree_view->setEnabled(true);
 }
 
@@ -93,32 +101,30 @@ void GameList::PopupContextMenu(const QPoint& menu_location) {
 }
 
 void GameList::PopulateAsync(const QString& dir_path, bool deep_scan) {
-    if (!FileUtil::Exists(dir_path.toStdString()) ||
-        !FileUtil::IsDirectory(dir_path.toStdString())) {
-        LOG_ERROR(Frontend, "Could not find game list folder at %s", dir_path.toLocal8Bit().data());
+    std::string path = dir_path.toStdString();
+    if (!FileUtil::Exists(path) || !FileUtil::IsDirectory(path)) {
+        LOG_ERROR(Frontend, "Could not find game list folder at %s", path.c_str());
         return;
     }
-
     tree_view->setEnabled(false);
     // Delete any rows that might already exist if we're repopulating
     item_model->removeRows(0, item_model->rowCount());
 
-    emit ShouldCancelWorker();
-
-    GameListWorker* worker = new GameListWorker(dir_path, deep_scan);
-
+    // Cancel the previous worker if its still running and
+    worker_thread->requestInterruption();
+    auto worker = new GameListWorker(watcher.get(), path, deep_scan);
     connect(worker, &GameListWorker::EntryReady, this, &GameList::AddEntry, Qt::QueuedConnection);
-    connect(worker, &GameListWorker::Finished, this, &GameList::DonePopulating,
+    connect(worker, &GameListWorker::DoneProcessing, this, &GameList::DonePopulating,
             Qt::QueuedConnection);
-    // Use DirectConnection here because worker->Cancel() is thread-safe and we want it to cancel
-    // without delay.
-    connect(this, &GameList::ShouldCancelWorker, worker, &GameListWorker::Cancel,
-            Qt::DirectConnection);
-    connect(worker->GetFileWatcher(), &QFileSystemWatcher::directoryChanged, this,
-            &GameList::RefreshGameDirectory);
+    connect(worker, &GameListWorker::DoneProcessing, worker_thread.get(), &QThread::quit);
 
-    QThreadPool::globalInstance()->start(worker);
-    current_worker = std::move(worker);
+    connect(worker_thread.get(), &QThread::started, worker, &GameListWorker::UpdateGameList,
+            Qt::QueuedConnection);
+    connect(worker_thread.get(), &QThread::finished, worker, &GameListWorker::deleteLater);
+
+    worker->moveToThread(worker_thread.get());
+    // watcher->moveToThread(worker.get());
+    worker_thread->start();
 }
 
 void GameList::SaveInterfaceLayout() {
@@ -145,21 +151,27 @@ static bool HasSupportedFileExtension(const std::string& file_name) {
 }
 
 void GameList::RefreshGameDirectory() {
-    if (!UISettings::values.gamedir.isEmpty() && current_worker != nullptr) {
+    if (!UISettings::values.gamedir.isEmpty()) {
         LOG_INFO(Frontend, "Change detected in the games directory. Reloading game list.");
         PopulateAsync(UISettings::values.gamedir, UISettings::values.gamedir_deepscan);
     }
+}
+
+void GameList::Refresh(const QString& path) {
+    LOG_INFO(Frontend, "Change detected in the games directory. Printing: %s",
+             path.toStdString().c_str());
 }
 
 void GameListWorker::AddFstEntriesToGameList(const std::string& dir_path, unsigned int recursion) {
     const auto callback = [this, recursion](unsigned* num_entries_out, const std::string& directory,
                                             const std::string& virtual_name) -> bool {
         std::string physical_name = directory + DIR_SEP + virtual_name;
-
-        if (stop_processing)
+        if (QThread::currentThread()->isInterruptionRequested()) {
+            LOG_DEBUG(Frontend, "Interrupting!");
             return false; // Breaks the callback loop.
-
-        if (!FileUtil::IsDirectory(physical_name) && HasSupportedFileExtension(physical_name)) {
+        }
+        bool isDir = FileUtil::IsDirectory(physical_name);
+        if (!isDir && HasSupportedFileExtension(physical_name)) {
             std::unique_ptr<Loader::AppLoader> loader = Loader::GetLoader(physical_name);
             if (!loader)
                 return true;
@@ -176,24 +188,27 @@ void GameListWorker::AddFstEntriesToGameList(const std::string& dir_path, unsign
                     QString::fromStdString(Loader::GetFileTypeString(loader->GetFileType()))),
                 new GameListItemSize(FileUtil::GetSize(physical_name)),
             });
-        } else if (FileUtil::IsDirectory(physical_name) && recursion > 0) {
-            watcher.addPath(QString::fromStdString(physical_name));
+        } else if (isDir && recursion > 0) {
+            LOG_DEBUG(Frontend, "Watching dir %s", physical_name.c_str());
+            watcher->addPath(QString::fromStdString(physical_name));
             AddFstEntriesToGameList(physical_name, recursion - 1);
         }
-
         return true;
     };
 
     FileUtil::ForeachDirectoryEntry(nullptr, dir_path, callback);
 }
 
-void GameListWorker::run() {
-    stop_processing = false;
-    AddFstEntriesToGameList(dir_path.toStdString(), deep_scan ? 256 : 0);
-    emit Finished();
-}
+void GameListWorker::UpdateGameList() {
+    auto watch_dirs = watcher->directories();
+    if (!watch_dirs.isEmpty()) {
+        watcher->removePaths(watch_dirs);
+    }
 
-void GameListWorker::Cancel() {
-    this->disconnect();
-    stop_processing = true;
+    LOG_DEBUG(Frontend, "Watching dir %s", dir_path.c_str());
+    watcher->addPath(QString::fromStdString(dir_path));
+    AddFstEntriesToGameList(dir_path, deep_scan ? 256 : 0);
+
+    // watcher->moveToThread(QApplication::instance()->thread());
+    emit DoneProcessing();
 }

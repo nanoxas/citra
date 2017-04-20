@@ -36,6 +36,10 @@ public:
 
     static const QStringList supported_file_extensions;
 
+public slots:
+    void RefreshGameDirectory();
+    void Refresh(const QString&);
+
 signals:
     void GameChosen(QString game_path);
     void ShouldCancelWorker();
@@ -47,9 +51,9 @@ private:
     void DonePopulating();
 
     void PopupContextMenu(const QPoint& menu_location);
-    void RefreshGameDirectory();
 
+    std::unique_ptr<QFileSystemWatcher> watcher;
+    std::unique_ptr<QThread> worker_thread;
     QTreeView* tree_view = nullptr;
     QStandardItemModel* item_model = nullptr;
-    GameListWorker* current_worker = nullptr;
 };
