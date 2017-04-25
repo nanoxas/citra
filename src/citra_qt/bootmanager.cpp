@@ -89,8 +89,8 @@ void GRenderWindow::SwapBuffers() {
     render_context->moveToThread(qApp->thread());
     qApp->processEvents();
     frame_finished = false;
-    std::unique_lock<std::mutex> lock(frame_drawing_mutex);
-    frame_drawing_cv.wait(lock, [this] { return frame_finished == true; });
+    // std::unique_lock<std::mutex> lock(frame_drawing_mutex);
+    // frame_drawing_cv.wait(lock, [this] { return frame_finished == true; });
 }
 
 void GRenderWindow::FrameFinished() {
@@ -137,12 +137,11 @@ void GRenderWindow::ShowFrames() {
         }
         setLayout(layout);
     } else {
-        // else
         for (auto& screen : screens) {
             auto s = std::dynamic_pointer_cast<GBuffer>(screen);
+
             s->initializeGL();
             s->show();
-            // layout->addWidget(s.get());
         }
     }
     show();
