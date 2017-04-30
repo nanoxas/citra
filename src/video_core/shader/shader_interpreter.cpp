@@ -123,7 +123,7 @@ static void RunInterpreter(const ShaderSetup& setup, UnitState& state, DebugData
                 return &state.registers.temporary[source_reg.GetIndex()].x;
 
             case RegisterType::FloatUniform:
-                return &uniforms.f[source_reg.GetIndex()].x;
+                return &uniforms.f[source_reg.GetIndex() % 96].x;
 
             default:
                 return dummy_vec4_float24;
@@ -680,6 +680,6 @@ DebugData<true> InterpreterEngine::ProduceDebugInfo(const ShaderSetup& setup,
     return debug_data;
 }
 
-} // namespace
+} // namespace Shader
 
-} // namespace
+} // namespace Pica

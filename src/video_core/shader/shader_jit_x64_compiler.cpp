@@ -178,7 +178,7 @@ void JitShader::Compile_SwizzleSrc(Instruction instr, unsigned src_num, SourceRe
 
     if (src_reg.GetRegisterType() == RegisterType::FloatUniform) {
         src_ptr = SETUP;
-        src_offset = ShaderSetup::GetFloatUniformOffset(src_reg.GetIndex());
+        src_offset = ShaderSetup::GetFloatUniformOffset(src_reg.GetIndex() % 96);
     } else {
         src_ptr = STATE;
         src_offset = UnitState::InputOffset(src_reg);
