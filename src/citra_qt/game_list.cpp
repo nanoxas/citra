@@ -16,6 +16,8 @@
 #include "game_list_p.h"
 #include "ui_settings.h"
 
+REGISTER_LOGGER("Class Name");
+
 GameList::SearchField::KeyReleaseEater::KeyReleaseEater(GameList* gamelist) {
     this->gamelist = gamelist;
     edit_filter_text_old = "";
@@ -198,6 +200,7 @@ GameList::GameList(GMainWindow* parent) : QWidget{parent} {
     watcher = new QFileSystemWatcher(this);
     connect(watcher, &QFileSystemWatcher::directoryChanged, this, &GameList::RefreshGameDirectory);
 
+    SPDLOG_WARNING("Test! {1} {0}", "world!", "Hello");
     this->main_window = parent;
     layout = new QVBoxLayout;
     tree_view = new QTreeView;

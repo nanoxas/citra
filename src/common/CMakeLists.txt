@@ -28,9 +28,11 @@ set(SRCS
             break_points.cpp
             file_util.cpp
             hash.cpp
-            logging/filter.cpp
-            logging/text_formatter.cpp
             logging/backend.cpp
+            logging/backend_spdlog.cpp
+            logging/filter.cpp
+            logging/formatter.cpp
+            logging/text_formatter.cpp
             memory_util.cpp
             microprofile.cpp
             misc.cpp
@@ -57,10 +59,12 @@ set(HEADERS
             file_util.h
             hash.h
             linear_disk_cache.h
-            logging/text_formatter.h
-            logging/filter.h
-            logging/log.h
             logging/backend.h
+            logging/backend_spdlog.h
+            logging/filter.h
+            logging/formatter.h
+            logging/log.h
+            logging/text_formatter.h
             math_util.h
             memory_util.h
             microprofile.h
