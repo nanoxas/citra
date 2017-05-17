@@ -51,4 +51,5 @@ endif()
 
 # Spdlog
 add_library(spdlog INTERFACE)
+target_compile_definitions(spdlog INTERFACE -DSPDLOG_FMT_EXTERNAL=1)
 target_include_directories(spdlog INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/spdlog/include)
