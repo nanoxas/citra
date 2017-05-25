@@ -1,14 +1,16 @@
-// Copyright 2013 Dolphin Emulator Project / 2014 Citra Emulator Project
+// Copyright 2010 Dolphin Emulator Project / 2014 Citra Emulator Project
 // Licensed under GPLv2 or any later version
 // Refer to the license.txt file included.
 
 #pragma once
 
+#include <cstring>
 #include <fstream>
-#include "common/common_types.h"
+#include <string>
+#include <type_traits>
 
-// defined in Version.cpp
-extern const char* scm_rev_git_str;
+#include "common/common_types.h"
+#include "common/file_util.h"
 
 // On disk format:
 // header{
@@ -23,6 +25,9 @@ extern const char* scm_rev_git_str;
 // key_type   key;
 // value_type[value_size]   value;
 //}
+
+// defined in scm_rev.cpp
+extern const char* g_scm_rev_str;
 
 template <typename K, typename V>
 class LinearDiskCacheReader {
@@ -46,8 +51,18 @@ template <typename K, typename V>
 class LinearDiskCache {
 public:
     // return number of read entries
-    u32 OpenAndRead(const char* filename, LinearDiskCacheReader<K, V>& reader) {
+    u32 OpenAndRead(const std::string& filename, LinearDiskCacheReader<K, V>& reader) {
         using std::ios_base;
+
+// Since we're reading/writing directly to the storage of K instances,
+// K must be trivially copyable. TODO: Remove #if once GCC 5.0 is a
+// minimum requirement.
+#if defined(__GNUC__) && !defined(__clang__) && __GNUC__ < 5
+        static_assert(std::has_trivial_copy_constructor<K>::value,
+                      "K must be a trivially copyable type");
+#else
+        static_assert(std::is_trivially_copyable<K>::value, "K must be a trivially copyable type");
+#endif
 
         // close any currently opened file
         Close();
@@ -62,13 +77,14 @@ public:
         std::fstream::pos_type start_pos = m_file.tellg();
         std::streamoff file_size = end_pos - start_pos;
 
+        m_header.Init();
         if (m_file.is_open() && ValidateHeader()) {
             // good header, read some key/value pairs
             K key;
 
             V* value = nullptr;
-            u32 value_size;
-            u32 entry_number;
+            u32 value_size = 0;
+            u32 entry_number = 0;
 
             std::fstream::pos_type last_pos = m_file.tellg();
 
@@ -110,7 +126,6 @@ public:
     void Sync() {
         m_file.flush();
     }
-
     void Close() {
         if (m_file.is_open())
             m_file.close();
@@ -133,7 +148,6 @@ private:
     void WriteHeader() {
         Write(&m_header);
     }
-
     bool ValidateHeader() {
         char file_header[sizeof(Header)];
 
@@ -152,13 +166,16 @@ private:
     }
 
     struct Header {
-        Header() : id(*(u32*)"DCAC"), key_t_size(sizeof(K)), value_t_size(sizeof(V)) {
-            memcpy(ver, scm_rev_git_str, 40);
+        void Init() {
+            // Null-terminator is intentionally not copied.
+            std::memcpy(&id, "DCAC", sizeof(u32));
+            std::memcpy(ver, g_scm_rev_str.c_str(), std::min(g_scm_rev_str.size(), sizeof(ver)));
         }
 
-        const u32 id;
-        const u16 key_t_size, value_t_size;
-        char ver[40];
+        u32 id;
+        const u16 key_t_size = sizeof(K);
+        const u16 value_t_size = sizeof(V);
+        char ver[40] = {};
 
     } m_header;
 

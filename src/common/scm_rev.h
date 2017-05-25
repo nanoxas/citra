@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include <string>
+
 namespace Common {
 
 extern const char g_scm_rev[];
@@ -11,4 +13,6 @@ extern const char g_scm_branch[];
 extern const char g_scm_desc[];
 extern const char g_build_name[];
 
-} // namespace
+extern const std::string g_scm_rev_str;
+
+} // namespace Common
