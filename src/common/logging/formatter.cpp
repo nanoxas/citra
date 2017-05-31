@@ -3,6 +3,8 @@
 #include "common/assert.h"
 #include "common/logging/formatter.h"
 
+namespace Log {
+
 static const char* GetLevelName(spdlog::level_t log_level) {
     switch (log_level) {
     case spdlog::level::trace:
@@ -23,24 +25,22 @@ static const char* GetLevelName(spdlog::level_t log_level) {
     }
 }
 
-namespace Log {
-
 void Formatter::format(spdlog::details::log_msg& msg) {
     using std::chrono::steady_clock;
     using std::chrono::duration_cast;
 
-    static steady_clock::time_point time_origin = steady_clock::now();
+    static const steady_clock::time_point time_origin = steady_clock::now();
     auto timestamp = duration_cast<std::chrono::microseconds>(steady_clock::now() - time_origin);
 
-    unsigned int time_seconds = static_cast<unsigned int>(timestamp.count() / 1000000);
-    unsigned int time_fractional = static_cast<unsigned int>(timestamp.count() % 1000000);
+    const auto time_seconds = timestamp.count() / 1000000;
+    const auto time_fractional = timestamp.count() % 1000000;
 
     msg.formatted << '[' << fmt::pad(time_seconds, 4, ' ') << '.'
                   << fmt::pad(time_fractional, 6, '0') << "] ";
     msg.formatted << *msg.logger_name << " <" << GetLevelName(msg.level) << "> ";
 
     msg.formatted << fmt::StringRef(msg.raw.data(), msg.raw.size());
-    msg.formatted.write(spdlog::details::os::eol, spdlog::details::os::eol_size);
+    msg.formatted << '\n';
 }
 
 } // namespace Log

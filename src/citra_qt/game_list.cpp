@@ -16,8 +16,6 @@
 #include "game_list_p.h"
 #include "ui_settings.h"
 
-REGISTER_LOGGER("Game List");
-
 GameList::SearchField::KeyReleaseEater::KeyReleaseEater(GameList* gamelist) {
     this->gamelist = gamelist;
     edit_filter_text_old = "";
@@ -200,7 +198,6 @@ GameList::GameList(GMainWindow* parent) : QWidget{parent} {
     watcher = new QFileSystemWatcher(this);
     connect(watcher, &QFileSystemWatcher::directoryChanged, this, &GameList::RefreshGameDirectory);
 
-    SPDLOG_WARNING("Test! {1} {0}", "world!", "Hello");
     this->main_window = parent;
     layout = new QVBoxLayout;
     tree_view = new QTreeView;
@@ -319,7 +316,8 @@ void GameList::PopupContextMenu(const QPoint& menu_location) {
 void GameList::PopulateAsync(const QString& dir_path, bool deep_scan) {
     if (!FileUtil::Exists(dir_path.toStdString()) ||
         !FileUtil::IsDirectory(dir_path.toStdString())) {
-        SPDLOG_ERROR("Could not find game list folder at {}", dir_path.toLocal8Bit().data());
+        SPDLOG_ERROR(Frontend, "Could not find game list folder at {}",
+                     dir_path.toLocal8Bit().data());
         search_field->setFilterResult(0, 0);
         return;
     }
@@ -369,7 +367,7 @@ static bool HasSupportedFileExtension(const std::string& file_name) {
 
 void GameList::RefreshGameDirectory() {
     if (!UISettings::values.gamedir.isEmpty() && current_worker != nullptr) {
-        SPDLOG_INFO("Change detected in the games directory. Reloading game list.");
+        SPDLOG_INFO(Frontend, "Change detected in the games directory. Reloading game list.");
         search_field->clear();
         PopulateAsync(UISettings::values.gamedir, UISettings::values.gamedir_deepscan);
     }
