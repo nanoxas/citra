@@ -93,6 +93,10 @@ struct State {
             float ToFloat() {
                 return static_cast<float>(value) / 4095.f;
             }
+
+            float DiffToFloat() {
+                return static_cast<float>(static_cast<int>(difference << 21) >> 21) / 2047.f;
+            }
         };
 
         std::array<std::array<LutEntry, 256>, 24> luts;
