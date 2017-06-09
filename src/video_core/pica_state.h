@@ -87,7 +87,7 @@ struct State {
             // LUT value, encoded as 12-bit fixed point, with 12 fraction bits
             BitField<0, 12, u32> value; // 0.0.12 fixed point
 
-            // Used by HW for efficient interpolation, Citra does not use these
+            // Used by HW for efficient interpolation.
             BitField<12, 11, u32> difference; // 0.0.11 fixed point
             BitField<22, 1, u32> neg_difference;
 
