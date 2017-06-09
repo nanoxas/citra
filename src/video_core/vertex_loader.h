@@ -3,6 +3,7 @@
 #include <array>
 #include "common/common_types.h"
 #include "video_core/regs_pipeline.h"
+#include "video_core/vertex_loader_base.h"
 
 namespace Pica {
 
@@ -14,14 +15,9 @@ namespace Shader {
 struct AttributeBuffer;
 }
 
-class VertexLoader {
+class VertexLoader : public VertexLoaderBase {
 public:
-    VertexLoader() = default;
-    explicit VertexLoader(const PipelineRegs& regs) {
-        Setup(regs);
-    }
-
-    void Setup(const PipelineRegs& regs);
+    explicit VertexLoader(const PipelineRegs::VertexAttributes& vertex_attributes);
     void LoadVertex(u32 base_address, int index, int vertex, Shader::AttributeBuffer& input,
                     DebugUtils::MemoryAccessTracker& memory_accesses);
 
@@ -36,7 +32,6 @@ private:
     std::array<u32, 16> vertex_attribute_elements{};
     std::array<bool, 16> vertex_attribute_is_default;
     int num_total_attributes = 0;
-    bool is_setup = false;
 };
 
 } // namespace Pica

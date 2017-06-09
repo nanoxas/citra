@@ -16,10 +16,7 @@
 
 namespace Pica {
 
-void VertexLoader::Setup(const PipelineRegs& regs) {
-    ASSERT_MSG(!is_setup, "VertexLoader is not intended to be setup more than once.");
-
-    const auto& attribute_config = regs.vertex_attributes;
+VertexLoader::VertexLoader(const PipelineRegs::VertexAttributes& attribute_config) {
     num_total_attributes = attribute_config.GetNumTotalAttributes();
 
     boost::fill(vertex_attribute_sources, 0xdeadbeef);
@@ -66,15 +63,11 @@ void VertexLoader::Setup(const PipelineRegs& regs) {
             }
         }
     }
-
-    is_setup = true;
 }
 
 void VertexLoader::LoadVertex(u32 base_address, int index, int vertex,
                               Shader::AttributeBuffer& input,
                               DebugUtils::MemoryAccessTracker& memory_accesses) {
-    ASSERT_MSG(is_setup, "A VertexLoader needs to be setup before loading vertices.");
-
     for (int i = 0; i < num_total_attributes; ++i) {
         if (vertex_attribute_elements[i] != 0) {
             // Load per-vertex data from the loader arrays
