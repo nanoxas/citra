@@ -175,7 +175,7 @@ std::tuple<Math::Vec4<u8>, Math::Vec4<u8>> ComputeFragmentsColors(const Math::Qu
 
         float dist_atten = 1.0f;
         if (!lighting.IsDistAttenDisabled(num)) {
-            auto distance = (position - view).Length();
+            auto distance = (-view - position).Length();
             float scale = Pica::float20::FromRaw(light_config.dist_atten_scale).ToFloat32();
             float bias = Pica::float20::FromRaw(light_config.dist_atten_scale).ToFloat32();
             size_t lut = static_cast<size_t>(LightingRegs::LightingSampler::DistanceAttenuation) + num;
