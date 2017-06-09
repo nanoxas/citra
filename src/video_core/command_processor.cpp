@@ -308,14 +308,23 @@ static void WritePicaReg(u32 id, u32 value, u32 mask) {
 
         // Processes information about internal vertex attributes to figure out how a vertex is
         // loaded.
-        // Later, these can be compiled and cached.
-        const u32 base_address = regs.pipeline.vertex_attributes.GetPhysicalBaseAddress();
-        VertexLoader loader(regs.pipeline);
+        VertexLoaderBase* loader;
+        const auto& vertex_attributes = regs.pipeline.vertex_attributes;
+        const u64 cache_key = Common::ComputeHash64(&vertex_attributes, sizeof(vertex_attributes));
+        auto iter = vertex_loader_cache.find(cache_key);
+        if (iter != vertex_loader_cache.end()) {
+            loader = iter->second.get();
+        } else {
+            auto new_loader = std::make_unique<VertexLoader>(vertex_attributes);
+            loader = new_loader.get();
+            vertex_loader_cache.emplace_hint(iter, cache_key, std::move(new_loader));
+        }
 
         // Load vertices
         bool is_indexed = (id == PICA_REG_INDEX(pipeline.trigger_draw_indexed));
 
         const auto& index_info = regs.pipeline.index_array;
+        const u32 base_address = vertex_attributes.GetPhysicalBaseAddress();
         const u8* index_address_8 = Memory::GetPhysicalPointer(base_address + index_info.offset);
         const u16* index_address_16 = reinterpret_cast<const u16*>(index_address_8);
         bool index_u16 = index_info.format != 0;
@@ -384,7 +393,7 @@ static void WritePicaReg(u32 id, u32 value, u32 mask) {
             if (!vertex_cache_hit) {
                 // Initialize data for the current vertex
                 Shader::AttributeBuffer input, output{};
-                loader.LoadVertex(base_address, index, vertex, input, memory_accesses);
+                loader->LoadVertex(base_address, index, vertex, input, memory_accesses);
 
                 // Send to vertex shader
                 if (g_debug_context)
@@ -620,6 +629,6 @@ void ProcessCommandList(const u32* list, u32 size) {
     }
 }
 
-} // namespace
+} // namespace CommandProcessor
 
-} // namespace
+} // namespace Pica

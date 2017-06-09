@@ -21,7 +21,7 @@ struct PipelineRegs {
         FLOAT = 3,
     };
 
-    struct {
+    struct VertexAttributes {
         BitField<1, 28, u32> base_address;
 
         PAddr GetPhysicalBaseAddress() const {

@@ -63,6 +63,7 @@ set(HEADERS
             texture/texture_decode.h
             utils.h
             vertex_loader.h
+            vertex_loader_base.h
             video_core.h
             )
 
