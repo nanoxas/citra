@@ -405,10 +405,12 @@ void GMainWindow::BootGame(const QString& filename) {
     registersWidget->OnDebugModeEntered();
     if (ui.action_Single_Window_Mode->isChecked()) {
         game_list->hide();
+        render_window->show();
+    } else {
+        render_window->showFullScreen();
     }
     status_bar_update_timer.start(2000);
 
-    render_window->show();
     render_window->setFocus();
 
     emulation_running = true;
@@ -582,6 +584,7 @@ void GMainWindow::ToggleWindowMode() {
         render_window->BackupGeometry();
         ui.horizontalLayout->addWidget(render_window);
         render_window->setFocusPolicy(Qt::ClickFocus);
+        render_window->setWindowState(Qt::WindowMaximized);
         if (emulation_running) {
             render_window->setVisible(true);
             render_window->setFocus();
@@ -593,6 +596,7 @@ void GMainWindow::ToggleWindowMode() {
         ui.horizontalLayout->removeWidget(render_window);
         render_window->setParent(nullptr);
         render_window->setFocusPolicy(Qt::NoFocus);
+        render_window->setWindowState(Qt::WindowFullScreen);
         if (emulation_running) {
             render_window->setVisible(true);
             render_window->RestoreGeometry();
