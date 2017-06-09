@@ -140,6 +140,11 @@ std::tuple<Math::Vec4<u8>, Math::Vec4<u8>> ComputeFragmentsColors(const Math::Qu
     // TODO(Subv): Bump mapping
     Math::Vec3<float> surface_normal = {0.0f, 0.0f, 1.0f};
 
+    if (lighting.config0.bump_mode != LightingRegs::LightingBumpMode::None) {
+        LOG_CRITICAL(HW_GPU, "unimplemented bump mapping");
+        UNIMPLEMENTED();
+    }
+
     // TODO(Subv): Do we need to normalize the quaternion here?
     auto normal = Math::QuaternionRotate(normquat, surface_normal);
 
