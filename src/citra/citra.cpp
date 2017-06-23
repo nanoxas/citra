@@ -24,6 +24,7 @@
 #include "citra/config.h"
 #include "citra/emu_window/emu_window_sdl2.h"
 #include "common/logging/backend.h"
+#include "common/logging/backend_spdlog.h"
 #include "common/logging/filter.h"
 #include "common/logging/log.h"
 #include "common/scm_rev.h"
@@ -58,7 +59,7 @@ int main(int argc, char** argv) {
     auto argv_w = CommandLineToArgvW(GetCommandLineW(), &argc_w);
 
     if (argv_w == nullptr) {
-        LOG_CRITICAL(Frontend, "Failed to get command line arguments");
+        SLOG_CRITICAL(Frontend, "Failed to get command line arguments");
         return -1;
     }
 #endif
@@ -107,18 +108,21 @@ int main(int argc, char** argv) {
     LocalFree(argv_w);
 #endif
 
-    Log::Filter log_filter(Log::Level::Debug);
+    Log::Filter log_filter(::Log::Level::Info);
     Log::SetFilter(&log_filter);
+    Log::SpdLogSetFilter(&log_filter);
 
     MicroProfileOnThreadCreate("EmuThread");
     SCOPE_EXIT({ MicroProfileShutdown(); });
 
     if (filepath.empty()) {
-        LOG_CRITICAL(Frontend, "Failed to load ROM: No ROM specified");
+        SLOG_CRITICAL(Frontend, "Failed to load ROM: No ROM specified");
         return -1;
     }
 
     log_filter.ParseFilterString(Settings::values.log_filter);
+    Log::SetFilter(&log_filter);
+    Log::SpdLogSetFilter(&log_filter);
 
     // Apply the command line arguments
     Settings::values.gdbstub_port = gdb_port;
@@ -135,28 +139,28 @@ int main(int argc, char** argv) {
 
     switch (load_result) {
     case Core::System::ResultStatus::ErrorGetLoader:
-        LOG_CRITICAL(Frontend, "Failed to obtain loader for %s!", filepath.c_str());
+        SLOG_CRITICAL(Frontend, "Failed to obtain loader for {}!", filepath);
         return -1;
     case Core::System::ResultStatus::ErrorLoader:
-        LOG_CRITICAL(Frontend, "Failed to load ROM!");
+        SLOG_CRITICAL(Frontend, "Failed to load ROM!");
         return -1;
     case Core::System::ResultStatus::ErrorLoader_ErrorEncrypted:
-        LOG_CRITICAL(Frontend, "The game that you are trying to load must be decrypted before "
-                               "being used with Citra. \n\n For more information on dumping and "
-                               "decrypting games, please refer to: "
-                               "https://citra-emu.org/wiki/dumping-game-cartridges/");
+        SLOG_CRITICAL(Frontend, "The game that you are trying to load must be decrypted before "
+                                "being used with Citra. \n\n For more information on dumping and "
+                                "decrypting games, please refer to: "
+                                "https://citra-emu.org/wiki/dumping-game-cartridges/");
         return -1;
     case Core::System::ResultStatus::ErrorLoader_ErrorInvalidFormat:
-        LOG_CRITICAL(Frontend, "Error while loading ROM: The ROM format is not supported.");
+        SLOG_CRITICAL(Frontend, "Error while loading ROM: The ROM format is not supported.");
         return -1;
     case Core::System::ResultStatus::ErrorNotInitialized:
-        LOG_CRITICAL(Frontend, "CPUCore not initialized");
+        SLOG_CRITICAL(Frontend, "CPUCore not initialized");
         return -1;
     case Core::System::ResultStatus::ErrorSystemMode:
-        LOG_CRITICAL(Frontend, "Failed to determine system mode!");
+        SLOG_CRITICAL(Frontend, "Failed to determine system mode!");
         return -1;
     case Core::System::ResultStatus::ErrorVideoCore:
-        LOG_CRITICAL(Frontend, "VideoCore not initialized");
+        SLOG_CRITICAL(Frontend, "VideoCore not initialized");
         return -1;
     case Core::System::ResultStatus::Success:
         break; // Expected case

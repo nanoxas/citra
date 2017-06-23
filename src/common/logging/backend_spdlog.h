@@ -1,19 +1,11 @@
-#include <memory>
-#include <vector>
-#include <spdlog/spdlog.h>
-#include "common/logging/log.h"
+// Copyright 2017 Citra Emulator Project
+// Licensed under GPLv2 or any later version
+// Refer to the license.txt file included.
+
+#pragma once
 
 namespace Log {
+class Filter;
 
-class SpdLogBackend {
-public:
-    static SpdLogBackend& Instance();
-
-    SpdLogBackend(SpdLogBackend const&) = delete;
-    const SpdLogBackend& operator=(SpdLogBackend const&) = delete;
-
-private:
-    SpdLogBackend();
-    ~SpdLogBackend();
-};
+void SpdLogSetFilter(Filter* filter);
 } // namespace Log

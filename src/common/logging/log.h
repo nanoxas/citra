@@ -107,9 +107,11 @@ void LogMessage(Class log_class, Level log_level, const char* filename, unsigned
 #endif
     ;
 
+/// Logs a message to the spdlog sinks
 void SpdLogImpl(Class log_class, Level log_level, const char* file, int line_num,
                 const char* function, const char* format, fmt::ArgList args);
 
+/// Macro that creates a variadic template method and wraps the extra arguments into a fmt::ArgList
 FMT_VARIADIC(void, SpdLogImpl, Class, Level, const char*, int, const char*, const char*)
 
 } // namespace Log
@@ -137,25 +139,25 @@ FMT_VARIADIC(void, SpdLogImpl, Class, Level, const char*, int, const char*, cons
 
 // Define the spdlog level macros
 #ifdef _DEBUG
-#define SPDLOG_TRACE(log_class, fmt, ...)                                                          \
-    ::Log::SpdLogMessage(log_class, ::Log::Level::Trace, __FILE__, __LINE__, __func__, fmt,        \
-                         ##__VA_ARGS__)
+#define SLOG_TRACE(log_class, fmt, ...)                                                            \
+    ::Log::SpdLogMessage(::Log::Class::log_class, ::Log::Level::Trace, __FILE__, __LINE__,         \
+                         __func__, fmt, ##__VA_ARGS__)
 #else
-#define SPDLOG_TRACE(log_class, fmt, ...) (void(0))
+#define SLOG_TRACE(log_class, fmt, ...) (void(0))
 #endif
 
-#define SPDLOG_DEBUG(log_class, fmt, ...)                                                          \
+#define SLOG_DEBUG(log_class, fmt, ...)                                                            \
     ::Log::SpdLogImpl(::Log::Class::log_class, ::Log::Level::Debug, __FILE__, __LINE__, __func__,  \
                       fmt, ##__VA_ARGS__)
-#define SPDLOG_INFO(log_class, fmt, ...)                                                           \
+#define SLOG_INFO(log_class, fmt, ...)                                                             \
     ::Log::SpdLogImpl(::Log::Class::log_class, ::Log::Level::Info, __FILE__, __LINE__, __func__,   \
                       fmt, ##__VA_ARGS__)
-#define SPDLOG_WARNING(log_class, fmt, ...)                                                        \
+#define SLOG_WARNING(log_class, fmt, ...)                                                          \
     ::Log::SpdLogImpl(::Log::Class::log_class, ::Log::Level::Warning, __FILE__, __LINE__,          \
                       __func__, fmt, ##__VA_ARGS__)
-#define SPDLOG_ERROR(log_class, fmt, ...)                                                          \
+#define SLOG_ERROR(log_class, fmt, ...)                                                            \
     ::Log::SpdLogImpl(::Log::Class::log_class, ::Log::Level::Error, __FILE__, __LINE__, __func__,  \
                       fmt, ##__VA_ARGS__)
-#define SPDLOG_CRITICAL(log_class, fmt, ...)                                                       \
+#define SLOG_CRITICAL(log_class, fmt, ...)                                                         \
     ::Log::SpdLogImpl(::Log::Class::log_class, ::Log::Level::Critical, __FILE__, __LINE__,         \
                       __func__, fmt, ##__VA_ARGS__)

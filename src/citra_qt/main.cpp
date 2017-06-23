@@ -30,6 +30,7 @@
 #include "citra_qt/main.h"
 #include "citra_qt/ui_settings.h"
 #include "common/logging/backend.h"
+#include "common/logging/backend_spdlog.h"
 #include "common/logging/filter.h"
 #include "common/logging/log.h"
 #include "common/logging/text_formatter.h"
@@ -321,13 +322,13 @@ bool GMainWindow::LoadROM(const QString& filename) {
     if (result != Core::System::ResultStatus::Success) {
         switch (result) {
         case Core::System::ResultStatus::ErrorGetLoader:
-            SPDLOG_CRITICAL(Frontend, "Failed to obtain loader for {}!", filename.toStdString());
+            SLOG_CRITICAL(Frontend, "Failed to obtain loader for {}!", filename.toStdString());
             QMessageBox::critical(this, tr("Error while loading ROM!"),
                                   tr("The ROM format is not supported."));
             break;
 
         case Core::System::ResultStatus::ErrorSystemMode:
-            SPDLOG_CRITICAL(Frontend, "Failed to load ROM!");
+            SLOG_CRITICAL(Frontend, "Failed to load ROM!");
             QMessageBox::critical(this, tr("Error while loading ROM!"),
                                   tr("Could not determine the system mode."));
             break;
@@ -376,7 +377,7 @@ bool GMainWindow::LoadROM(const QString& filename) {
 }
 
 void GMainWindow::BootGame(const QString& filename) {
-    SPDLOG_INFO(Frontend, "Citra starting...");
+    SLOG_INFO(Frontend, "Citra starting...");
     StoreRecentFile(filename); // Put the filename on top of the list
 
     if (!LoadROM(filename))
@@ -502,7 +503,7 @@ void GMainWindow::OnGameListOpenSaveFolder(u64 program_id) {
         return;
     }
 
-    SPDLOG_INFO(Frontend, "Opening save data path for program_id={0:#x}", program_id);
+    SLOG_INFO(Frontend, "Opening save data path for program_id={0:#x}", program_id);
     QDesktopServices::openUrl(QUrl::fromLocalFile(qpath));
 }
 
@@ -797,6 +798,7 @@ void GMainWindow::filterBarSetChecked(bool state) {
 int main(int argc, char* argv[]) {
     Log::Filter log_filter(Log::Level::Info);
     Log::SetFilter(&log_filter);
+    Log::SpdLogSetFilter(&log_filter);
 
     MicroProfileOnThreadCreate("Frontend");
     SCOPE_EXIT({ MicroProfileShutdown(); });
@@ -815,6 +817,8 @@ int main(int argc, char* argv[]) {
     GMainWindow main_window;
     // After settings have been loaded by GMainWindow, apply the filter
     log_filter.ParseFilterString(Settings::values.log_filter);
+    Log::SetFilter(&log_filter);
+    Log::SpdLogSetFilter(&log_filter);
 
     main_window.show();
     return app.exec();

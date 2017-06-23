@@ -25,6 +25,8 @@ public:
     void ResetAll(Level level);
     /// Sets the minimum level of `log_class` (and not of its subclasses) to `level`.
     void SetClassLevel(Class log_class, Level level);
+    /// Returns the list of levels that each logger is filtered to
+    const std::array<Level, static_cast<size_t>(Class::Count)>& GetClassLevel();
 
     /**
      * Parses a filter string and applies it to this filter.
@@ -50,4 +52,4 @@ public:
 private:
     std::array<Level, (size_t)Class::Count> class_levels;
 };
-}
+} // namespace Log
