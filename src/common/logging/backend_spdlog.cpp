@@ -8,6 +8,7 @@
 #include <spdlog/spdlog.h>
 
 #include "common/assert.h"
+#include "common/file_util.h"
 #include "common/logging/backend.h"
 #include "common/logging/backend_spdlog.h"
 #include "common/logging/filter.h"
@@ -66,7 +67,8 @@ SpdLogBackend::SpdLogBackend() {
 
     // Define the sinks to be passed to the loggers
     // true means truncate file
-    auto file_sink = std::make_shared<spdlog::sinks::simple_file_sink_mt>("citra_log.txt", true);
+    auto file_sink = std::make_shared<spdlog::sinks::simple_file_sink_mt>(
+        FileUtil::GetUserPath(D_USER_IDX) + "citra_log.txt", true);
 #ifdef _WIN32
     auto color_sink = std::make_shared<spdlog::sinks::wincolor_stderr_sink_mt>();
 #else
