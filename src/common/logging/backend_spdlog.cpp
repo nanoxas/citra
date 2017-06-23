@@ -72,7 +72,7 @@ SpdLogBackend::SpdLogBackend() {
 #ifdef _WIN32
     auto color_sink = std::make_shared<spdlog::sinks::wincolor_stderr_sink_mt>();
 #else
-    auto color_sink = std::make_shared<spdlog::sinks::ansicolor_stdout_sink_mt>();
+    auto color_sink = std::make_shared<spdlog::sinks::ansicolor_stderr_sink_mt>();
 #endif
     std::vector<spdlog::sink_ptr> sinks;
     sinks.push_back(std::move(file_sink));
