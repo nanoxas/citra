@@ -39,6 +39,8 @@ struct Values {
     bool gamedir_deepscan;
     QStringList recent_files;
 
+    QString theme;
+
     // Shortcut name <Shortcut, context>
     std::vector<Shortcut> shortcuts;
 };
