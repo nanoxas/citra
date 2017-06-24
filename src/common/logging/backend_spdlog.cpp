@@ -79,7 +79,8 @@ SpdLogBackend::SpdLogBackend() {
     sinks.push_back(std::move(color_sink));
 
     // register all of loggers with spdlog
-    for (u8 log_class = 0; log_class != static_cast<u8>(Log::Class::Count); ++log_class) {
+    for (ClassType log_class = 0; log_class != static_cast<ClassType>(Log::Class::Count);
+         ++log_class) {
         loggers[log_class] = spdlog::create(GetLogClassName(static_cast<Log::Class>(log_class)),
                                             begin(sinks), end(sinks));
     }
@@ -101,7 +102,8 @@ void SpdLogImpl(Class log_class, Level log_level, const char* file, int line_num
 void SpdLogSetFilter(Filter* filter) {
     auto loggers = SpdLogBackend::Instance()->GetLoggers();
     auto class_level = filter->GetClassLevel();
-    for (u8 log_class = 0; log_class != static_cast<u8>(Log::Class::Count); ++log_class) {
+    for (ClassType log_class = 0; log_class != static_cast<ClassType>(Log::Class::Count);
+         ++log_class) {
         loggers[log_class]->set_level(GetSpdLogLevel(class_level[log_class]));
     }
 }

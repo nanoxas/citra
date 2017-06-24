@@ -9,7 +9,7 @@
 
 namespace Log {
 
-static const char* GetLevelName(spdlog::level_t log_level) {
+static const char* GetLevelName(spdlog::level::level_enum log_level) {
     switch (log_level) {
     case spdlog::level::trace:
         return "Trace";
