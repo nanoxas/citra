@@ -8,7 +8,7 @@
 #include <QRadioButton>
 #include <QTimer>
 #include <QVBoxLayout>
-#include "citra_qt/configure_input_widget.h"
+#include "citra_qt/configuration/configure_input_widget.h"
 #include "common/param_package.h"
 #include "input_common/main.h"
 
@@ -238,7 +238,8 @@ std::string AnalogSetter::GetInputDeviceParams() const {
             {"right", button_right->GetInputDeviceParams()},
             {"modifier", button_mod->GetInputDeviceParams()},
             {"modifier_scale", "0.5"},
-        }.Serialize();
+        }
+            .Serialize();
     } else if (radio_from_axes->isChecked()) {
         return page_from_axes->GetInputDeviceParams();
     }

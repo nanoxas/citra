@@ -7,7 +7,7 @@
 #include <array>
 #include <memory>
 #include <QWidget>
-#include "citra_qt/configure_input_widget.h"
+#include "citra_qt/configuration/configure_input_widget.h"
 #include "core/settings.h"
 #include "ui_configure_input.h"
 
