@@ -38,30 +38,51 @@
             </property>
            </widget>
           </item>
+          <item>
+           <widget class="QCheckBox" name="toggle_update_check">
+            <property name="text">
+             <string>Check for updates on start</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="toggle_auto_update">
+            <property name="text">
+             <string>Auto update after closing</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="toggle_admin_priv">
+            <property name="text">
+             <string>Run updater with admin privledges</string>
+            </property>
+           </widget>
+          </item>
          </layout>
         </item>
        </layout>
       </widget>
      </item>
      <item>
-       <widget class="QGroupBox" name="groupBox_2">
-         <property name="title">
-           <string>Performance</string>
-         </property>
-         <layout class="QHBoxLayout" name="horizontalLayout_7">
-           <item>
-             <layout class="QVBoxLayout" name="verticalLayout_5">
-               <item>
-                 <widget class="QCheckBox" name="toggle_cpu_jit">
-                   <property name="text">
-                     <string>Enable CPU JIT</string>
-                   </property>
-                 </widget>
-               </item>
-             </layout>
-           </item>
+      <widget class="QGroupBox" name="groupBox_2">
+       <property name="title">
+        <string>Performance</string>
+       </property>
+       <layout class="QHBoxLayout" name="horizontalLayout_7">
+        <item>
+         <layout class="QVBoxLayout" name="verticalLayout_5">
+          <item>
+           <widget class="QCheckBox" name="toggle_cpu_jit">
+            <property name="text">
+             <string>Enable CPU JIT</string>
+            </property>
+           </widget>
+          </item>
          </layout>
-       </widget>
+        </item>
+       </layout>
+      </widget>
      </item>
      <item>
       <widget class="QGroupBox" name="groupBox_4">
@@ -149,8 +170,7 @@
              </widget>
             </item>
             <item>
-             <widget class="QComboBox" name="theme_combobox">
-             </widget>
+             <widget class="QComboBox" name="theme_combobox"/>
             </item>
            </layout>
           </item>

@@ -29,6 +29,7 @@
 #include "citra_qt/hotkeys.h"
 #include "citra_qt/main.h"
 #include "citra_qt/ui_settings.h"
+#include "citra_qt/updater/updater.h"
 #include "common/logging/backend.h"
 #include "common/logging/filter.h"
 #include "common/logging/log.h"
@@ -137,6 +138,9 @@ void GMainWindow::InitializeWidgets() {
 
     game_list = new GameList(this);
     ui.horizontalLayout->addWidget(game_list);
+
+    // Setup updater
+    updater = new Updater(this);
 
     // Create status bar
     message_label = new QLabel();
@@ -323,6 +327,12 @@ void GMainWindow::ConnectMenuEvents() {
     ui.action_Show_Filter_Bar->setShortcut(tr("CTRL+F"));
     connect(ui.action_Show_Filter_Bar, &QAction::triggered, this, &GMainWindow::OnToggleFilterBar);
     connect(ui.action_Show_Status_Bar, &QAction::triggered, statusBar(), &QStatusBar::setVisible);
+
+    // Help
+    connect(ui.action_Check_For_Updates, &QAction::triggered, this,
+            &GMainWindow::OnCheckForUpdates);
+    connect(ui.action_Open_Maintenence_Tool, &QAction::triggered, this,
+            &GMainWindow::OnOpenUpdater);
 }
 
 void GMainWindow::OnDisplayTitleBars(bool show) {
@@ -344,6 +354,12 @@ void GMainWindow::OnDisplayTitleBars(bool show) {
         }
     }
 }
+
+void GMainWindow::OnCheckForUpdates() {
+    updater->checkForUpdates();
+}
+
+void GMainWindow::OnOpenUpdater() {}
 
 bool GMainWindow::LoadROM(const QString& filename) {
     // Shutdown previous session if the emu thread is still active...

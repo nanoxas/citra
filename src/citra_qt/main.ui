@@ -45,7 +45,7 @@
      <x>0</x>
      <y>0</y>
      <width>1081</width>
-     <height>19</height>
+     <height>21</height>
     </rect>
    </property>
    <widget class="QMenu" name="menu_File">
@@ -95,6 +95,9 @@
     <property name="title">
      <string>&amp;Help</string>
     </property>
+    <addaction name="action_Check_For_Updates"/>
+    <addaction name="action_Open_Maintenence_Tool"/>
+    <addaction name="separator"/>
     <addaction name="action_About"/>
    </widget>
    <addaction name="menu_File"/>
@@ -196,6 +199,22 @@
     <string>Create Pica Surface Viewer</string>
    </property>
   </action>
+  <action name="actionCheck_For_Updates">
+   <property name="text">
+    <string>Check For Updates</string>
+   </property>
+  </action>
+  <action name="action_Open_Maintenence_Tool">
+   <property name="text">
+    <string>Open Updater</string>
+   </property>
+  </action>
+  <action name="action_Check_For_Updates">
+   <property name="text">
+    <string>Check For Updates</string>
+   </property>
+  </action>
  </widget>
  <resources/>
+ <connections/>
 </ui>
