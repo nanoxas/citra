@@ -48,7 +48,7 @@
           <item>
            <widget class="QCheckBox" name="toggle_auto_update">
             <property name="text">
-             <string>Auto update after closing</string>
+             <string>Silently auto update after closing</string>
             </property>
            </widget>
           </item>

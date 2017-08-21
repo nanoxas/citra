@@ -173,9 +173,7 @@ void UpdaterPrivate::stopUpdateCheck(int delay, bool async) {
 
 XMLParseResult UpdaterPrivate::parseResult(const QByteArray& output,
                                            QList<Updater::UpdateInfo>& out) {
-
     const auto outString = QString::fromUtf8(output);
-    LOG_INFO(Frontend, "Updates %s", output.toStdString());
     const auto xmlBegin = outString.indexOf(QStringLiteral("<updates>"));
     if (xmlBegin < 0)
         return XMLParseResult::NO_UPDATE;
@@ -188,7 +186,9 @@ XMLParseResult UpdaterPrivate::parseResult(const QByteArray& output,
 
     reader.readNextStartElement();
     // should always work because it was search for
-    Q_ASSERT(reader.name() == QStringLiteral("updates"));
+    if (reader.name() != QStringLiteral("updates")) {
+        return XMLParseResult::INVALID_XML;
+    }
 
     while (reader.readNextStartElement()) {
         if (reader.name() != QStringLiteral("update"))
