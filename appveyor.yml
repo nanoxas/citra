@@ -40,7 +40,7 @@ before_build:
   - cd %BUILD_TYPE%build
   - ps: |
         if ($env:BUILD_TYPE -eq 'msvc') {
-          cmake -G "Visual Studio 15 2017 Win64" -DCITRA_USE_BUNDLED_QT=1 -DCITRA_USE_BUNDLED_SDL2=1 -DCMAKE_USE_OPENSSL=0 ..
+          cmake -G "Visual Studio 15 2017 Win64" -DCITRA_USE_BUNDLED_QT=1 -DCITRA_USE_BUNDLED_SDL2=1 -DCMAKE_USE_OPENSSL=0 .. 2> $null
         } else {
           $cmake = 'cmake -G "MSYS Makefiles" -DUSE_SYSTEM_CURL=1 -DCMAKE_BUILD_TYPE=Release ..'
           C:\msys64\usr\bin\bash.exe -lc "$cmake"
