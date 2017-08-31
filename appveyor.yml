@@ -41,9 +41,9 @@ before_build:
   - cd %BUILD_TYPE%build
   - ps: |
         if ($env:BUILD_TYPE -eq 'msvc') {
-          cmake -G 'Visual Studio 15 2017 Win64' -DCITRA_USE_BUNDLED_QT=1 -DCITRA_USE_BUNDLED_SDL2=1 -DCMAKE_USE_OPENSSL=0 .. 2>&1
+          cmake -G 'Visual Studio 15 2017 Win64' -Wno-dev -DCITRA_USE_BUNDLED_QT=1 -DCITRA_USE_BUNDLED_SDL2=1 -DCMAKE_USE_OPENSSL=0 ..
         } else {
-          C:\msys64\usr\bin\bash.exe -lc "cmake -G 'MSYS Makefiles' -DUSE_SYSTEM_CURL=1 -DCMAKE_BUILD_TYPE=Release .. 2>&1"
+          C:\msys64\usr\bin\bash.exe -lc "cmake -G 'MSYS Makefiles' -Wno-dev -DUSE_SYSTEM_CURL=1 -DCMAKE_BUILD_TYPE=Release .."
         }
   - cd ..
 
@@ -77,12 +77,15 @@ after_build:
           $MINGW_NO_DEBUG_SYMBOLS = "README_No_Debug_Symbols.txt"
           Set-Content -Path $MINGW_NO_DEBUG_SYMBOLS -Value "This is a workaround for Appveyor since msvc has debug symbols but mingw doesnt" -Force
 
+          # store the build information in env vars so we can use them as artifacts
           $env:BUILD_ZIP = $MINGW_BUILD_ZIP
           $env:BUILD_SYMBOLS = $MINGW_NO_DEBUG_SYMBOLS
           $env:BUILD_UPDATE = $MINGW_SEVENZIP
 
           $CMAKE_SOURCE_DIR = "$env:APPVEYOR_BUILD_FOLDER"
           $RELEASE_DIST = $RELEASE_DIST + "-mingw"
+          mkdir $RELEASE_DIST
+          mkdir $RELEASE_DIST/platforms
           # copy the compiled binaries and other release files to the release folder
           Get-ChildItem "$CMAKE_BINARY_DIR" -Recurse -Filter "citra*.exe" | Copy-Item -destination $RELEASE_DIST
           Copy-Item -path "$CMAKE_SOURCE_DIR/license.txt" -destination $RELEASE_DIST
@@ -103,11 +106,10 @@ after_build:
           foreach ($file in $MingwDLLs) {
             Copy-Item -path "C:/msys64/mingw64/bin/$file" -force -destination "$RELEASE_DIST"
           }
-          # Create platforms folder and copy the qt windows plugin dll to platforms
-          New-Item -ItemType Directory -Force -Path "$RELEASE_DIST/platforms" | Out-Null
+          # copy the qt windows plugin dll to platforms
           Copy-Item -path "C:/msys64/mingw64/share/qt5/plugins/platforms/qwindows.dll" -force -destination "$RELEASE_DIST/platforms"
 
-          7z a -tzip $MINGW_BUILD_NAME $RELEASE_DIST\*
+          7z a -tzip $MINGW_BUILD_ZIP $RELEASE_DIST\*
           7z a $MINGW_SEVENZIP $RELEASE_DIST
         } else {
           # Where are these spaces coming from? Regardless, let's remove them
