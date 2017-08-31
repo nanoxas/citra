@@ -25,7 +25,7 @@ install:
   - git submodule update --init --recursive
   - cmd: |
       if (%BUILD_TYPE% == 'msvc') {
-        # workaround to prevent pacman from failing due to cyclical dependencies
+        :: workaround to prevent pacman from failing due to cyclical dependencies
         C:\msys64\usr\bin\bash -lc "pacman --noconfirm -S mingw64/mingw-w64-x86_64-freetype mingw64/mingw-w64-x86_64-fontconfig"
         C:\msys64\usr\bin\bash -lc "pacman --noconfirm -S mingw64/mingw-w64-x86_64-cmake mingw64/mingw-w64-x86_64-qt5 mingw64/mingw-w64-x86_64-curl mingw64/mingw-w64-x86_64-SDL2"
       }
@@ -35,7 +35,7 @@ before_build:
   - cd %BUILD_TYPE%build
   - cmd: |
       if (%BUILD_TYPE% == 'msvc') {
-        # cpr generates a cmake warning which turns into an error code so && exit 0 to ignore that
+        :: cpr generates a cmake warning which turns into an error code so && exit 0 to ignore that
         cmake -G "Visual Studio 15 2017 Win64" -DCITRA_USE_BUNDLED_QT=1 -DCITRA_USE_BUNDLED_SDL2=1 -DCMAKE_USE_OPENSSL=0 ..
       } else {
         C:\msys64\usr\bin\bash.exe -lc 'cmake -G "MSYS Makefiles" -DUSE_SYSTEM_CURL=1 -DCMAKE_BUILD_TYPE=Release ..'
@@ -45,7 +45,7 @@ before_build:
 build_script:
   - cmd: |
       if (%BUILD_TYPE% == 'msvc') {
-        # https://www.appveyor.com/docs/build-phase
+        :: https://www.appveyor.com/docs/build-phase
         msbuild msvcbuild/citra.sln /maxcpucount /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
       } else {
         C:\msys64\usr\bin\bash.exe -lc 'mingw32-make -C mingwbuild/ 2>&1'
