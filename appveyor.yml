@@ -1,6 +1,8 @@
 # shallow clone
 clone_depth: 10
 
+
+
 cache:
   - C:\ProgramData\chocolatey\bin -> appveyor.yml
   - C:\ProgramData\chocolatey\lib -> appveyor.yml
@@ -41,7 +43,7 @@ before_build:
           cmake -G "Visual Studio 15 2017 Win64" -DCITRA_USE_BUNDLED_QT=1 -DCITRA_USE_BUNDLED_SDL2=1 -DCMAKE_USE_OPENSSL=0 ..
         } else {
           $cmake = 'cmake -G "MSYS Makefiles" -DUSE_SYSTEM_CURL=1 -DCMAKE_BUILD_TYPE=Release ..'
-          C:\msys64\usr\bin\bash.exe --login -i -new_console:"C:\msys64\mingw64.exe" -c "$cmake"
+          C:\msys64\usr\bin\bash.exe -lc "$cmake"
         }
   - cd ..
 
@@ -52,7 +54,7 @@ build_script:
           msbuild msvcbuild/citra.sln /maxcpucount /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
         } else {
           $build = 'mingw32-make -C mingwbuild/ 2>&1'
-          C:\msys64\usr\bin\bash.exe --login -i -new_console:"C:\msys64\mingw64.exe" -c "$build"
+          C:\msys64\usr\bin\bash.exe -lc "$build"
         }
 
 after_build:
