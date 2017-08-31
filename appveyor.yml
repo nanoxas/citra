@@ -8,6 +8,7 @@ cache:
 os: Visual Studio 2017
 
 environment:
+  MSYSTEM: MINGW64
   matrix:
     - BUILD_TYPE: mingw
     - BUILD_TYPE: msvc
@@ -27,7 +28,6 @@ install:
                           "mingw64/mingw-w64-x86_64-qt5",
                           "mingw64/mingw-w64-x86_64-curl",
                           "mingw64/mingw-w64-x86_64-SDL2"
-          # $deps = $dependencies -join ' '
           C:\msys64\usr\bin\bash -lc "pacman --noconfirm -S $dependencies" 2> $null
         }
 
@@ -39,7 +39,7 @@ before_build:
           cmake -G "Visual Studio 15 2017 Win64" -DCITRA_USE_BUNDLED_QT=1 -DCITRA_USE_BUNDLED_SDL2=1 -DCMAKE_USE_OPENSSL=0 ..
         } else {
           $cmake = 'cmake -G "MSYS Makefiles" -DUSE_SYSTEM_CURL=1 -DCMAKE_BUILD_TYPE=Release ..'
-          set MSYSTEM=MINGW64 & "C:\msys64\usr\bin\bash.exe" --login -i -new_console:"C:\msys64\mingw64.exe" -c "$cmake"
+          "C:\msys64\usr\bin\bash.exe" --login -i -new_console:"C:\msys64\mingw64.exe" -c "$cmake"
         }
   - cd ..
 
@@ -50,7 +50,7 @@ build_script:
           msbuild msvcbuild/citra.sln /maxcpucount /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
         } else {
           $build = 'mingw32-make -C mingwbuild/ 2>&1'
-          set MSYSTEM=MINGW64 & "C:\msys64\usr\bin\bash.exe" --login -i -new_console:"C:\msys64\mingw64.exe" -c "$build"
+          "C:\msys64\usr\bin\bash.exe" --login -i -new_console:"C:\msys64\mingw64.exe" -c "$build"
         }
 
 after_build:
@@ -67,8 +67,16 @@ after_build:
         }
 
         if ($env:BUILD_TYPE -q 'mingw') {
-          $MINGW_BUILD_NAME = "citra-windows-mingw-$GITDATE-$GITREV.zip" -replace " ", ""
+          $MINGW_BUILD_ZIP = "citra-windows-mingw-$GITDATE-$GITREV.zip" -replace " ", ""
           $MINGW_SEVENZIP = "citra-windows-mingw-$GITDATE-$GITREV.7z" -replace " ", ""
+          # not going to bother adding separate debug symbols for mingw, so just upload a README for it
+          # if someone wants to add them, change mingw to compile with -g and use objdump and strip to separate the symbols from the binary
+          $MINGW_NO_DEBUG_SYMBOLS = "README_No_Debug_Symbols.txt"
+          Set-Content -Path $MINGW_NO_DEBUG_SYMBOLS -Value "This is a workaround for Appveyor since msvc has debug symbols but mingw doesnt" -Force
+
+          $env:BUILD_ZIP = $MINGW_BUILD_ZIP
+          $env:BUILD_SYMBOLS = $MINGW_NO_DEBUG_SYMBOLS
+          $env:BUILD_UPDATE = $MINGW_SEVENZIP
 
           $CMAKE_SOURCE_DIR = "$env:APPVEYOR_BUILD_FOLDER"
           $RELEASE_DIST = $RELEASE_DIST + "-mingw"
@@ -100,14 +108,14 @@ after_build:
           7z a $MINGW_SEVENZIP $RELEASE_DIST
         } else {
           # Where are these spaces coming from? Regardless, let's remove them
-          $MSVC_BUILD_NAME = "citra-windows-msvc-$GITDATE-$GITREV.zip" -replace " ", ""
+          $MSVC_BUILD_ZIP = "citra-windows-msvc-$GITDATE-$GITREV.zip" -replace " ", ""
           $MSVC_BUILD_PDB = "citra-windows-msvc-$GITDATE-$GITREV-debugsymbols.zip" -replace " ", ""
           $MSVC_SEVENZIP = "citra-windows-msvc-$GITDATE-$GITREV.7z" -replace " ", ""
 
           # set the build names as env vars so the artifacts can upload them
-          $env:MSVC_BUILD_NAME = $MSVC_BUILD_NAME
-          $env:MSVC_BUILD_PDB = $MSVC_BUILD_PDB
-          $env:MSVC_SEVENZIP = $MSVC_SEVENZIP
+          $env:BUILD_ZIP = $MSVC_BUILD_ZIP
+          $env:BUILD_SYMBOLS = $MSVC_BUILD_PDB
+          $env:BUILD_UPDATE = $MSVC_SEVENZIP
 
           7z a -tzip $MSVC_BUILD_PDB .\build\bin\release\*.pdb
           rm .\build\bin\release\*.pdb
@@ -116,7 +124,7 @@ after_build:
           Copy-Item .\build\bin\release\* -Destination $RELEASE_DIST -Recurse
           Copy-Item .\license.txt -Destination $RELEASE_DIST
           Copy-Item .\README.md -Destination $RELEASE_DIST
-          7z a -tzip $MSVC_BUILD_NAME $RELEASE_DIST\*
+          7z a -tzip $MSVC_BUILD_ZIP $RELEASE_DIST\*
           7z a $MSVC_SEVENZIP $RELEASE_DIST
         }
 
@@ -124,26 +132,20 @@ test_script:
   - cd build && ctest -VV -C Release && cd ..
 
 artifacts:
-  - path: $(MSVC_BUILD_NAME)
-    name: msvcbuild
+  - path: $(BUILD_ZIP)
+    name: build
     type: zip
-  - path: $(MSVC_BUILD_PDB)
-    name: msvcdebug
-    type: zip
-  - path: $(MSVC_SEVENZIP)
-    name: msvcupdate
-  - path: $(MINGW_BUILD_NAME)
-    name: mingwbuild
-    type: zip
-  - path: $(MINGW_SEVENZIP)
-    name: mingwupdate
+  - path: $(BUILD_SYMBOLS)
+    name: debugsymbols
+  - path: $(BUILD_UPDATE)
+    name: update
 
 deploy:
   provider: GitHub
   release: $(appveyor_repo_tag_name)
   auth_token:
     secure: "MeBSKRVxvUlkHpCbV+PhpGMmvM2Xh4gkjf4/gWvCtl1ix/VJQPbs7L/PNU7IS66C"
-  artifact: msvcupdate,msvcbuild,mingwupdate,mingwbuild
+  artifact: update,build
   draft: false
   prerelease: false
   on:
