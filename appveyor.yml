@@ -7,9 +7,10 @@ cache:
 
 os: Visual Studio 2017
 
-matrix:
-  - BUILD_TYPE: mingw
-  - BUILD_TYPE: msvc
+environment:
+  matrix:
+    - BUILD_TYPE: mingw
+    - BUILD_TYPE: msvc
 
 platform:
   - x64
