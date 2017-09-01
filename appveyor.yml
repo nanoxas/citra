@@ -10,7 +10,9 @@ cache:
 os: Visual Studio 2017
 
 environment:
+  # Tell msys2 to add mingw64 to the path
   MSYSTEM: MINGW64
+  # Tell msys2 to inherit the current directory when starting the shell
   CHERE_INVOKING: 1
   matrix:
     - BUILD_TYPE: mingw
@@ -41,11 +43,9 @@ before_build:
   - cd %BUILD_TYPE%build
   - ps: |
         if ($env:BUILD_TYPE -eq 'msvc') {
-          try {
-            cmake -G 'Visual Studio 15 2017 Win64' -Wno-dev -DCITRA_USE_BUNDLED_QT=1 -DCITRA_USE_BUNDLED_SDL2=1 -DCMAKE_USE_OPENSSL=0 .. 2>&1
-          } catch {}
+          cmd /C "cmake -G 'Visual Studio 15 2017 Win64' -DCITRA_USE_BUNDLED_QT=1 -DCITRA_USE_BUNDLED_SDL2=1 -DCMAKE_USE_OPENSSL=0 .. 2>&1 && exit 0"
         } else {
-          C:\msys64\usr\bin\bash.exe -lc "cmake -G 'MSYS Makefiles' -Wno-dev -DUSE_SYSTEM_CURL=1 -DCMAKE_BUILD_TYPE=Release .. 2>&1"
+          C:\msys64\usr\bin\bash.exe -lc "cmake -G 'MSYS Makefiles' -DUSE_SYSTEM_CURL=1 -DCMAKE_BUILD_TYPE=Release .. 2>&1"
         }
   - cd ..
 
@@ -136,7 +136,14 @@ after_build:
         }
 
 test_script:
-  - cd %BUILD_TYPE%build && ctest -VV -C Release && cd ..
+  - cd %BUILD_TYPE%build
+  - ps: |
+        if ($env:BUILD_TYPE -eq 'msvc') {
+          ctest -VV -C Release
+        } else {
+          C:\msys64\usr\bin\bash.exe -lc "ctest -VV -C Release"
+        }
+  - cd ..
 
 artifacts:
   - path: $(BUILD_ZIP)
