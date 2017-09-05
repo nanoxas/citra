@@ -19,34 +19,38 @@ enum class XMLParseResult {
 };
 
 class UpdaterPrivate : public QObject {
+    Q_OBJECT;
+
 public:
-    UpdaterPrivate(Updater* q_ptr);
+    explicit UpdaterPrivate(Updater* q_ptr);
     ~UpdaterPrivate();
-
-    Updater* q;
-
-    QString toolPath;
-    QList<Updater::UpdateInfo> updateInfos;
-    bool normalExit;
-    int lastErrorCode;
-    QByteArray lastErrorLog;
-
-    bool running;
-    QProcess* mainProcess;
-
-    bool runOnExit;
-    QStringList runArguments;
-    QScopedPointer<AdminAuthorizer> adminAuth;
 
     static const QString toSystemExe(QString basePath);
 
-    bool startUpdateCheck();
-    void stopUpdateCheck(int delay, bool async);
-    XMLParseResult parseResult(const QByteArray& output, QList<Updater::UpdateInfo>& out);
+    bool StartUpdateCheck();
+    void StopUpdateCheck(int delay, bool async);
 
 public slots:
-    void updaterReady(int exitCode, QProcess::ExitStatus exitStatus);
-    void updaterError(QProcess::ProcessError error);
+    void UpdaterReady(int exit_code, QProcess::ExitStatus exit_status);
+    void UpdaterError(QProcess::ProcessError error);
 
-    void appAboutToExit();
+    void AboutToExit();
+
+private:
+    XMLParseResult ParseResult(const QByteArray& output, QList<Updater::UpdateInfo>& out);
+
+    Updater* q;
+
+    QString tool_path;
+    QList<Updater::UpdateInfo> update_info;
+    bool normal_exit;
+    int last_error_code;
+    QByteArray last_error_log;
+
+    bool running;
+    QProcess* main_process;
+
+    QStringList run_arguments;
+
+    friend class Updater;
 };

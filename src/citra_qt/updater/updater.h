@@ -23,14 +23,12 @@ class UpdaterPrivate;
 
 //! The main updater. Can check for updates and run the maintenancetool as updater
 class Updater : public QObject {
-    Q_OBJECT
+    Q_OBJECT;
 
-    //! Holds the path of the attached maintenancetool
-    Q_PROPERTY(QString maintenanceToolPath READ maintenanceToolPath CONSTANT FINAL)
     //! Specifies whether the updater is currently checking for updates or not
-    Q_PROPERTY(bool running READ isRunning NOTIFY runningChanged)
+    Q_PROPERTY(bool running READ IsRunning NOTIFY RunningChanged);
     //! Holds extended information about the last update check
-    Q_PROPERTY(QList<UpdateInfo> updateInfo READ updateInfo NOTIFY updateInfoChanged)
+    Q_PROPERTY(QList<UpdateInfo> update_info READ LatestUpdateInfo NOTIFY UpdateInfoChanged);
 
 public:
     //! Provides information about updates for components
@@ -53,49 +51,36 @@ public:
     //! Default constructor
     explicit Updater(QObject* parent = nullptr);
     //! Constructor with an explicitly set path
-    explicit Updater(const QString& maintenanceToolPath, QObject* parent = nullptr);
+    explicit Updater(const QString& maintenance_tool_path, QObject* parent = nullptr);
     //! Destroys the updater and kills the update check (if running)
     ~Updater();
 
     //! Returns `true`, if the updater exited normally
-    bool exitedNormally() const;
+    bool ExitedNormally() const;
     //! Returns the mainetancetools error code of the last update
-    int errorCode() const;
+    int ErrorCode() const;
     //! returns the error output (stderr) of the last update
-    QByteArray errorLog() const;
+    QByteArray ErrorLog() const;
 
-    //! Returns `true` if the maintenancetool will be started on exit
-    bool willRunOnExit() const;
-
-    //! readAcFn{Updater::maintenanceToolPath}
-    QString maintenanceToolPath() const;
     //! readAcFn{Updater::running}
-    bool isRunning() const;
+    bool IsRunning() const;
     //! readAcFn{Updater::updateInfo}
-    QList<UpdateInfo> updateInfo() const;
+    QList<UpdateInfo> LatestUpdateInfo() const;
 
 public slots:
     //! Starts checking for updates
-    bool checkForUpdates();
+    bool CheckForUpdates();
     //! Aborts checking for updates
-    void abortUpdateCheck(int maxDelay = 5000, bool async = false);
-
-    //! Runs the maintenancetool as updater on exit, using the given admin authorisation
-    void runUpdaterOnExit(AdminAuthorizer* authorizer = nullptr);
-    //! Runs the maintenancetool as updater on exit, using the given arguments and admin
-    //! authorisation
-    void runUpdaterOnExit(const QStringList& arguments, AdminAuthorizer* authorizer = nullptr);
-    //! The updater will not run the maintenancetool on exit anymore
-    void cancelExitRun();
+    void AbortUpdateCheck(int maxDelay = 5000, bool async = false);
 
 signals:
     //! Will be emitted as soon as the updater finished checking for updates
-    void checkUpdatesDone(bool hasUpdates, bool hasError);
+    void CheckUpdatesDone(bool hasUpdates, bool hasError);
 
     //! notifyAcFn{Updater::running}
-    void runningChanged(bool running);
+    void RunningChanged(bool running);
     //! notifyAcFn{Updater::updateInfo}
-    void updateInfoChanged(QList<Updater::UpdateInfo> updateInfo);
+    void UpdateInfoChanged(QList<Updater::UpdateInfo> UpdateInfo);
 
 private:
     std::unique_ptr<UpdaterPrivate> backend;

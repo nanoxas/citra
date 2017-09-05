@@ -24,10 +24,18 @@ const std::array<int, Settings::NativeButton::NumButtons> Config::default_button
 
 const std::array<std::array<int, 5>, Settings::NativeAnalog::NumAnalogs> Config::default_analogs{{
     {
-        Qt::Key_Up, Qt::Key_Down, Qt::Key_Left, Qt::Key_Right, Qt::Key_D,
+        Qt::Key_Up,
+        Qt::Key_Down,
+        Qt::Key_Left,
+        Qt::Key_Right,
+        Qt::Key_D,
     },
     {
-        Qt::Key_I, Qt::Key_K, Qt::Key_J, Qt::Key_L, Qt::Key_D,
+        Qt::Key_I,
+        Qt::Key_K,
+        Qt::Key_J,
+        Qt::Key_L,
+        Qt::Key_D,
     },
 }};
 
@@ -152,6 +160,13 @@ void Config::ReadValues() {
 
     qt_config->beginGroup("UI");
     UISettings::values.theme = qt_config->value("theme", UISettings::themes[0].second).toString();
+
+    qt_config->beginGroup("Updater");
+    UISettings::values.check_for_update_on_start =
+        qt_config->value("check_for_update_on_start", true).toBool();
+    UISettings::values.update_as_admin = qt_config->value("update_as_admin", false).toBool();
+    UISettings::values.update_on_close = qt_config->value("update_on_close", false).toBool();
+    qt_config->endGroup();
 
     qt_config->beginGroup("UILayout");
     UISettings::values.geometry = qt_config->value("geometry").toByteArray();
@@ -299,6 +314,12 @@ void Config::SaveValues() {
 
     qt_config->beginGroup("UI");
     qt_config->setValue("theme", UISettings::values.theme);
+
+    qt_config->beginGroup("Updater");
+    qt_config->setValue("check_for_update_on_start", UISettings::values.check_for_update_on_start);
+    qt_config->setValue("update_as_admin", UISettings::values.update_as_admin);
+    qt_config->setValue("update_on_close", UISettings::values.update_on_close);
+    qt_config->endGroup();
 
     qt_config->beginGroup("UILayout");
     qt_config->setValue("geometry", UISettings::values.geometry);

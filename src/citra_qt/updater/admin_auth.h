@@ -11,12 +11,8 @@
 #include <QString>
 #include <QStringList>
 
-class AdminAuthorizer {
+class AdminAuthorization {
 public:
-    //! Virtual destructor
-    virtual inline ~AdminAuthorizer() {}
-    //! Tests whether this program already has elevated rights or not
-    virtual bool hasAdminRights() = 0;
-    //! Runs a program with the given arguments with elevated rights
-    virtual bool executeAsAdmin(const QString& program, const QStringList& arguments) = 0;
+    bool hasAdminRights();
+    bool executeAsAdmin(const QString& program, const QStringList& arguments);
 };

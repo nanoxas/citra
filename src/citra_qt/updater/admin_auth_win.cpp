@@ -40,7 +40,7 @@
 #include <QVariant>
 #include <qt_windows.h>
 
-#include "citra_qt/updater/admin_auth_p.h"
+#include "citra_qt/updater/admin_auth.h"
 
 static QString qt_create_commandline(const QStringList& arguments);
 

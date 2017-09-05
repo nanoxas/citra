@@ -356,7 +356,7 @@ void GMainWindow::OnDisplayTitleBars(bool show) {
 }
 
 void GMainWindow::OnCheckForUpdates() {
-    updater->checkForUpdates();
+    updater->CheckForUpdates();
 }
 
 void GMainWindow::OnOpenUpdater() {}

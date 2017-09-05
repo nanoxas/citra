@@ -38,6 +38,10 @@ struct Values {
     bool confirm_before_closing;
     bool first_start;
 
+    bool update_as_admin;
+    bool update_on_close;
+    bool check_for_update_on_start;
+
     QString roms_path;
     QString symbols_path;
     QString gamedir;
@@ -53,4 +57,4 @@ struct Values {
 };
 
 extern Values values;
-}
+} // namespace UISettings

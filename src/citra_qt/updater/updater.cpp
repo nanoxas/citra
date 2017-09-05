@@ -12,6 +12,8 @@
 #include <QTimer>
 #include <QXmlStreamReader>
 
+#include "citra_qt/ui_settings.h"
+#include "citra_qt/updater/admin_auth.h"
 #include "citra_qt/updater/updater.h"
 #include "citra_qt/updater/updater_p.h"
 #include "common/logging/log.h"
@@ -24,62 +26,39 @@
 
 Updater::Updater(QObject* parent) : Updater(DEFAULT_TOOL_PATH, parent) {}
 
-Updater::Updater(const QString& maintenanceToolPath, QObject* parent)
+Updater::Updater(const QString& maintenance_tool_path, QObject* parent)
     : QObject(parent), backend(new UpdaterPrivate(this)) {
-    backend->toolPath = UpdaterPrivate::toSystemExe(maintenanceToolPath);
+    backend->tool_path = UpdaterPrivate::toSystemExe(maintenance_tool_path);
 }
 
 Updater::~Updater() {}
 
-bool Updater::exitedNormally() const {
-    return backend->normalExit;
+bool Updater::ExitedNormally() const {
+    return backend->normal_exit;
 }
 
-int Updater::errorCode() const {
-    return backend->lastErrorCode;
+int Updater::ErrorCode() const {
+    return backend->last_error_code;
 }
 
-QByteArray Updater::errorLog() const {
-    return backend->lastErrorLog;
+QByteArray Updater::ErrorLog() const {
+    return backend->last_error_log;
 }
 
-bool Updater::willRunOnExit() const {
-    return backend->runOnExit;
-}
-
-QString Updater::maintenanceToolPath() const {
-    return backend->toolPath;
-}
-
-bool Updater::isRunning() const {
+bool Updater::IsRunning() const {
     return backend->running;
 }
 
-QList<Updater::UpdateInfo> Updater::updateInfo() const {
-    return backend->updateInfos;
+QList<Updater::UpdateInfo> Updater::LatestUpdateInfo() const {
+    return backend->update_info;
 }
 
-bool Updater::checkForUpdates() {
-    return backend->startUpdateCheck();
+bool Updater::CheckForUpdates() {
+    return backend->StartUpdateCheck();
 }
 
-void Updater::abortUpdateCheck(int maxDelay, bool async) {
-    backend->stopUpdateCheck(maxDelay, async);
-}
-
-void Updater::runUpdaterOnExit(AdminAuthorizer* authorizer) {
-    runUpdaterOnExit({QStringLiteral("--updater")}, authorizer);
-}
-
-void Updater::runUpdaterOnExit(const QStringList& arguments, AdminAuthorizer* authorizer) {
-    backend->runOnExit = true;
-    backend->runArguments = arguments;
-    backend->adminAuth.reset(authorizer);
-}
-
-void Updater::cancelExitRun() {
-    backend->runOnExit = false;
-    backend->adminAuth.reset();
+void Updater::AbortUpdateCheck(int max_delay, bool async) {
+    backend->StopUpdateCheck(max_delay, async);
 }
 
 Updater::UpdateInfo::UpdateInfo() : name(), version(), size(0ull) {}
@@ -91,21 +70,21 @@ Updater::UpdateInfo::UpdateInfo(QString name, QVersionNumber version, quint64 si
     : name(name), version(version), size(size) {}
 
 UpdaterPrivate::UpdaterPrivate(Updater* q_ptr)
-    : QObject(nullptr), q(q_ptr), toolPath(), updateInfos(), normalExit(true),
-      lastErrorCode(EXIT_SUCCESS), lastErrorLog(), running(false), mainProcess(nullptr),
-      runOnExit(false), runArguments(), adminAuth(nullptr) {
-    connect(qApp, &QCoreApplication::aboutToQuit, this, &UpdaterPrivate::appAboutToExit,
+    : QObject(nullptr), q(q_ptr), tool_path(), update_info(), normal_exit(true),
+      last_error_code(EXIT_SUCCESS), last_error_log(), running(false), main_process(nullptr),
+      run_arguments() {
+    connect(qApp, &QCoreApplication::aboutToQuit, this, &UpdaterPrivate::AboutToExit,
             Qt::DirectConnection);
 }
 
 UpdaterPrivate::~UpdaterPrivate() {
-    if (runOnExit)
+    if (UISettings::values.update_on_close)
         LOG_WARNING(Frontend,
                     "Updater destroyed with run on exit active before the application quit");
 
-    if (mainProcess && mainProcess->state() != QProcess::NotRunning) {
-        mainProcess->kill();
-        mainProcess->waitForFinished(1000);
+    if (main_process && main_process->state() != QProcess::NotRunning) {
+        main_process->kill();
+        main_process->waitForFinished(1000);
     }
 }
 
@@ -124,54 +103,54 @@ const QString UpdaterPrivate::toSystemExe(QString basePath) {
 #endif
 }
 
-bool UpdaterPrivate::startUpdateCheck() {
+bool UpdaterPrivate::StartUpdateCheck() {
     if (running)
         return false;
     else {
-        updateInfos.clear();
-        normalExit = true;
-        lastErrorCode = EXIT_SUCCESS;
-        lastErrorLog.clear();
+        update_info.clear();
+        normal_exit = true;
+        last_error_code = EXIT_SUCCESS;
+        last_error_log.clear();
 
-        QFileInfo toolInfo(QCoreApplication::applicationDirPath(), toolPath);
-        mainProcess = new QProcess(this);
-        mainProcess->setProgram(toolInfo.absoluteFilePath());
-        mainProcess->setArguments({QStringLiteral("--checkupdates"), QStringLiteral("-v")});
+        QFileInfo toolInfo(QCoreApplication::applicationDirPath(), tool_path);
+        main_process = new QProcess(this);
+        main_process->setProgram(toolInfo.absoluteFilePath());
+        main_process->setArguments({QStringLiteral("--checkupdates"), QStringLiteral("-v")});
 
-        connect(mainProcess, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this,
-                &UpdaterPrivate::updaterReady, Qt::QueuedConnection);
-        connect(mainProcess, &QProcess::errorOccurred, this, &UpdaterPrivate::updaterError,
+        connect(main_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this,
+                &UpdaterPrivate::UpdaterReady, Qt::QueuedConnection);
+        connect(main_process, &QProcess::errorOccurred, this, &UpdaterPrivate::UpdaterError,
                 Qt::QueuedConnection);
 
-        mainProcess->start(QIODevice::ReadOnly);
+        main_process->start(QIODevice::ReadOnly);
         running = true;
 
-        emit q->updateInfoChanged(updateInfos);
-        emit q->runningChanged(true);
+        emit q->UpdateInfoChanged(update_info);
+        emit q->RunningChanged(true);
         return true;
     }
 }
 
-void UpdaterPrivate::stopUpdateCheck(int delay, bool async) {
-    if (mainProcess && mainProcess->state() != QProcess::NotRunning) {
+void UpdaterPrivate::StopUpdateCheck(int delay, bool async) {
+    if (main_process && main_process->state() != QProcess::NotRunning) {
         if (delay > 0) {
-            mainProcess->terminate();
+            main_process->terminate();
             if (async) {
-                QTimer::singleShot(delay, this, [this]() { stopUpdateCheck(0, false); });
+                QTimer::singleShot(delay, this, [this]() { StopUpdateCheck(0, false); });
             } else {
-                if (!mainProcess->waitForFinished(delay)) {
-                    mainProcess->kill();
-                    mainProcess->waitForFinished(100);
+                if (!main_process->waitForFinished(delay)) {
+                    main_process->kill();
+                    main_process->waitForFinished(100);
                 }
             }
         } else {
-            mainProcess->kill();
-            mainProcess->waitForFinished(100);
+            main_process->kill();
+            main_process->waitForFinished(100);
         }
     }
 }
 
-XMLParseResult UpdaterPrivate::parseResult(const QByteArray& output,
+XMLParseResult UpdaterPrivate::ParseResult(const QByteArray& output,
                                            QList<Updater::UpdateInfo>& out) {
     const auto outString = QString::fromUtf8(output);
     const auto xmlBegin = outString.indexOf(QStringLiteral("<updates>"));
@@ -218,65 +197,66 @@ XMLParseResult UpdaterPrivate::parseResult(const QByteArray& output,
     return XMLParseResult::SUCCESS;
 }
 
-void UpdaterPrivate::updaterReady(int exitCode, QProcess::ExitStatus exitStatus) {
-    if (mainProcess) {
+void UpdaterPrivate::UpdaterReady(int exitCode, QProcess::ExitStatus exitStatus) {
+    if (main_process) {
         if (exitStatus == QProcess::NormalExit) {
-            normalExit = true;
-            lastErrorCode = exitCode;
-            lastErrorLog = mainProcess->readAllStandardError();
-            const auto updateOut = mainProcess->readAllStandardOutput();
-            mainProcess->deleteLater();
-            mainProcess = nullptr;
+            normal_exit = true;
+            last_error_code = exitCode;
+            last_error_log = main_process->readAllStandardError();
+            const auto updateOut = main_process->readAllStandardOutput();
+            main_process->deleteLater();
+            main_process = nullptr;
 
             running = false;
-            emit q->runningChanged(false);
-            QList<Updater::UpdateInfo> updateInfos;
-            auto err = parseResult(updateOut, updateInfos);
+            emit q->RunningChanged(false);
+            QList<Updater::UpdateInfo> update_info;
+            auto err = ParseResult(updateOut, update_info);
             bool hasError = false;
             if (err == XMLParseResult::SUCCESS) {
-                if (!updateInfos.isEmpty())
-                    emit q->updateInfoChanged(updateInfos);
+                if (!update_info.isEmpty())
+                    emit q->UpdateInfoChanged(update_info);
             } else if (err == XMLParseResult::INVALID_XML) {
                 hasError = true;
             }
-            emit q->checkUpdatesDone(!updateInfos.isEmpty(), hasError);
+            emit q->CheckUpdatesDone(!update_info.isEmpty(), hasError);
         } else {
-            updaterError(QProcess::Crashed);
+            UpdaterError(QProcess::Crashed);
         }
     }
 }
 
-void UpdaterPrivate::updaterError(QProcess::ProcessError error) {
-    if (mainProcess) {
-        normalExit = false;
-        lastErrorCode = error;
-        lastErrorLog = mainProcess->errorString().toUtf8();
-        mainProcess->deleteLater();
-        mainProcess = nullptr;
+void UpdaterPrivate::UpdaterError(QProcess::ProcessError error) {
+    if (main_process) {
+        normal_exit = false;
+        last_error_code = error;
+        last_error_log = main_process->errorString().toUtf8();
+        main_process->deleteLater();
+        main_process = nullptr;
 
         running = false;
-        emit q->runningChanged(false);
-        emit q->checkUpdatesDone(false, true);
+        emit q->RunningChanged(false);
+        emit q->CheckUpdatesDone(false, true);
     }
 }
 
-void UpdaterPrivate::appAboutToExit() {
-    if (runOnExit) {
-        QFileInfo toolInfo(QCoreApplication::applicationDirPath(), toolPath);
-        auto ok = false;
-        if (adminAuth && !adminAuth->hasAdminRights())
-            ok = adminAuth->executeAsAdmin(toolInfo.absoluteFilePath(), runArguments);
-        else {
-            ok = QProcess::startDetached(toolInfo.absoluteFilePath(), runArguments,
-                                         toolInfo.absolutePath());
+void UpdaterPrivate::AboutToExit() {
+    if (UISettings::values.update_on_close) {
+        QFileInfo toolInfo(QCoreApplication::applicationDirPath(), tool_path);
+        bool success = false;
+        std::string user;
+        if (UISettings::values.update_as_admin) {
+            AdminAuthorization authorizer;
+            success = authorizer.executeAsAdmin(toolInfo.absoluteFilePath(), run_arguments);
+            user = "admin/root";
+        } else {
+            success = QProcess::startDetached(toolInfo.absoluteFilePath(), run_arguments,
+                                              toolInfo.absolutePath());
+            user = "current user";
         }
 
-        if (!ok) {
+        if (!success) {
             LOG_WARNING(Frontend, "Unable to start program %s with arguments %s as %s",
-                        toolInfo.absoluteFilePath(), runArguments,
-                        (adminAuth ? "admin/root" : "current user"));
+                        toolInfo.absoluteFilePath(), run_arguments, user);
         }
-
-        runOnExit = false; // prevent warning
     }
 }
