@@ -244,6 +244,14 @@ static void WritePicaReg(u32 id, u32 value, u32 mask) {
                     g_state.primitive_assembler.SubmitVertex(
                         Shader::OutputVertex::FromAttributeBuffer(regs.rasterizer, output),
                         AddTriangle);
+
+                    if (regs.pipeline.gpu_mode == Pica::PipelineRegs::GPUMode::Configuring) {
+                        VideoCore::g_renderer->Rasterizer()->DrawTriangles();
+                        if (g_debug_context) {
+                            g_debug_context->OnEvent(DebugContext::Event::FinishedPrimitiveBatch,
+                                                     nullptr);
+                        }
+                    }
                 }
             }
         }
@@ -261,6 +269,7 @@ static void WritePicaReg(u32 id, u32 value, u32 mask) {
                 g_debug_context->OnEvent(DebugContext::Event::FinishedPrimitiveBatch, nullptr);
             }
         }
+
         break;
 
     case PICA_REG_INDEX_WORKAROUND(pipeline.command_buffer.trigger[0], 0x23c):
@@ -309,8 +318,9 @@ static void WritePicaReg(u32 id, u32 value, u32 mask) {
 
                 u8* texture_data = Memory::GetPhysicalPointer(texture.config.GetPhysicalAddress());
                 g_debug_context->recorder->MemoryAccessed(
-                    texture_data, Pica::TexturingRegs::NibblesPerPixel(texture.format) *
-                                      texture.config.width / 2 * texture.config.height,
+                    texture_data,
+                    Pica::TexturingRegs::NibblesPerPixel(texture.format) * texture.config.width /
+                        2 * texture.config.height,
                     texture.config.GetPhysicalAddress());
             }
         }
@@ -391,6 +401,13 @@ static void WritePicaReg(u32 id, u32 value, u32 mask) {
             };
 
             primitive_assembler.SubmitVertex(output_vertex, AddTriangle);
+
+            if (regs.pipeline.gpu_mode == Pica::PipelineRegs::GPUMode::Configuring) {
+                VideoCore::g_renderer->Rasterizer()->DrawTriangles();
+                if (g_debug_context) {
+                    g_debug_context->OnEvent(DebugContext::Event::FinishedPrimitiveBatch, nullptr);
+                }
+            }
         }
 
         for (auto& range : memory_accesses.ranges) {
@@ -632,6 +649,6 @@ void ProcessCommandList(const u32* list, u32 size) {
     }
 }
 
-} // namespace
+} // namespace CommandProcessor
 
-} // namespace
+} // namespace Pica

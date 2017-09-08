@@ -266,16 +266,16 @@ void RasterizerOpenGL::DrawTriangles() {
 
     // Scissor checks are window-, not viewport-relative, which means that if the cached texture
     // sub-rect changes, the scissor bounds also need to be updated.
-    GLint scissor_x1 = static_cast<GLint>(
-        rect.left + regs.rasterizer.scissor_test.x1 * color_surface->res_scale_width);
-    GLint scissor_y1 = static_cast<GLint>(
-        rect.bottom + regs.rasterizer.scissor_test.y1 * color_surface->res_scale_height);
+    GLint scissor_x1 = static_cast<GLint>(rect.left + regs.rasterizer.scissor_test.x1 *
+                                                          color_surface->res_scale_width);
+    GLint scissor_y1 = static_cast<GLint>(rect.bottom + regs.rasterizer.scissor_test.y1 *
+                                                            color_surface->res_scale_height);
     // x2, y2 have +1 added to cover the entire pixel area, otherwise you might get cracks when
     // scaling or doing multisampling.
-    GLint scissor_x2 = static_cast<GLint>(
-        rect.left + (regs.rasterizer.scissor_test.x2 + 1) * color_surface->res_scale_width);
-    GLint scissor_y2 = static_cast<GLint>(
-        rect.bottom + (regs.rasterizer.scissor_test.y2 + 1) * color_surface->res_scale_height);
+    GLint scissor_x2 = static_cast<GLint>(rect.left + (regs.rasterizer.scissor_test.x2 + 1) *
+                                                          color_surface->res_scale_width);
+    GLint scissor_y2 = static_cast<GLint>(rect.bottom + (regs.rasterizer.scissor_test.y2 + 1) *
+                                                            color_surface->res_scale_height);
 
     if (uniform_block_data.data.scissor_x1 != scissor_x1 ||
         uniform_block_data.data.scissor_x2 != scissor_x2 ||
@@ -1355,7 +1355,8 @@ void RasterizerOpenGL::SyncBlendColor() {
 void RasterizerOpenGL::SyncFogColor() {
     const auto& regs = Pica::g_state.regs;
     uniform_block_data.data.fog_color = {
-        regs.texturing.fog_color.r.Value() / 255.0f, regs.texturing.fog_color.g.Value() / 255.0f,
+        regs.texturing.fog_color.r.Value() / 255.0f,
+        regs.texturing.fog_color.g.Value() / 255.0f,
         regs.texturing.fog_color.b.Value() / 255.0f,
     };
     uniform_block_data.dirty = true;
@@ -1383,7 +1384,8 @@ void RasterizerOpenGL::SyncProcTexNoise() {
         Pica::float16::FromRaw(regs.proctex_noise_frequency.v).ToFloat32(),
     };
     uniform_block_data.data.proctex_noise_a = {
-        regs.proctex_noise_u.amplitude / 4095.0f, regs.proctex_noise_v.amplitude / 4095.0f,
+        regs.proctex_noise_u.amplitude / 4095.0f,
+        regs.proctex_noise_v.amplitude / 4095.0f,
     };
     uniform_block_data.data.proctex_noise_p = {
         Pica::float16::FromRaw(regs.proctex_noise_u.phase).ToFloat32(),
