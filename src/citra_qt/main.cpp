@@ -100,6 +100,8 @@ GMainWindow::GMainWindow() : config(new Config()), emu_thread(nullptr) {
     InitializeRecentFileMenuActions();
     InitializeHotkeys();
 
+    CreateShortcutKeys();
+
     SetDefaultUIGeometry();
     RestoreUIState();
 
@@ -254,6 +256,23 @@ void GMainWindow::InitializeHotkeys() {
             SLOT(OnSwapScreens()));
 }
 
+void GMainWindow::CreateShortcutKeys() {
+    QShortcut* exit_fullscreen = new QShortcut(QKeySequence(tr("Esc", "Exit fullscreen")), this);
+    QShortcut* toggle_screen = new QShortcut(QKeySequence(tr("ALT+Return", "Toggle screen")), this);
+
+    exit_fullscreen->setContext(Qt::ApplicationShortcut);
+    toggle_screen->setContext(Qt::ApplicationShortcut);
+
+    connect(exit_fullscreen, &QShortcut::activated, [this] {
+        ui.action_Fullscreen->setChecked(false);
+        ToggleFullscreen();
+    });
+    connect(toggle_screen, &QShortcut::activated, [this] {
+        ui.action_Fullscreen->setChecked(!ui.action_Fullscreen->isChecked());
+        ToggleFullscreen();
+    });
+}
+
 void GMainWindow::SetDefaultUIGeometry() {
     // geometry: 55% of the window contents are in the upper screen half, 45% in the lower half
     const QRect screenRect = QApplication::desktop()->screenGeometry(this);
@@ -323,6 +342,7 @@ void GMainWindow::ConnectMenuEvents() {
     ui.action_Show_Filter_Bar->setShortcut(tr("CTRL+F"));
     connect(ui.action_Show_Filter_Bar, &QAction::triggered, this, &GMainWindow::OnToggleFilterBar);
     connect(ui.action_Show_Status_Bar, &QAction::triggered, statusBar(), &QStatusBar::setVisible);
+    connect(ui.action_Fullscreen, &QAction::triggered, this, &GMainWindow::ToggleFullscreen);
 }
 
 void GMainWindow::OnDisplayTitleBars(bool show) {
@@ -460,6 +480,7 @@ void GMainWindow::BootGame(const QString& filename) {
     render_window->setFocus();
 
     emulation_running = true;
+    ToggleFullscreen();
     OnStartGame();
 }
 
@@ -622,6 +643,29 @@ void GMainWindow::OnPauseGame() {
 
 void GMainWindow::OnStopGame() {
     ShutdownGame();
+}
+
+void GMainWindow::ToggleFullscreen() {
+    if (!emulation_running) {
+        return;
+    }
+    if (ui.action_Fullscreen->isChecked()) {
+        if (ui.action_Single_Window_Mode->isChecked()) {
+            ui.menubar->hide();
+            statusBar()->hide();
+            showFullScreen();
+        } else {
+            render_window->showFullScreen();
+        }
+    } else {
+        if (ui.action_Single_Window_Mode->isChecked()) {
+            statusBar()->setVisible(ui.action_Show_Status_Bar->isChecked());
+            ui.menubar->show();
+            showMaximized();
+        } else {
+            render_window->showNormal();
+        }
+    }
 }
 
 void GMainWindow::ToggleWindowMode() {

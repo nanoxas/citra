@@ -70,6 +70,8 @@ private:
     void InitializeRecentFileMenuActions();
     void InitializeHotkeys();
 
+    void CreateShortcutKeys();
+
     void SetDefaultUIGeometry();
     void RestoreUIState();
 
@@ -127,6 +129,7 @@ private slots:
     void OnConfigure();
     void OnToggleFilterBar();
     void OnDisplayTitleBars(bool);
+    void ToggleFullscreen();
     void ToggleWindowMode();
     void OnCreateGraphicsSurfaceViewer();
     void OnCoreError(Core::System::ResultStatus, std::string);
