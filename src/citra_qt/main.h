@@ -70,8 +70,6 @@ private:
     void InitializeRecentFileMenuActions();
     void InitializeHotkeys();
 
-    void CreateShortcutKeys();
-
     void SetDefaultUIGeometry();
     void RestoreUIState();
 
