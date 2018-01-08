@@ -20,7 +20,7 @@ std::unique_ptr<RendererBase> g_renderer; ///< Renderer plugin
 std::atomic<bool> g_hw_renderer_enabled;
 std::atomic<bool> g_shader_jit_enabled;
 std::atomic<bool> g_vsync_enabled;
-std::atomic<bool> g_toggle_framelimit_enabled;
+std::atomic<u16> g_frame_limit;
 
 /// Initialize the video core
 bool Init(EmuWindow* emu_window) {

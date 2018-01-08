@@ -267,6 +267,10 @@ void GMainWindow::InitializeHotkeys() {
     RegisterHotkey("Main Window", "Fullscreen", QKeySequence::FullScreen);
     RegisterHotkey("Main Window", "Exit Fullscreen", QKeySequence(Qt::Key_Escape),
                    Qt::ApplicationShortcut);
+    RegisterHotkey("Main Window", "Increase Speed Limit", QKeySequence("+"),
+                   Qt::ApplicationShortcut);
+    RegisterHotkey("Main Window", "Decrease Speed Limit", QKeySequence("-"),
+                   Qt::ApplicationShortcut);
     LoadHotkeys();
 
     connect(GetHotkey("Main Window", "Load File", this), &QShortcut::activated, this,
@@ -285,6 +289,16 @@ void GMainWindow::InitializeHotkeys() {
             ToggleFullscreen();
         }
     });
+    connect(GetHotkey("Main Window", "Increase Speed Limit", this), &QShortcut::activated, this,
+            [&] {
+                Settings::values.frame_limit += 5;
+                UpdateStatusBar();
+            });
+    connect(GetHotkey("Main Window", "Decrease Speed Limit", this), &QShortcut::activated, this,
+            [&] {
+                Settings::values.frame_limit -= 5;
+                UpdateStatusBar();
+            });
 }
 
 void GMainWindow::ShowUpdaterWidgets() {
@@ -908,7 +922,9 @@ void GMainWindow::UpdateStatusBar() {
 
     auto results = Core::System::GetInstance().GetAndResetPerfStats();
 
-    emu_speed_label->setText(tr("Speed: %1%").arg(results.emulation_speed * 100.0, 0, 'f', 0));
+    emu_speed_label->setText(tr("Speed: %1% / %2%")
+                                 .arg(results.emulation_speed * 100.0, 0, 'f', 0)
+                                 .arg(Settings::values.frame_limit));
     game_fps_label->setText(tr("Game: %1 FPS").arg(results.game_fps, 0, 'f', 0));
     emu_frametime_label->setText(tr("Frame: %1 ms").arg(results.frametime * 1000.0, 0, 'f', 2));
 
