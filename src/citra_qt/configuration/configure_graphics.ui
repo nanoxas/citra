@@ -46,7 +46,7 @@
         <item>
          <layout class="QHBoxLayout" name="horizontalLayout_2">
           <item>
-           <widget class="QLabel" name="label_2">
+           <widget class="QCheckBox" name="toggle_frame_limit">
             <property name="text">
              <string>Limit Speed Percent</string>
             </property>
@@ -56,6 +56,9 @@
            <widget class="QSpinBox" name="frame_limit">
             <property name="suffix">
              <string>%</string>
+            </property>
+            <property name="minimum">
+             <number>1</number>
             </property>
             <property name="maximum">
              <number>9999</number>
