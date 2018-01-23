@@ -927,9 +927,14 @@ void GMainWindow::UpdateStatusBar() {
 
     auto results = Core::System::GetInstance().GetAndResetPerfStats();
 
-    emu_speed_label->setText(tr("Speed: %1% / %2%")
-                                 .arg(results.emulation_speed * 100.0, 0, 'f', 0)
-                                 .arg(Settings::values.frame_limit));
+    if (Settings::values.use_frame_limit) {
+        emu_speed_label->setText(tr("Speed: %1% / %2%")
+                                    .arg(results.emulation_speed * 100.0, 0, 'f', 0)
+                                    .arg(Settings::values.frame_limit));
+    } else {
+        emu_speed_label->setText(tr("Speed: %1%")
+                                    .arg(results.emulation_speed * 100.0, 0, 'f', 0));
+    }
     game_fps_label->setText(tr("Game: %1 FPS").arg(results.game_fps, 0, 'f', 0));
     emu_frametime_label->setText(tr("Frame: %1 ms").arg(results.frametime * 1000.0, 0, 'f', 2));
 
