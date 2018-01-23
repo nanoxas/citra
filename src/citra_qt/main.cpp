@@ -289,15 +289,20 @@ void GMainWindow::InitializeHotkeys() {
             ToggleFullscreen();
         }
     });
+    constexpr u16 SPEED_LIMIT_STEP = 5;
     connect(GetHotkey("Main Window", "Increase Speed Limit", this), &QShortcut::activated, this,
             [&] {
-                Settings::values.frame_limit += 5;
-                UpdateStatusBar();
+                if (Settings::values.frame_limit < 9999 - SPEED_LIMIT_STEP) {
+                    Settings::values.frame_limit += SPEED_LIMIT_STEP;
+                    UpdateStatusBar();
+                }
             });
     connect(GetHotkey("Main Window", "Decrease Speed Limit", this), &QShortcut::activated, this,
             [&] {
-                Settings::values.frame_limit -= 5;
-                UpdateStatusBar();
+                if (Settings::values.frame_limit > SPEED_LIMIT_STEP) {
+                    Settings::values.frame_limit -= SPEED_LIMIT_STEP;
+                    UpdateStatusBar();
+                }
             });
 }
 
