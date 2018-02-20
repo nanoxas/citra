@@ -20,6 +20,7 @@
 #include "citra_qt/compatdb.h"
 #include "citra_qt/configuration/config.h"
 #include "citra_qt/configuration/configure_dialog.h"
+#include "citra_qt/debugger/console.h"
 #include "citra_qt/debugger/graphics/graphics.h"
 #include "citra_qt/debugger/graphics/graphics_breakpoints.h"
 #include "citra_qt/debugger/graphics/graphics_cmdlists.h"
@@ -34,6 +35,7 @@
 #include "citra_qt/main.h"
 #include "citra_qt/ui_settings.h"
 #include "citra_qt/updater/updater.h"
+#include "common/common_paths.h"
 #include "common/logging/backend.h"
 #include "common/logging/filter.h"
 #include "common/logging/log.h"
@@ -368,6 +370,7 @@ void GMainWindow::RestoreUIState() {
 
     ui.action_Show_Status_Bar->setChecked(UISettings::values.show_status_bar);
     statusBar()->setVisible(ui.action_Show_Status_Bar->isChecked());
+    Debugger::ToggleConsole();
 }
 
 void GMainWindow::ConnectWidgetEvents() {
@@ -897,7 +900,8 @@ void GMainWindow::OnMenuReportCompatibility() {
         QMessageBox::critical(
             this, tr("Missing Citra Account"),
             tr("In order to submit a game compatibility test case, you must link your Citra "
-               "account.<br><br/>To link your Citra account, go to Emulation &gt; Configuration &gt; "
+               "account.<br><br/>To link your Citra account, go to Emulation &gt; Configuration "
+               "&gt; "
                "Web."));
     }
 }
@@ -1045,11 +1049,10 @@ void GMainWindow::UpdateStatusBar() {
 
     if (Settings::values.use_frame_limit) {
         emu_speed_label->setText(tr("Speed: %1% / %2%")
-                                    .arg(results.emulation_speed * 100.0, 0, 'f', 0)
-                                    .arg(Settings::values.frame_limit));
+                                     .arg(results.emulation_speed * 100.0, 0, 'f', 0)
+                                     .arg(Settings::values.frame_limit));
     } else {
-        emu_speed_label->setText(tr("Speed: %1%")
-                                    .arg(results.emulation_speed * 100.0, 0, 'f', 0));
+        emu_speed_label->setText(tr("Speed: %1%").arg(results.emulation_speed * 100.0, 0, 'f', 0));
     }
     game_fps_label->setText(tr("Game: %1 FPS").arg(results.game_fps, 0, 'f', 0));
     emu_frametime_label->setText(tr("Frame: %1 ms").arg(results.frametime * 1000.0, 0, 'f', 2));
@@ -1283,8 +1286,7 @@ void GMainWindow::SyncMenuUISettings() {
 #endif
 
 int main(int argc, char* argv[]) {
-    Log::Filter log_filter(Log::Level::Info);
-    Log::SetFilter(&log_filter);
+    Log::AddBackend(std::make_unique<Log::ColorConsoleBackend>());
 
     MicroProfileOnThreadCreate("Frontend");
     SCOPE_EXIT({ MicroProfileShutdown(); });
@@ -1302,7 +1304,12 @@ int main(int argc, char* argv[]) {
 
     GMainWindow main_window;
     // After settings have been loaded by GMainWindow, apply the filter
+    Log::Filter log_filter;
     log_filter.ParseFilterString(Settings::values.log_filter);
+    Log::SetGlobalFilter(log_filter);
+    FileUtil::CreateFullPath(FileUtil::GetUserPath(D_LOGS_IDX));
+    Log::AddBackend(
+        std::make_unique<Log::FileBackend>(FileUtil::GetUserPath(D_LOGS_IDX) + LOG_FILE));
 
     main_window.show();
     return app.exec();
