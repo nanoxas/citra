@@ -13,7 +13,11 @@
 
 const std::array<std::string, ConfigureInput::ANALOG_SUB_BUTTONS_NUM>
     ConfigureInput::analog_sub_buttons{{
-        "up", "down", "left", "right", "modifier",
+        "up",
+        "down",
+        "left",
+        "right",
+        "modifier",
     }};
 
 static QString getKeyName(int key_code) {
@@ -35,7 +39,8 @@ static void SetAnalogButton(const Common::ParamPackage& input_param,
                             Common::ParamPackage& analog_param, const std::string& button_name) {
     if (analog_param.Get("engine", "") != "analog_from_button") {
         analog_param = {
-            {"engine", "analog_from_button"}, {"modifier_scale", "0.5"},
+            {"engine", "analog_from_button"},
+            {"modifier_scale", "0.5"},
         };
     }
     analog_param.Set(button_name, input_param.Serialize());
@@ -47,17 +52,18 @@ static QString ButtonToText(const Common::ParamPackage& param) {
     } else if (param.Get("engine", "") == "keyboard") {
         return getKeyName(param.Get("code", 0));
     } else if (param.Get("engine", "") == "sdl") {
-        QString text = QString(QObject::tr("Joystick %1")).arg(param.Get("joystick", "").c_str());
+        QString text;
+        // = QString(QObject::tr("Joystick %1")).arg(param.Get("joystick", "").c_str());
         if (param.Has("hat")) {
-            text += QString(QObject::tr(" Hat %1 %2"))
+            text += QString(QObject::tr("Hat %1 %2"))
                         .arg(param.Get("hat", "").c_str(), param.Get("direction", "").c_str());
         }
         if (param.Has("axis")) {
-            text += QString(QObject::tr(" Axis %1%2"))
+            text += QString(QObject::tr("Axis %1%2"))
                         .arg(param.Get("axis", "").c_str(), param.Get("direction", "").c_str());
         }
         if (param.Has("button")) {
-            text += QString(QObject::tr(" Button %1")).arg(param.Get("button", "").c_str());
+            text += QString(QObject::tr("Button %1")).arg(param.Get("button", "").c_str());
         }
         return text;
     } else {
@@ -75,11 +81,12 @@ static QString AnalogToText(const Common::ParamPackage& param, const std::string
             return QString(QObject::tr("[unused]"));
         }
 
-        QString text = QString(QObject::tr("Joystick %1")).arg(param.Get("joystick", "").c_str());
+        QString text;
+        // = QString(QObject::tr("Joystick %1")).arg(param.Get("joystick", "").c_str());
         if (dir == "left" || dir == "right") {
-            text += QString(QObject::tr(" Axis %1")).arg(param.Get("axis_x", "").c_str());
+            text += QString(QObject::tr("Axis %1")).arg(param.Get("axis_x", "").c_str());
         } else if (dir == "up" || dir == "down") {
-            text += QString(QObject::tr(" Axis %1")).arg(param.Get("axis_y", "").c_str());
+            text += QString(QObject::tr("Axis %1")).arg(param.Get("axis_y", "").c_str());
         }
         return text;
     } else {
@@ -102,11 +109,17 @@ ConfigureInput::ConfigureInput(QWidget* parent)
 
     analog_map_buttons = {{
         {
-            ui->buttonCircleUp, ui->buttonCircleDown, ui->buttonCircleLeft, ui->buttonCircleRight,
+            ui->buttonCircleUp,
+            ui->buttonCircleDown,
+            ui->buttonCircleLeft,
+            ui->buttonCircleRight,
             ui->buttonCircleMod,
         },
         {
-            ui->buttonCStickUp, ui->buttonCStickDown, ui->buttonCStickLeft, ui->buttonCStickRight,
+            ui->buttonCStickUp,
+            ui->buttonCStickDown,
+            ui->buttonCStickLeft,
+            ui->buttonCStickRight,
             nullptr,
         },
     }};
@@ -155,7 +168,7 @@ ConfigureInput::ConfigureInput(QWidget* parent)
 
     connect(poll_timer.get(), &QTimer::timeout, [this]() {
         Common::ParamPackage params;
-        for (auto& poller : device_pollers) {
+        for (auto& poller : *current_pollers) {
             params = poller->GetNextInput();
             if (params.Has("engine")) {
                 setPollingResult(params, false);
@@ -165,6 +178,8 @@ ConfigureInput::ConfigureInput(QWidget* parent)
     });
 
     this->loadConfiguration();
+
+    InputCommon::Polling::GetPollers(device_pollers);
 
     // TODO(wwylele): enable this when we actually emulate it
     ui->buttonHome->setEnabled(false);
@@ -230,12 +245,10 @@ void ConfigureInput::handleClick(QPushButton* button,
 
     input_setter = new_input_setter;
 
-    device_pollers = InputCommon::Polling::GetPollers(type);
-
     // Keyboard keys can only be used as button devices
     want_keyboard_keys = type == InputCommon::Polling::DeviceType::Button;
-
-    for (auto& poller : device_pollers) {
+    current_pollers = &device_pollers[type];
+    for (auto& poller : *current_pollers) {
         poller->Start();
     }
 
@@ -250,7 +263,7 @@ void ConfigureInput::setPollingResult(const Common::ParamPackage& params, bool a
     releaseMouse();
     timeout_timer->stop();
     poll_timer->stop();
-    for (auto& poller : device_pollers) {
+    for (auto& poller : *current_pollers) {
         poller->Stop();
     }
 

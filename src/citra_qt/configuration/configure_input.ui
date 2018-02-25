@@ -15,6 +15,33 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout_5">
    <item>
+    <layout class="QHBoxLayout" name="horizontalLayout">
+     <item>
+      <layout class="QVBoxLayout" name="verticalLayout">
+       <item>
+        <widget class="QGroupBox" name="groupBox">
+         <property name="title">
+          <string>Detected Controllers</string>
+         </property>
+         <layout class="QHBoxLayout" name="horizontalLayout_27">
+          <item>
+           <widget class="QComboBox" name="comboBox"/>
+          </item>
+          <item>
+           <widget class="QPushButton" name="pushButton">
+            <property name="text">
+             <string>Load Default Mapping</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+      </layout>
+     </item>
+    </layout>
+   </item>
+   <item>
     <layout class="QGridLayout" name="gridLayout_7">
      <item row="0" column="0">
       <widget class="QGroupBox" name="faceButtons">
@@ -29,7 +56,7 @@
        </property>
        <layout class="QGridLayout" name="gridLayout">
         <item row="0" column="0">
-         <layout class="QVBoxLayout" name="verticalLayout">
+         <layout class="QHBoxLayout" name="horizontalLayout_2">
           <item>
            <widget class="QLabel" name="label">
             <property name="text">
@@ -47,7 +74,7 @@
          </layout>
         </item>
         <item row="0" column="1">
-         <layout class="QVBoxLayout" name="verticalLayout_2">
+         <layout class="QHBoxLayout" name="horizontalLayout_3">
           <item>
            <widget class="QLabel" name="label_2">
             <property name="text">
@@ -65,7 +92,7 @@
          </layout>
         </item>
         <item row="1" column="0">
-         <layout class="QVBoxLayout" name="verticalLayout_3">
+         <layout class="QHBoxLayout" name="horizontalLayout_4">
           <item>
            <widget class="QLabel" name="label_3">
             <property name="text">
@@ -83,7 +110,7 @@
          </layout>
         </item>
         <item row="1" column="1">
-         <layout class="QVBoxLayout" name="verticalLayout_4">
+         <layout class="QHBoxLayout" name="horizontalLayout_5">
           <item>
            <widget class="QLabel" name="label_4">
             <property name="text">
@@ -116,7 +143,7 @@
        </property>
        <layout class="QGridLayout" name="gridLayout_2">
         <item row="1" column="0">
-         <layout class="QVBoxLayout" name="verticalLayout_12">
+         <layout class="QHBoxLayout" name="horizontalLayout_6">
           <item>
            <widget class="QLabel" name="label_34">
             <property name="text">
@@ -134,7 +161,7 @@
          </layout>
         </item>
         <item row="1" column="1">
-         <layout class="QVBoxLayout" name="verticalLayout_9">
+         <layout class="QHBoxLayout" name="horizontalLayout_7">
           <item>
            <widget class="QLabel" name="label_35">
             <property name="text">
@@ -152,7 +179,7 @@
          </layout>
         </item>
         <item row="0" column="0">
-         <layout class="QVBoxLayout" name="verticalLayout_10">
+         <layout class="QHBoxLayout" name="horizontalLayout_8">
           <item>
            <widget class="QLabel" name="label_32">
             <property name="text">
@@ -170,7 +197,7 @@
          </layout>
         </item>
         <item row="0" column="1">
-         <layout class="QVBoxLayout" name="verticalLayout_11">
+         <layout class="QHBoxLayout" name="horizontalLayout_9">
           <item>
            <widget class="QLabel" name="label_33">
             <property name="text">
@@ -203,7 +230,7 @@
        </property>
        <layout class="QGridLayout" name="gridLayout_3">
         <item row="0" column="0">
-         <layout class="QVBoxLayout" name="verticalLayout_13">
+         <layout class="QHBoxLayout" name="horizontalLayout_10">
           <item>
            <widget class="QLabel" name="label_17">
             <property name="text">
@@ -221,7 +248,7 @@
          </layout>
         </item>
         <item row="0" column="1">
-         <layout class="QVBoxLayout" name="verticalLayout_14">
+         <layout class="QHBoxLayout" name="horizontalLayout_11">
           <item>
            <widget class="QLabel" name="label_19">
             <property name="text">
@@ -239,7 +266,7 @@
          </layout>
         </item>
         <item row="1" column="0">
-         <layout class="QVBoxLayout" name="verticalLayout_15">
+         <layout class="QHBoxLayout" name="horizontalLayout_12">
           <item>
            <widget class="QLabel" name="label_20">
             <property name="text">
@@ -257,7 +284,7 @@
          </layout>
         </item>
         <item row="1" column="1">
-         <layout class="QVBoxLayout" name="verticalLayout_16">
+         <layout class="QHBoxLayout" name="horizontalLayout_13">
           <item>
            <widget class="QLabel" name="label_18">
             <property name="text">
@@ -297,7 +324,7 @@
          </widget>
         </item>
         <item row="0" column="0">
-         <layout class="QVBoxLayout" name="verticalLayout_17">
+         <layout class="QHBoxLayout" name="horizontalLayout_14">
           <item>
            <widget class="QLabel" name="label_21">
             <property name="text">
@@ -315,7 +342,7 @@
          </layout>
         </item>
         <item row="0" column="1">
-         <layout class="QVBoxLayout" name="verticalLayout_18">
+         <layout class="QHBoxLayout" name="horizontalLayout_15">
           <item>
            <widget class="QLabel" name="label_23">
             <property name="text">
@@ -333,7 +360,7 @@
          </layout>
         </item>
         <item row="1" column="0">
-         <layout class="QVBoxLayout" name="verticalLayout_19">
+         <layout class="QHBoxLayout" name="horizontalLayout_16">
           <item>
            <widget class="QLabel" name="label_24">
             <property name="text">
@@ -351,7 +378,7 @@
          </layout>
         </item>
         <item row="1" column="1">
-         <layout class="QVBoxLayout" name="verticalLayout_20">
+         <layout class="QHBoxLayout" name="horizontalLayout_17">
           <item>
            <widget class="QLabel" name="label_22">
             <property name="text">
@@ -384,7 +411,7 @@
        </property>
        <layout class="QGridLayout" name="gridLayout_5">
         <item row="0" column="0">
-         <layout class="QVBoxLayout" name="verticalLayout_21">
+         <layout class="QHBoxLayout" name="horizontalLayout_18">
           <item>
            <widget class="QLabel" name="label_25">
             <property name="text">
@@ -402,7 +429,7 @@
          </layout>
         </item>
         <item row="0" column="1">
-         <layout class="QVBoxLayout" name="verticalLayout_22">
+         <layout class="QHBoxLayout" name="horizontalLayout_19">
           <item>
            <widget class="QLabel" name="label_27">
             <property name="text">
@@ -420,7 +447,7 @@
          </layout>
         </item>
         <item row="1" column="0">
-         <layout class="QVBoxLayout" name="verticalLayout_23">
+         <layout class="QHBoxLayout" name="horizontalLayout_20">
           <item>
            <widget class="QLabel" name="label_28">
             <property name="text">
@@ -438,7 +465,7 @@
          </layout>
         </item>
         <item row="1" column="1">
-         <layout class="QVBoxLayout" name="verticalLayout_24">
+         <layout class="QHBoxLayout" name="horizontalLayout_21">
           <item>
            <widget class="QLabel" name="label_26">
             <property name="text">
@@ -478,7 +505,7 @@
        </property>
        <layout class="QGridLayout" name="gridLayout_6">
         <item row="0" column="0">
-         <layout class="QVBoxLayout" name="verticalLayout_25">
+         <layout class="QHBoxLayout" name="horizontalLayout_22">
           <item>
            <widget class="QLabel" name="label_29">
             <property name="text">
@@ -496,7 +523,7 @@
          </layout>
         </item>
         <item row="0" column="1">
-         <layout class="QVBoxLayout" name="verticalLayout_26">
+         <layout class="QHBoxLayout" name="horizontalLayout_23">
           <item>
            <widget class="QLabel" name="label_30">
             <property name="text">
@@ -514,7 +541,7 @@
          </layout>
         </item>
         <item row="1" column="0">
-         <layout class="QVBoxLayout" name="verticalLayout_27">
+         <layout class="QHBoxLayout" name="horizontalLayout_24">
           <item>
            <widget class="QLabel" name="label_31">
             <property name="text">
@@ -532,11 +559,12 @@
          </layout>
         </item>
         <item row="1" column="1">
-         <layout class="QVBoxLayout" name="verticalLayout_28">
+         <layout class="QHBoxLayout" name="horizontalLayout_25">
           <item>
            <widget class="QLabel" name="label_36">
             <property name="text">
-             <string>Circle Mod:</string>
+             <string>Circle 
+Mod:</string>
             </property>
            </widget>
           </item>
@@ -555,7 +583,7 @@
     </layout>
    </item>
    <item>
-    <layout class="QHBoxLayout" name="horizontalLayout">
+    <layout class="QHBoxLayout" name="horizontalLayout_28">
      <item>
       <spacer name="horizontalSpacer">
        <property name="orientation">
@@ -598,6 +626,19 @@
       </widget>
      </item>
     </layout>
+   </item>
+   <item>
+    <spacer name="verticalSpacer">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>20</width>
+       <height>40</height>
+      </size>
+     </property>
+    </spacer>
    </item>
   </layout>
  </widget>

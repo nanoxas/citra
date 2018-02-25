@@ -2,6 +2,7 @@
 // Licensed under GPLv2 or any later version
 // Refer to the license.txt file included.
 
+#include <array>
 #include <memory>
 #include "common/param_package.h"
 #include "input_common/analog_from_button.h"
@@ -16,6 +17,9 @@ namespace InputCommon {
 
 static std::shared_ptr<Keyboard> keyboard;
 static std::shared_ptr<MotionEmu> motion_emu;
+#ifdef HAVE_SDL2
+static std::unique_ptr<SDL::State> sdl_state;
+#endif
 
 void Init() {
     keyboard = std::make_shared<Keyboard>();
@@ -26,7 +30,7 @@ void Init() {
     Input::RegisterFactory<Input::MotionDevice>("motion_emu", motion_emu);
 
 #ifdef HAVE_SDL2
-    SDL::Init();
+    sdl_state = SDL::Init();
 #endif
 }
 
@@ -38,7 +42,7 @@ void Shutdown() {
     motion_emu.reset();
 
 #ifdef HAVE_SDL2
-    SDL::Shutdown();
+    SDL::Shutdown(std::move(sdl_state));
 #endif
 }
 
@@ -52,7 +56,8 @@ MotionEmu* GetMotionEmu() {
 
 std::string GenerateKeyboardParam(int key_code) {
     Common::ParamPackage param{
-        {"engine", "keyboard"}, {"code", std::to_string(key_code)},
+        {"engine", "keyboard"},
+        {"code", std::to_string(key_code)},
     };
     return param.Serialize();
 }
@@ -72,13 +77,16 @@ std::string GenerateAnalogParamFromKeys(int key_up, int key_down, int key_left, 
 }
 
 namespace Polling {
-
-std::vector<std::unique_ptr<DevicePoller>> GetPollers(DeviceType type) {
+constexpr std::array<DeviceType, 2> ALL_DEVICE_TYPES = {DeviceType::Button, DeviceType::Analog};
+void GetPollers(PollingMap& map) {
+    // std::vector<std::unique_ptr<DevicePoller>> poller;
+    for (auto type : ALL_DEVICE_TYPES) {
+        std::vector<std::unique_ptr<DevicePoller>> poller;
 #ifdef HAVE_SDL2
-    return SDL::Polling::GetPollers(type);
-#else
-    return {};
+        SDL::Polling::AppendPollers(poller, type);
 #endif
+        map[type] = std::move(poller);
+    }
 }
 
 } // namespace Polling

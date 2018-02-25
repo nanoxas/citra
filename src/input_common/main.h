@@ -60,7 +60,11 @@ public:
     virtual Common::ParamPackage GetNextInput() = 0;
 };
 
-// Get all DevicePoller from all backends for a specific device type
-std::vector<std::unique_ptr<DevicePoller>> GetPollers(DeviceType type);
+using PollingList = std::vector<std::unique_ptr<DevicePoller>>;
+using PollingMap = std::unordered_map<DeviceType, PollingList>;
+
+// Get all DevicePoller from all backends
+void GetPollers(PollingMap&);
+
 } // namespace Polling
 } // namespace InputCommon

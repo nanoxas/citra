@@ -63,7 +63,10 @@ private:
 
     static const std::array<std::string, ANALOG_SUB_BUTTONS_NUM> analog_sub_buttons;
 
-    std::vector<std::unique_ptr<InputCommon::Polling::DevicePoller>> device_pollers;
+    /// Map of all the possible pollers
+    InputCommon::Polling::PollingMap device_pollers;
+    /// The current list of pollers that will be stopped after a result
+    InputCommon::Polling::PollingList* current_pollers;
 
     /// A flag to indicate if keyboard keys are okay when configuring an input. If this is false,
     /// keyboard events are ignored.
