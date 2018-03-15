@@ -121,6 +121,7 @@ private:
     struct Subroutine {
         Subroutine(u32 begin_, u32 end_) : begin(begin_), end(end_) {}
 
+        /// Check if the specified Subroutine calls this Subroutine (directly or indirectly).
         bool IsCalledBy(const Subroutine* caller, std::set<const Subroutine*> stack = {}) const {
             for (auto& pair : callers) {
                 if (!stack.emplace(pair.second).second) {
@@ -133,6 +134,7 @@ private:
             return false;
         }
 
+        /// Check if this Subroutine is suitable for inlining.
         bool IsInline() const {
             if (callers.size() > 1 &&
                 (end_instr_distance ? static_cast<u32>(*end_instr_distance) : end - begin) > 10) {
