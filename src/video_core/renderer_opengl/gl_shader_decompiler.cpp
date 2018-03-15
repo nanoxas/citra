@@ -161,6 +161,11 @@ private:
     };
 
     std::map<std::pair<u32, u32>, Subroutine> subroutines;
+
+    /**
+     * Gets the Subroutine object corresponding to the specified address. If it is not in the
+     * subroutine list yet, adds it to the list
+     */
     Subroutine& GetRoutine(u32 begin, u32 end) {
         auto [iter, inserted] =
             subroutines.emplace(std::make_pair(std::make_pair(begin, end), Subroutine{begin, end}));
