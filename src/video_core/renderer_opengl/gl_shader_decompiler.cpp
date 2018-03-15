@@ -176,23 +176,7 @@ private:
         return sub;
     }
 
-public:
-    Impl(const std::array<u32, MAX_PROGRAM_CODE_LENGTH>& program_code,
-         const std::array<u32, MAX_SWIZZLE_DATA_LENGTH>& swizzle_data, u32 main_offset,
-         const std::function<std::string(u32)>& inputreg_getter,
-         const std::function<std::string(u32)>& outputreg_getter, bool sanitize_mul,
-         const std::string& emit_cb, const std::string& setemit_cb)
-        : program_code(program_code), swizzle_data(swizzle_data), main_offset(main_offset),
-          inputreg_getter(inputreg_getter), outputreg_getter(outputreg_getter),
-          sanitize_mul(sanitize_mul), emit_cb(emit_cb), setemit_cb(setemit_cb) {}
-
-    std::string Decompile() {
-        constexpr bool PRINT_DEBUG = true;
-
-        if (!FindEndInstr(main_offset, PROGRAM_END)) {
-            return "";
-        }
-
+    Subroutine& AnalyzeControlFlow() {
         auto& program_main = GetRoutine(main_offset, PROGRAM_END);
 
         std::queue<std::tuple<u32, u32, Subroutine*>> discover_queue;
@@ -304,6 +288,27 @@ public:
                 }
             }
         }
+        return program_main;
+    }
+
+public:
+    Impl(const std::array<u32, MAX_PROGRAM_CODE_LENGTH>& program_code,
+         const std::array<u32, MAX_SWIZZLE_DATA_LENGTH>& swizzle_data, u32 main_offset,
+         const std::function<std::string(u32)>& inputreg_getter,
+         const std::function<std::string(u32)>& outputreg_getter, bool sanitize_mul,
+         const std::string& emit_cb, const std::string& setemit_cb)
+        : program_code(program_code), swizzle_data(swizzle_data), main_offset(main_offset),
+          inputreg_getter(inputreg_getter), outputreg_getter(outputreg_getter),
+          sanitize_mul(sanitize_mul), emit_cb(emit_cb), setemit_cb(setemit_cb) {}
+
+    std::string Decompile() {
+        constexpr bool PRINT_DEBUG = true;
+
+        if (!FindEndInstr(main_offset, PROGRAM_END)) {
+            return "";
+        }
+
+        auto& program_main = AnalyzeControlFlow();
 
         std::function<bool(const Subroutine&)> is_callable = [&](const Subroutine& subroutine) {
             for (auto& callee : subroutine.calls) {
