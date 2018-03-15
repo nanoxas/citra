@@ -344,6 +344,29 @@ private:
         }
     };
 
+    /// Generates code representing the source register.
+    std::string GetSourceRegister(const SourceRegister& source_reg,
+                                  u32 address_register_index) const {
+        u32 index = static_cast<u32>(source_reg.GetIndex());
+        std::string index_str = std::to_string(index);
+
+        switch (source_reg.GetRegisterType()) {
+        case RegisterType::Input:
+            return inputreg_getter(index);
+        case RegisterType::Temporary:
+            return "reg_tmp" + index_str;
+        case RegisterType::FloatUniform:
+            if (address_register_index != 0) {
+                index_str +=
+                    std::string(" + address_registers.") + "xyz"[address_register_index - 1];
+            }
+            return "uniforms.f[" + index_str + "]";
+        default:
+            UNREACHABLE();
+            return "";
+        }
+    };
+
 public:
     Impl(const std::array<u32, MAX_PROGRAM_CODE_LENGTH>& program_code,
          const std::array<u32, MAX_SWIZZLE_DATA_LENGTH>& swizzle_data, u32 main_offset,
@@ -400,28 +423,6 @@ public:
             }
         }
         add_line("");
-
-        auto get_source_register = [this](const SourceRegister& source_reg,
-                                          u32 address_register_index) -> std::string {
-            u32 index = static_cast<u32>(source_reg.GetIndex());
-            std::string index_str = std::to_string(index);
-
-            switch (source_reg.GetRegisterType()) {
-            case RegisterType::Input:
-                return inputreg_getter(index);
-            case RegisterType::Temporary:
-                return "reg_tmp" + index_str;
-            case RegisterType::FloatUniform:
-                if (address_register_index != 0) {
-                    index_str +=
-                        std::string(" + address_registers.") + "xyz"[address_register_index - 1];
-                }
-                return "uniforms.f[" + index_str + "]";
-            default:
-                UNREACHABLE();
-                return "";
-            }
-        };
 
         auto selector_to_string = [](const auto& selector_getter) -> std::string {
             std::string out;
@@ -508,14 +509,14 @@ public:
                     (0 != (instr.opcode.Value().GetInfo().subtype & OpCode::Info::SrcInversed));
 
                 std::string src1 = swizzle.negate_src1 ? "-" : "";
-                src1 += get_source_register(instr.common.GetSrc1(is_inverted),
-                                            !is_inverted * instr.common.address_register_index);
+                src1 += GetSourceRegister(instr.common.GetSrc1(is_inverted),
+                                          !is_inverted * instr.common.address_register_index);
                 src1 += "." +
                         selector_to_string([&](int comp) { return swizzle.GetSelectorSrc1(comp); });
 
                 std::string src2 = swizzle.negate_src2 ? "-" : "";
-                src2 += get_source_register(instr.common.GetSrc2(is_inverted),
-                                            is_inverted * instr.common.address_register_index);
+                src2 += GetSourceRegister(instr.common.GetSrc2(is_inverted),
+                                          is_inverted * instr.common.address_register_index);
                 src2 += "." +
                         selector_to_string([&](int comp) { return swizzle.GetSelectorSrc2(comp); });
 
@@ -684,19 +685,19 @@ public:
                     bool is_inverted = (instr.opcode.Value().EffectiveOpCode() == OpCode::Id::MADI);
 
                     std::string src1 = swizzle.negate_src1 ? "-" : "";
-                    src1 += get_source_register(instr.mad.GetSrc1(is_inverted), 0);
+                    src1 += GetSourceRegister(instr.mad.GetSrc1(is_inverted), 0);
                     src1 += "." + selector_to_string(
                                       [&](int comp) { return swizzle.GetSelectorSrc1(comp); });
 
                     std::string src2 = swizzle.negate_src2 ? "-" : "";
-                    src2 += get_source_register(instr.mad.GetSrc2(is_inverted),
-                                                !is_inverted * instr.mad.address_register_index);
+                    src2 += GetSourceRegister(instr.mad.GetSrc2(is_inverted),
+                                              !is_inverted * instr.mad.address_register_index);
                     src2 += "." + selector_to_string(
                                       [&](int comp) { return swizzle.GetSelectorSrc2(comp); });
 
                     std::string src3 = swizzle.negate_src3 ? "-" : "";
-                    src3 += get_source_register(instr.mad.GetSrc3(is_inverted),
-                                                is_inverted * instr.mad.address_register_index);
+                    src3 += GetSourceRegister(instr.mad.GetSrc3(is_inverted),
+                                              is_inverted * instr.mad.address_register_index);
                     src3 += "." + selector_to_string(
                                       [&](int comp) { return swizzle.GetSelectorSrc3(comp); });
 
