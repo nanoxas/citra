@@ -311,6 +311,39 @@ private:
         return false;
     }
 
+    /// Generates condition evaluation code for the flow control instruction.
+    static std::string EvaluateCondition(Instruction::FlowControlType flow_control) {
+        using Op = Instruction::FlowControlType::Op;
+
+        std::string result_x =
+            flow_control.refx.Value() ? "conditional_code.x" : "!conditional_code.x";
+        std::string result_y =
+            flow_control.refy.Value() ? "conditional_code.y" : "!conditional_code.y";
+
+        switch (flow_control.op) {
+        case Op::JustX:
+            return result_x;
+        case Op::JustY:
+            return result_y;
+        case Op::Or:
+        case Op::And: {
+            std::string and_or = flow_control.op == Op::Or ? "any" : "all";
+            std::string bvec;
+            if (flow_control.refx.Value() && flow_control.refy.Value()) {
+                bvec = "conditional_code";
+            } else if (!flow_control.refx.Value() && !flow_control.refy.Value()) {
+                bvec = "not(conditional_code)";
+            } else {
+                bvec = "bvec2(" + result_x + ", " + result_y + ")";
+            }
+            return and_or + "(" + bvec + ")";
+        }
+        default:
+            UNREACHABLE();
+            return "";
+        }
+    };
+
 public:
     Impl(const std::array<u32, MAX_PROGRAM_CODE_LENGTH>& program_code,
          const std::array<u32, MAX_SWIZZLE_DATA_LENGTH>& swizzle_data, u32 main_offset,
@@ -367,38 +400,6 @@ public:
             }
         }
         add_line("");
-
-        auto evaluate_condition = [](Instruction::FlowControlType flow_control) -> std::string {
-            using Op = Instruction::FlowControlType::Op;
-
-            std::string result_x =
-                flow_control.refx.Value() ? "conditional_code.x" : "!conditional_code.x";
-            std::string result_y =
-                flow_control.refy.Value() ? "conditional_code.y" : "!conditional_code.y";
-
-            switch (flow_control.op) {
-            case Op::JustX:
-                return result_x;
-            case Op::JustY:
-                return result_y;
-            case Op::Or:
-            case Op::And: {
-                std::string and_or = flow_control.op == Op::Or ? "any" : "all";
-                std::string bvec;
-                if (flow_control.refx.Value() && flow_control.refy.Value()) {
-                    bvec = "conditional_code";
-                } else if (!flow_control.refx.Value() && !flow_control.refy.Value()) {
-                    bvec = "not(conditional_code)";
-                } else {
-                    bvec = "bvec2(" + result_x + ", " + result_y + ")";
-                }
-                return and_or + "(" + bvec + ")";
-            }
-            default:
-                UNREACHABLE();
-                return "";
-            }
-        };
 
         auto get_source_register = [this](const SourceRegister& source_reg,
                                           u32 address_register_index) -> std::string {
@@ -732,7 +733,7 @@ public:
                 case OpCode::Id::JMPU: {
                     std::string condition;
                     if (instr.opcode.Value() == OpCode::Id::JMPC) {
-                        condition = evaluate_condition(instr.flow_control);
+                        condition = EvaluateCondition(instr.flow_control);
                     } else {
                         bool invert_test = instr.flow_control.num_instructions & 1;
                         condition = (invert_test ? "!" : "") +
@@ -753,7 +754,7 @@ public:
                 case OpCode::Id::CALLU: {
                     std::string condition;
                     if (instr.opcode.Value() == OpCode::Id::CALLC) {
-                        condition = evaluate_condition(instr.flow_control);
+                        condition = EvaluateCondition(instr.flow_control);
                     } else if (instr.opcode.Value() == OpCode::Id::CALLU) {
                         condition = get_uniform_bool(instr.flow_control.bool_uniform_id);
                     }
@@ -783,7 +784,7 @@ public:
                 case OpCode::Id::IFU: {
                     std::string condition;
                     if (instr.opcode.Value() == OpCode::Id::IFC) {
-                        condition = evaluate_condition(instr.flow_control);
+                        condition = EvaluateCondition(instr.flow_control);
                     } else {
                         condition = get_uniform_bool(instr.flow_control.bool_uniform_id);
                     }
