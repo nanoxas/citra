@@ -100,6 +100,13 @@ private:
         return false;
     }
 
+    /**
+     * Finds if all code paths starting from a given point reach an "end" instruction.
+     * @param begin the code starting point.
+     * @end the farest point to search for "end" instructions.
+     * @return the total number instructions covered. If there is a code path not reaching an "end"
+     *     instruction, the return value is std::nullopt.
+     */
     std::optional<size_t> FindEndInstr(u32 begin, u32 end) {
         // first: offset
         // bool: found END
