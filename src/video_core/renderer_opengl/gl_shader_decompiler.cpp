@@ -162,11 +162,11 @@ private:
 
     std::map<std::pair<u32, u32>, Subroutine> subroutines;
     Subroutine& GetRoutine(u32 begin, u32 end) {
-        auto res =
+        auto [iter, inserted] =
             subroutines.emplace(std::make_pair(std::make_pair(begin, end), Subroutine{begin, end}));
-        auto& sub = res.first->second;
-        if (res.second) {
-            res.first->second.end_instr_distance = FindEndInstr(sub.begin, sub.end);
+        auto& sub = iter->second;
+        if (inserted) {
+            sub.end_instr_distance = FindEndInstr(sub.begin, sub.end);
         }
         return sub;
     }
