@@ -3,10 +3,10 @@
 // Refer to the license.txt file included.
 
 #include <map>
+#include <optional>
 #include <set>
 #include <string>
 #include <nihstro/shader_bytecode.h>
-#include <optional>
 #include <queue>
 #include "common/assert.h"
 #include "common/common_types.h"
@@ -39,15 +39,14 @@ constexpr u32 PROGRAM_END = MAX_PROGRAM_CODE_LENGTH;
 
 class Impl {
 private:
-    std::optional<size_t> FindEndInstrImpl(u32 begin, u32 end,
-                                             std::map<u32, bool>& checked_offsets) {
+    bool FindEndInstrImpl(u32 begin, u32 end, std::map<u32, bool>& checked_offsets) {
         for (u32 offset = begin; offset < (begin > end ? PROGRAM_END : end); ++offset) {
             const Instruction instr = {program_code[offset]};
 
             auto [checked_offset_iter, inserted] = checked_offsets.emplace(offset, false);
             if (!inserted) {
                 if (checked_offset_iter->second) {
-                    return checked_offsets.size();
+                    return true;
                 }
                 continue;
             }
@@ -55,42 +54,42 @@ private:
             switch (instr.opcode.Value()) {
             case OpCode::Id::END: {
                 checked_offset_iter->second = true;
-                return checked_offsets.size();
+                return true;
             }
             case OpCode::Id::JMPC:
             case OpCode::Id::JMPU: {
-                const auto& opt_end = FindEndInstrImpl(offset + 1, end, checked_offsets);
-                const auto& opt_jmp =
+                bool opt_end = FindEndInstrImpl(offset + 1, end, checked_offsets);
+                bool opt_jmp =
                     FindEndInstrImpl(instr.flow_control.dest_offset, end, checked_offsets);
                 if (opt_end && opt_jmp) {
                     checked_offset_iter->second = true;
-                    return checked_offsets.size();
+                    return true;
                 }
-                return std::nullopt;
+                return false;
             }
             case OpCode::Id::CALL: {
-                const auto& opt = FindEndInstrImpl(instr.flow_control.dest_offset,
-                                               instr.flow_control.dest_offset +
-                                                   instr.flow_control.num_instructions,
-                                               checked_offsets);
+                bool opt = FindEndInstrImpl(instr.flow_control.dest_offset,
+                                            instr.flow_control.dest_offset +
+                                                instr.flow_control.num_instructions,
+                                            checked_offsets);
                 if (opt) {
                     checked_offset_iter->second = true;
-                    return checked_offsets.size();
+                    return true;
                 }
                 break;
             }
             case OpCode::Id::IFU:
             case OpCode::Id::IFC: {
                 if (instr.flow_control.num_instructions != 0) {
-                    const auto& opt_if =
-                        FindEndInstrImpl(offset + 1, instr.flow_control.dest_offset, checked_offsets);
-                    const auto& opt_else = FindEndInstrImpl(instr.flow_control.dest_offset,
-                                                        instr.flow_control.dest_offset +
-                                                            instr.flow_control.num_instructions,
-                                                        checked_offsets);
+                    bool opt_if = FindEndInstrImpl(offset + 1, instr.flow_control.dest_offset,
+                                                   checked_offsets);
+                    bool opt_else = FindEndInstrImpl(instr.flow_control.dest_offset,
+                                                     instr.flow_control.dest_offset +
+                                                         instr.flow_control.num_instructions,
+                                                     checked_offsets);
                     if (opt_if && opt_else) {
                         checked_offset_iter->second = true;
-                        return checked_offsets.size();
+                        return true;
                     }
                 }
                 offset = instr.flow_control.dest_offset + instr.flow_control.num_instructions - 1;
@@ -98,14 +97,18 @@ private:
             }
             };
         }
-        return std::nullopt;
+        return false;
     }
 
     std::optional<size_t> FindEndInstr(u32 begin, u32 end) {
         // first: offset
         // bool: found END
         std::map<u32, bool> checked_offsets;
-        return FindEndInstrImpl(begin, end, checked_offsets);
+        if (FindEndInstrImpl(begin, end, checked_offsets)) {
+            return checked_offsets.size();
+        } else {
+            return std::nullopt;
+        }
     }
 
 public:
