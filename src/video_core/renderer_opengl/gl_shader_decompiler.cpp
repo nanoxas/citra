@@ -134,6 +134,15 @@ private:
             return false;
         }
 
+        bool HasRecursion() const {
+            for (auto& callee : calls) {
+                if (IsCalledBy(callee.second) || callee.second->HasRecursion()) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         /// Check if this Subroutine is suitable for inlining.
         bool IsInline() const {
             if (callers.size() > 1 &&
@@ -291,6 +300,17 @@ private:
         return program_main;
     }
 
+    bool HasRecursion() {
+        for (auto& pair : subroutines) {
+            auto& subroutine = pair.second;
+            if (subroutine.HasRecursion()) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
 public:
     Impl(const std::array<u32, MAX_PROGRAM_CODE_LENGTH>& program_code,
          const std::array<u32, MAX_SWIZZLE_DATA_LENGTH>& swizzle_data, u32 main_offset,
@@ -310,21 +330,8 @@ public:
 
         auto& program_main = AnalyzeControlFlow();
 
-        std::function<bool(const Subroutine&)> is_callable = [&](const Subroutine& subroutine) {
-            for (auto& callee : subroutine.calls) {
-                if (subroutine.IsCalledBy(callee.second) || !is_callable(*callee.second)) {
-                    return false;
-                }
-            }
-            return true;
-        };
-
-        for (auto& pair : subroutines) {
-            auto& subroutine = pair.second;
-            if (!is_callable(subroutine)) {
-                return "";
-            }
-        }
+        if (HasRecursion())
+            return "";
 
         std::string shader_source;
         int scope = 0;
