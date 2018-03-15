@@ -118,6 +118,48 @@ private:
         }
     }
 
+    struct Subroutine {
+        Subroutine(u32 begin_, u32 end_) : begin(begin_), end(end_) {}
+
+        bool IsCalledBy(const Subroutine* caller, bool recursive,
+                        std::set<const Subroutine*> stack = {}) const {
+            for (auto& pair : callers) {
+                if (!stack.emplace(pair.second).second) {
+                    continue;
+                }
+                if (pair.second == caller ||
+                    (recursive && pair.second->IsCalledBy(caller, true, stack))) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        bool IsInline() const {
+            if (callers.size() > 1 &&
+                (end_instr_distance ? static_cast<u32>(*end_instr_distance) : end - begin) > 10) {
+                return false;
+            }
+            return jumps.empty();
+        };
+
+        std::string GetName() const {
+            return "sub_" + std::to_string(begin) + "_" + std::to_string(end);
+        }
+
+        u32 begin;
+        u32 end;
+
+        std::set<std::pair<u32, u32>> discovered;
+        std::optional<size_t> end_instr_distance;
+
+        using SubroutineMap = std::map<std::pair<u32, u32>, const Subroutine*>;
+        SubroutineMap branches;
+        SubroutineMap calls;
+        std::map<u32, const Subroutine*> callers;
+        std::map<u32, u32> jumps;
+    };
+
 public:
     Impl(const std::array<u32, MAX_PROGRAM_CODE_LENGTH>& program_code,
          const std::array<u32, MAX_SWIZZLE_DATA_LENGTH>& swizzle_data, u32 main_offset,
@@ -134,49 +176,6 @@ public:
         if (!FindEndInstr(main_offset, PROGRAM_END)) {
             return "";
         }
-
-        struct Subroutine {
-            Subroutine(u32 begin_, u32 end_) : begin(begin_), end(end_) {}
-
-            bool IsCalledBy(const Subroutine* caller, bool recursive,
-                            std::set<const Subroutine*> stack = {}) const {
-                for (auto& pair : callers) {
-                    if (!stack.emplace(pair.second).second) {
-                        continue;
-                    }
-                    if (pair.second == caller ||
-                        (recursive && pair.second->IsCalledBy(caller, true, stack))) {
-                        return true;
-                    }
-                }
-                return false;
-            }
-
-            bool IsInline() const {
-                if (callers.size() > 1 &&
-                    (end_instr_distance ? static_cast<u32>(*end_instr_distance) : end - begin) >
-                        10) {
-                    return false;
-                }
-                return jumps.empty();
-            };
-
-            std::string GetName() const {
-                return "sub_" + std::to_string(begin) + "_" + std::to_string(end);
-            }
-
-            u32 begin;
-            u32 end;
-
-            std::set<std::pair<u32, u32>> discovered;
-            std::optional<size_t> end_instr_distance;
-
-            using SubroutineMap = std::map<std::pair<u32, u32>, const Subroutine*>;
-            SubroutineMap branches;
-            SubroutineMap calls;
-            std::map<u32, const Subroutine*> callers;
-            std::map<u32, u32> jumps;
-        };
 
         std::map<std::pair<u32, u32>, Subroutine> subroutines;
 
