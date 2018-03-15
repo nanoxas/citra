@@ -5,9 +5,8 @@
 #include <map>
 #include <set>
 #include <string>
-#include <boost/icl/interval_set.hpp>
-#include <boost/optional.hpp>
 #include <nihstro/shader_bytecode.h>
+#include <optional>
 #include <queue>
 #include "common/assert.h"
 #include "common/common_types.h"
@@ -40,49 +39,43 @@ constexpr u32 PROGRAM_END = MAX_PROGRAM_CODE_LENGTH;
 
 class Impl {
 private:
-    boost::optional<size_t> FindEndInstr(u32 begin, u32 end, std::map<u32, bool>* checked_offsets) {
-        // first: offset
-        // bool: found END
-        std::map<u32, bool> checked_offsets_;
-        if (checked_offsets == nullptr) {
-            checked_offsets = &checked_offsets_;
-        }
-
+    std::optional<size_t> FindEndInstrImpl(u32 begin, u32 end,
+                                             std::map<u32, bool>& checked_offsets) {
         for (u32 offset = begin; offset < (begin > end ? PROGRAM_END : end); ++offset) {
             const Instruction instr = {program_code[offset]};
 
-            auto res = checked_offsets->emplace(offset, false);
-            if (!res.second) {
-                if (res.first->second) {
-                    return checked_offsets->size();
+            auto [checked_offset_iter, inserted] = checked_offsets.emplace(offset, false);
+            if (!inserted) {
+                if (checked_offset_iter->second) {
+                    return checked_offsets.size();
                 }
                 continue;
             }
 
             switch (instr.opcode.Value()) {
             case OpCode::Id::END: {
-                res.first->second = true;
-                return checked_offsets->size();
+                checked_offset_iter->second = true;
+                return checked_offsets.size();
             }
             case OpCode::Id::JMPC:
             case OpCode::Id::JMPU: {
-                const auto& opt_end = FindEndInstr(offset + 1, end, checked_offsets);
+                const auto& opt_end = FindEndInstrImpl(offset + 1, end, checked_offsets);
                 const auto& opt_jmp =
-                    FindEndInstr(instr.flow_control.dest_offset, end, checked_offsets);
+                    FindEndInstrImpl(instr.flow_control.dest_offset, end, checked_offsets);
                 if (opt_end && opt_jmp) {
-                    res.first->second = true;
-                    return checked_offsets->size();
+                    checked_offset_iter->second = true;
+                    return checked_offsets.size();
                 }
-                return boost::none;
+                return std::nullopt;
             }
             case OpCode::Id::CALL: {
-                const auto& opt = FindEndInstr(instr.flow_control.dest_offset,
+                const auto& opt = FindEndInstrImpl(instr.flow_control.dest_offset,
                                                instr.flow_control.dest_offset +
                                                    instr.flow_control.num_instructions,
                                                checked_offsets);
                 if (opt) {
-                    res.first->second = true;
-                    return checked_offsets->size();
+                    checked_offset_iter->second = true;
+                    return checked_offsets.size();
                 }
                 break;
             }
@@ -90,14 +83,14 @@ private:
             case OpCode::Id::IFC: {
                 if (instr.flow_control.num_instructions != 0) {
                     const auto& opt_if =
-                        FindEndInstr(offset + 1, instr.flow_control.dest_offset, checked_offsets);
-                    const auto& opt_else = FindEndInstr(instr.flow_control.dest_offset,
+                        FindEndInstrImpl(offset + 1, instr.flow_control.dest_offset, checked_offsets);
+                    const auto& opt_else = FindEndInstrImpl(instr.flow_control.dest_offset,
                                                         instr.flow_control.dest_offset +
                                                             instr.flow_control.num_instructions,
                                                         checked_offsets);
                     if (opt_if && opt_else) {
-                        res.first->second = true;
-                        return checked_offsets->size();
+                        checked_offset_iter->second = true;
+                        return checked_offsets.size();
                     }
                 }
                 offset = instr.flow_control.dest_offset + instr.flow_control.num_instructions - 1;
@@ -105,7 +98,14 @@ private:
             }
             };
         }
-        return boost::none;
+        return std::nullopt;
+    }
+
+    std::optional<size_t> FindEndInstr(u32 begin, u32 end) {
+        // first: offset
+        // bool: found END
+        std::map<u32, bool> checked_offsets;
+        return FindEndInstrImpl(begin, end, checked_offsets);
     }
 
 public:
@@ -121,7 +121,7 @@ public:
     std::string Decompile() {
         constexpr bool PRINT_DEBUG = true;
 
-        if (!FindEndInstr(main_offset, PROGRAM_END, {})) {
+        if (!FindEndInstr(main_offset, PROGRAM_END)) {
             return "";
         }
 
@@ -159,7 +159,7 @@ public:
             u32 end;
 
             std::set<std::pair<u32, u32>> discovered;
-            boost::optional<size_t> end_instr_distance;
+            std::optional<size_t> end_instr_distance;
 
             using SubroutineMap = std::map<std::pair<u32, u32>, const Subroutine*>;
             SubroutineMap branches;
@@ -175,7 +175,7 @@ public:
                 std::make_pair(std::make_pair(begin, end), Subroutine{begin, end}));
             auto& sub = res.first->second;
             if (res.second) {
-                res.first->second.end_instr_distance = FindEndInstr(sub.begin, sub.end, {});
+                res.first->second.end_instr_distance = FindEndInstr(sub.begin, sub.end);
             }
             return sub;
         };
@@ -869,7 +869,7 @@ public:
                         return true;
                     }
                 }
-                return subroutine.end_instr_distance.is_initialized();
+                return subroutine.end_instr_distance.has_value();
             };
 
             if (subroutine.end_instr_distance) {
@@ -898,7 +898,7 @@ public:
 
             std::set<u32> labels;
             for (auto& jump : subroutine.jumps) {
-                const auto& opt_end = FindEndInstr(jump.second, subroutine.end, {});
+                const auto& opt_end = FindEndInstr(jump.second, subroutine.end);
                 const u32 end_dist =
                     opt_end ? static_cast<u32>(*opt_end) : subroutine.end - jump.second;
                 if (jump.second < jump.first || end_dist > 10) {
