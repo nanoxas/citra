@@ -343,11 +343,9 @@ std::string DecompileProgram(const std::array<u32, MAX_PROGRAM_CODE_LENGTH>& pro
             std::string bvec;
             if (flow_control.refx.Value() && flow_control.refy.Value()) {
                 bvec = "conditional_code";
-            }
-            else if (!flow_control.refx.Value() && !flow_control.refy.Value()) {
+            } else if (!flow_control.refx.Value() && !flow_control.refy.Value()) {
                 bvec = "not(conditional_code)";
-            }
-            else {
+            } else {
                 bvec = "bvec2(" + result_x + ", " + result_y + ")";
             }
             return and_or + "(" + bvec + ")";
@@ -428,7 +426,7 @@ std::string DecompileProgram(const std::array<u32, MAX_PROGRAM_CODE_LENGTH>& pro
         }
 
         auto set_dest = [&](const std::string& reg, const std::string& value,
-                           u32 dest_num_components, u32 value_num_components) {
+                            u32 dest_num_components, u32 value_num_components) {
             u32 dest_mask_num_components = 0;
             std::string dest_mask_swizzle = ".";
 
