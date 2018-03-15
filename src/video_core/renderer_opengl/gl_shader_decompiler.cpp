@@ -121,14 +121,12 @@ private:
     struct Subroutine {
         Subroutine(u32 begin_, u32 end_) : begin(begin_), end(end_) {}
 
-        bool IsCalledBy(const Subroutine* caller, bool recursive,
-                        std::set<const Subroutine*> stack = {}) const {
+        bool IsCalledBy(const Subroutine* caller, std::set<const Subroutine*> stack = {}) const {
             for (auto& pair : callers) {
                 if (!stack.emplace(pair.second).second) {
                     continue;
                 }
-                if (pair.second == caller ||
-                    (recursive && pair.second->IsCalledBy(caller, true, stack))) {
+                if (pair.second == caller || pair.second->IsCalledBy(caller, stack)) {
                     return true;
                 }
             }
@@ -291,7 +289,7 @@ public:
 
         std::function<bool(const Subroutine&)> is_callable = [&](const Subroutine& subroutine) {
             for (auto& callee : subroutine.calls) {
-                if (subroutine.IsCalledBy(callee.second, true) || !is_callable(*callee.second)) {
+                if (subroutine.IsCalledBy(callee.second) || !is_callable(*callee.second)) {
                     return false;
                 }
             }
