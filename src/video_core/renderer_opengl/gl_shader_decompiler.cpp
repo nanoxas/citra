@@ -153,11 +153,11 @@ private:
         std::set<std::pair<u32, u32>> discovered;
         std::optional<size_t> end_instr_distance;
 
-        using SubroutineMap = std::map<std::pair<u32, u32>, const Subroutine*>;
+        using SubroutineMap = std::map<std::pair<u32 /*begin*/, u32 /*end*/>, const Subroutine*>;
         SubroutineMap branches;
         SubroutineMap calls;
-        std::map<u32, const Subroutine*> callers;
-        std::map<u32, u32> jumps;
+        std::map<u32 /*from*/, const Subroutine*> callers;
+        std::map<u32 /*from*/, u32 /*to*/> jumps;
     };
 
     std::map<std::pair<u32, u32>, Subroutine> subroutines;
@@ -213,6 +213,7 @@ public:
                 const Instruction instr = {program_code[offset]};
                 switch (instr.opcode.Value()) {
                 case OpCode::Id::END: {
+                    // Breaks the outer for loop if the program ends
                     offset = PROGRAM_END;
                     break;
                 }
@@ -238,6 +239,7 @@ public:
                     discover_queue.emplace(sub_range.first, sub_range.second, &sub);
 
                     if (instr.opcode.Value() == OpCode::Id::CALL && sub.end_instr_distance) {
+                        // Breaks the outer for loop if the unconditial subroutine ends the program
                         offset = PROGRAM_END;
                     }
                     break;
@@ -251,6 +253,8 @@ public:
                         instr.flow_control.dest_offset + instr.flow_control.num_instructions;
                     ASSERT(else_offset > if_offset);
 
+                    // Both branches are treated as subroutine, so skips the if-else block in this
+                    // routine
                     offset = endif_offset - 1;
 
                     auto& sub_if = GetRoutine(if_offset, else_offset);
@@ -267,6 +271,7 @@ public:
                         discover_queue.emplace(else_offset, endif_offset, &sub_else);
 
                         if (sub_if.end_instr_distance && sub_else.end_instr_distance) {
+                            // Breaks the outer for loop if both branches end the program
                             offset = PROGRAM_END;
                         }
                     }
@@ -283,8 +288,15 @@ public:
                     routine->branches[sub_range] = &sub;
                     discover_queue.emplace(sub_range.first, sub_range.second, &sub);
 
+                    // The lopp block is treated as subroutine, so skips the if-else block in this
+                    // routine.
+                    // Note: the first instruction after the loop block is at dest_offset + 1 (due
+                    // to PICA design), and the next instruction to scan is at offset + 1 (due to
+                    // for loop increment). The two offset-by-one cancel each other here.
                     offset = instr.flow_control.dest_offset;
+
                     if (sub.end_instr_distance) {
+                        // Breaks the outer for loop if the loop block ends the program
                         offset = PROGRAM_END;
                     }
                     break;
