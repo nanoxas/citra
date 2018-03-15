@@ -160,6 +160,17 @@ private:
         std::map<u32, u32> jumps;
     };
 
+    std::map<std::pair<u32, u32>, Subroutine> subroutines;
+    Subroutine& GetRoutine(u32 begin, u32 end) {
+        auto res =
+            subroutines.emplace(std::make_pair(std::make_pair(begin, end), Subroutine{begin, end}));
+        auto& sub = res.first->second;
+        if (res.second) {
+            res.first->second.end_instr_distance = FindEndInstr(sub.begin, sub.end);
+        }
+        return sub;
+    }
+
 public:
     Impl(const std::array<u32, MAX_PROGRAM_CODE_LENGTH>& program_code,
          const std::array<u32, MAX_SWIZZLE_DATA_LENGTH>& swizzle_data, u32 main_offset,
@@ -177,19 +188,7 @@ public:
             return "";
         }
 
-        std::map<std::pair<u32, u32>, Subroutine> subroutines;
-
-        auto get_routine = [&](u32 begin, u32 end) -> Subroutine& {
-            auto res = subroutines.emplace(
-                std::make_pair(std::make_pair(begin, end), Subroutine{begin, end}));
-            auto& sub = res.first->second;
-            if (res.second) {
-                res.first->second.end_instr_distance = FindEndInstr(sub.begin, sub.end);
-            }
-            return sub;
-        };
-
-        auto& program_main = get_routine(main_offset, PROGRAM_END);
+        auto& program_main = GetRoutine(main_offset, PROGRAM_END);
 
         std::queue<std::tuple<u32, u32, Subroutine*>> discover_queue;
         discover_queue.emplace(main_offset, PROGRAM_END, &program_main);
@@ -227,7 +226,7 @@ public:
                                                   instr.flow_control.dest_offset +
                                                       instr.flow_control.num_instructions};
 
-                    auto& sub = get_routine(sub_range.first, sub_range.second);
+                    auto& sub = GetRoutine(sub_range.first, sub_range.second);
 
                     sub.callers.emplace(offset, routine);
                     routine->calls[sub_range] = &sub;
@@ -249,14 +248,14 @@ public:
 
                     offset = endif_offset - 1;
 
-                    auto& sub_if = get_routine(if_offset, else_offset);
+                    auto& sub_if = GetRoutine(if_offset, else_offset);
 
                     sub_if.callers.emplace(offset, routine);
                     routine->branches[{if_offset, else_offset}] = &sub_if;
                     discover_queue.emplace(if_offset, else_offset, &sub_if);
 
                     if (instr.flow_control.num_instructions != 0) {
-                        auto& sub_else = get_routine(else_offset, endif_offset);
+                        auto& sub_else = GetRoutine(else_offset, endif_offset);
 
                         sub_else.callers.emplace(offset, routine);
                         routine->branches[{else_offset, endif_offset}] = &sub_else;
@@ -273,7 +272,7 @@ public:
                     std::pair<u32, u32> sub_range{offset + 1, instr.flow_control.dest_offset + 1};
                     ASSERT(sub_range.second > sub_range.first);
 
-                    auto& sub = get_routine(sub_range.first, sub_range.second);
+                    auto& sub = GetRoutine(sub_range.first, sub_range.second);
 
                     sub.callers.emplace(offset, routine);
                     routine->branches[sub_range] = &sub;
@@ -733,9 +732,9 @@ public:
                     add_line(condition.empty() ? "{" : "if (" + condition + ") {");
                     ++scope;
 
-                    auto& call_sub = get_routine(instr.flow_control.dest_offset,
-                                                 instr.flow_control.dest_offset +
-                                                     instr.flow_control.num_instructions);
+                    auto& call_sub = GetRoutine(instr.flow_control.dest_offset,
+                                                instr.flow_control.dest_offset +
+                                                    instr.flow_control.num_instructions);
 
                     call_subroutine(call_sub);
                     if (instr.opcode.Value() == OpCode::Id::CALL && call_sub.end_instr_distance) {
@@ -768,7 +767,7 @@ public:
                     add_line("if (" + condition + ") {");
                     ++scope;
 
-                    auto& if_sub = get_routine(if_offset, else_offset);
+                    auto& if_sub = GetRoutine(if_offset, else_offset);
                     call_subroutine(if_sub);
                     offset = else_offset - 1;
 
@@ -777,7 +776,7 @@ public:
                         add_line("} else {");
                         ++scope;
 
-                        auto& else_sub = get_routine(else_offset, endif_offset);
+                        auto& else_sub = GetRoutine(else_offset, endif_offset);
                         call_subroutine(else_sub);
                         offset = endif_offset - 1;
 
@@ -807,7 +806,7 @@ public:
                              loop_var + ") {");
                     ++scope;
 
-                    auto& loop_sub = get_routine(offset + 1, instr.flow_control.dest_offset + 1);
+                    auto& loop_sub = GetRoutine(offset + 1, instr.flow_control.dest_offset + 1);
                     call_subroutine(loop_sub);
                     offset = instr.flow_control.dest_offset;
 
