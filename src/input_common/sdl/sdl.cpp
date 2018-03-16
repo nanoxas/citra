@@ -29,6 +29,7 @@ class SDLJoystick;
 class SDLButtonFactory;
 class SDLAnalogFactory;
 // static std::unordered_map<, std::weak_ptr<SDLJoystick>> joystick_list;
+// static std::unordered_map<int, std::weak_ptr<SDLJoystick>> joystick_list;
 
 // Maps controller GUIDs to the first seen controller for this. When a controller is added, it will
 // be opened and added to this list. If a SDLJoystick does not have a valid instance id, it will try
@@ -38,6 +39,29 @@ class SDLAnalogFactory;
 // static std::atomic_bool running = false;
 // static std::future<void> event_polling_thread;
 // static u32 flags;
+
+// static std::unordered_map<SDL_JoystickGUID, SDL_JoystickID> joystick_map;
+// static std::mutex joystick_map_lock;
+// static std::atomic_bool running = false;
+// static std::future<void> event_polling_thread;
+// static u32 flags;
+
+// static void PollingThread(std::atomic_bool& running) {
+//     while (running) {
+//         SDL_Event dummy;
+//         while (SDL_PollEvent(&dummy))
+//             ;
+//     }
+// }
+
+// // Find the first port that has a controller with the expected guid
+// static SDL_JoystickID GetJoystickByGUID(SDL_JoystickGUID guid) {
+//     for (int i = 0; i < SDL_NumJoysticks(); ++i) {
+//         if (std::memcmp(&SDL_JoystickGetDeviceGUID(i), &guid, sizeof(SDL_JoystickGUID) == 0)) {
+//             return joystick_map[guid];
+//         }
+//     }
+//     return -1;
 
 constexpr s32 INVALID_DEVICE_ID = 0;
 static std::weak_ptr<State::JoystickMap> joystick_map;
