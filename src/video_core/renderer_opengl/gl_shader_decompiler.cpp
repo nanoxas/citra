@@ -3,9 +3,9 @@
 // Refer to the license.txt file included.
 
 #include <map>
-#include <optional>
 #include <set>
 #include <string>
+#include <boost/optional.hpp>
 #include <nihstro/shader_bytecode.h>
 #include <queue>
 #include "common/assert.h"
@@ -105,16 +105,16 @@ private:
      * @param begin the code starting point.
      * @end the farest point to search for "end" instructions.
      * @return the total number instructions covered. If there is a code path not reaching an "end"
-     *     instruction, the return value is std::nullopt.
+     *     instruction, the return value is boost::none.
      */
-    std::optional<size_t> FindEndInstr(u32 begin, u32 end) {
+    boost::optional<size_t> FindEndInstr(u32 begin, u32 end) {
         // first: offset
         // bool: found END
         std::map<u32, bool> checked_offsets;
         if (FindEndInstrImpl(begin, end, checked_offsets)) {
             return checked_offsets.size();
         } else {
-            return std::nullopt;
+            return boost::none;
         }
     }
 
@@ -160,7 +160,7 @@ private:
         u32 end;
 
         std::set<std::pair<u32, u32>> discovered;
-        std::optional<size_t> end_instr_distance;
+        boost::optional<size_t> end_instr_distance;
 
         using SubroutineMap = std::map<std::pair<u32 /*begin*/, u32 /*end*/>, const Subroutine*>;
         SubroutineMap branches;
@@ -908,7 +908,7 @@ public:
                         return true;
                     }
                 }
-                return subroutine.end_instr_distance.has_value();
+                return subroutine.end_instr_distance.is_initialized();
             };
 
             if (subroutine.end_instr_distance) {
