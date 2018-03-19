@@ -548,18 +548,12 @@ public:
                 }
 
                 case OpCode::Id::MAX: {
-                    set_dest(dest_reg,
-                             "mix(" + src2 + ", " + src1 + ", greaterThan(" + src1 + ", " + src2 +
-                                 "))",
-                             4, 4);
+                    set_dest(dest_reg, "max(" + src1 + ", " + src2 + ")", 4, 4);
                     break;
                 }
 
                 case OpCode::Id::MIN: {
-                    set_dest(dest_reg,
-                             "mix(" + src2 + ", " + src1 + ", lessThan(" + src1 + ", " + src2 +
-                                 "))",
-                             4, 4);
+                    set_dest(dest_reg, "min(" + src1 + ", " + src2 + ")", 4, 4);
                     break;
                 }
 
@@ -613,18 +607,13 @@ public:
 
                 case OpCode::Id::SGE:
                 case OpCode::Id::SGEI: {
-                    set_dest(dest_reg,
-                             "mix(vec4(0.0), vec4(1.0), greaterThanEqual(" + src1 + "," + src2 +
-                                 "))",
-                             4, 4);
+                    set_dest(dest_reg, "vec4(greaterThanEqual(" + src1 + "," + src2 + "))", 4, 4);
                     break;
                 }
 
                 case OpCode::Id::SLT:
                 case OpCode::Id::SLTI: {
-                    set_dest(dest_reg,
-                             "mix(vec4(0.0), vec4(1.0), lessThan(" + src1 + "," + src2 + "))", 4,
-                             4);
+                    set_dest(dest_reg, "vec4(lessThan(" + src1 + "," + src2 + "))", 4, 4);
                     break;
                 }
 
