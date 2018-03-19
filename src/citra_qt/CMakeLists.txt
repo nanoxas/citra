@@ -70,9 +70,9 @@ add_executable(citra-qt
 )
 
 set(UIS
-    configuration/configure.ui
     configuration/configure_audio.ui
     configuration/configure_debug.ui
+    configuration/configure_dialog.ui
     configuration/configure_general.ui
     configuration/configure_graphics.ui
     configuration/configure_input.ui

@@ -1,0 +1,8 @@
+[Icon Theme]
+Name=dark
+Comment=Dark Theme
+Inherits=default
+Directories=48x48
+
+[48x48]
+Size=48

@@ -1,0 +1,8 @@
+[Icon Theme]
+Name=light
+Comment=Light Theme
+Inherits=default
+Directories=48x48
+
+[48x48]
+Size=48
