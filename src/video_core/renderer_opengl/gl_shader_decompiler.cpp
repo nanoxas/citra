@@ -442,7 +442,7 @@ public:
 
         std::function<u32(const Subroutine&)> call_subroutine;
 
-        auto compile_instr = [&](u32 offset, const auto& jumper_fn) -> u32 {
+        auto compile_instr = [&](u32 offset) -> u32 {
             const Instruction instr = {program_code[offset]};
 
             size_t swizzle_offset = instr.opcode.Value().GetInfo().type == OpCode::Type::MultiplyAdd
@@ -715,7 +715,8 @@ public:
 
                     add_line("if (" + condition + ") {");
                     ++scope;
-                    jumper_fn(instr.flow_control.dest_offset);
+                    add_line("{ jmp_to = " + std::to_string(instr.flow_control.dest_offset) +
+                             "u; break; }");
 
                     --scope;
                     add_line("}");
@@ -855,10 +856,10 @@ public:
             return offset + 1;
         };
 
-        auto compile_range = [&](u32 begin, u32 end, const auto& jmp_cb) -> u32 {
+        auto compile_range = [&](u32 begin, u32 end) -> u32 {
             u32 program_counter;
             for (program_counter = begin; program_counter < (begin > end ? PROGRAM_END : end);) {
-                program_counter = compile_instr(program_counter, jmp_cb);
+                program_counter = compile_instr(program_counter);
             }
             return program_counter;
         };
@@ -905,16 +906,11 @@ public:
                 labels.insert(jump.second);
             }
 
-            std::function<void(u32)> jmp_callback;
-            jmp_callback = [&](u32 offset) {
-                add_line("{ jmp_to = " + std::to_string(offset) + "u; break; }");
-            };
-
             add_line("bool " + subroutine.GetName() + "() {");
             ++scope;
 
             if (labels.empty()) {
-                if (compile_range(subroutine.begin, subroutine.end, jmp_callback) != PROGRAM_END) {
+                if (compile_range(subroutine.begin, subroutine.end) != PROGRAM_END) {
                     add_line("return false;");
                 }
             } else {
@@ -932,7 +928,7 @@ public:
                     auto next_it = labels.lower_bound(label + 1);
                     u32 next_label = next_it == labels.end() ? subroutine.end : *next_it;
 
-                    u32 compile_end = compile_range(label, next_label, jmp_callback);
+                    u32 compile_end = compile_range(label, next_label);
                     if (compile_end > next_label && compile_end != PROGRAM_END) {
                         add_line("{ jmp_to = " + std::to_string(compile_end) + "u; break; }");
                         labels.emplace(compile_end);
