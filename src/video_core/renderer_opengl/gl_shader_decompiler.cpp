@@ -804,7 +804,6 @@ private:
 
                 if (loop_sub.always_end) {
                     offset = PROGRAM_END - 1;
-                    shader.AddLine("return true;");
                 }
 
                 break;
