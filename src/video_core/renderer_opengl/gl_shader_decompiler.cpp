@@ -451,7 +451,7 @@ private:
                            instr.opcode.Value().GetInfo().name);
         }
 
-        auto set_dest = [&](const std::string& reg, const std::string& value,
+        auto set_dest = [&shader, &swizzle](const std::string& reg, const std::string& value,
                             u32 dest_num_components, u32 value_num_components) {
             u32 dest_mask_num_components = 0;
             std::string dest_mask_swizzle = ".";
@@ -845,6 +845,14 @@ private:
         return offset + 1;
     };
 
+    u32 CompileRange(ShaderWriter& shader, u32 begin, u32 end) {
+        u32 program_counter;
+        for (program_counter = begin; program_counter < (begin > end ? PROGRAM_END : end);) {
+            program_counter = CompileInstr(shader, program_counter);
+        }
+        return program_counter;
+    };
+
 public:
     Impl(const std::array<u32, MAX_PROGRAM_CODE_LENGTH>& program_code,
          const std::array<u32, MAX_SWIZZLE_DATA_LENGTH>& swizzle_data, u32 main_offset,
@@ -891,14 +899,6 @@ public:
         }
         shader.AddLine("");
 
-        auto compile_range = [&shader, this](u32 begin, u32 end) -> u32 {
-            u32 program_counter;
-            for (program_counter = begin; program_counter < (begin > end ? PROGRAM_END : end);) {
-                program_counter = CompileInstr(shader, program_counter);
-            }
-            return program_counter;
-        };
-
         shader.AddLine("bool exec_shader() {");
         ++shader.scope;
         CallSubroutine(shader, program_main);
@@ -917,7 +917,7 @@ public:
             ++shader.scope;
 
             if (labels.empty()) {
-                if (compile_range(subroutine.begin, subroutine.end) != PROGRAM_END) {
+                if (CompileRange(shader, subroutine.begin, subroutine.end) != PROGRAM_END) {
                     shader.AddLine("return false;");
                 }
             } else {
@@ -935,7 +935,7 @@ public:
                     auto next_it = labels.lower_bound(label + 1);
                     u32 next_label = next_it == labels.end() ? subroutine.end : *next_it;
 
-                    u32 compile_end = compile_range(label, next_label);
+                    u32 compile_end = CompileRange(shader, label, next_label);
                     if (compile_end > next_label && compile_end != PROGRAM_END) {
                         shader.AddLine("{ jmp_to = " + std::to_string(compile_end) + "u; break; }");
                         labels.emplace(compile_end);
