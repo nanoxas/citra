@@ -438,6 +438,413 @@ private:
         return subroutine.end;
     };
 
+    u32 CompileInstr(ShaderWriter& shader, u32 offset) {
+        const Instruction instr = {program_code[offset]};
+
+        size_t swizzle_offset = instr.opcode.Value().GetInfo().type == OpCode::Type::MultiplyAdd
+                                    ? instr.mad.operand_desc_id
+                                    : instr.common.operand_desc_id;
+        const SwizzlePattern swizzle = {swizzle_data[swizzle_offset]};
+
+        if (PRINT_DEBUG) {
+            shader.AddLine("// " + std::to_string(offset) + ": " +
+                           instr.opcode.Value().GetInfo().name);
+        }
+
+        auto set_dest = [&](const std::string& reg, const std::string& value,
+                            u32 dest_num_components, u32 value_num_components) {
+            u32 dest_mask_num_components = 0;
+            std::string dest_mask_swizzle = ".";
+
+            for (u32 i = 0; i < dest_num_components; ++i) {
+                if (swizzle.DestComponentEnabled(static_cast<int>(i))) {
+                    dest_mask_swizzle += "xyzw"[i];
+                    ++dest_mask_num_components;
+                }
+            }
+
+            if (reg.empty() || dest_mask_num_components == 0) {
+                return;
+            }
+            ASSERT(value_num_components >= dest_num_components || value_num_components == 1);
+
+            std::string dest = reg + (dest_num_components != 1 ? dest_mask_swizzle : "");
+
+            std::string src = value;
+            if (value_num_components == 1) {
+                if (dest_mask_num_components != 1) {
+                    src = "vec" + std::to_string(dest_mask_num_components) + "(" + value + ")";
+                }
+            } else if (value_num_components != dest_mask_num_components) {
+                src = "(" + value + ")" + dest_mask_swizzle;
+            }
+
+            shader.AddLine(dest + " = " + src + ";");
+        };
+
+        switch (instr.opcode.Value().GetInfo().type) {
+        case OpCode::Type::Arithmetic: {
+            const bool is_inverted =
+                (0 != (instr.opcode.Value().GetInfo().subtype & OpCode::Info::SrcInversed));
+
+            std::string src1 = swizzle.negate_src1 ? "-" : "";
+            src1 += GetSourceRegister(instr.common.GetSrc1(is_inverted),
+                                      !is_inverted * instr.common.address_register_index);
+            src1 += "." + GetSelectorSrc1(swizzle);
+
+            std::string src2 = swizzle.negate_src2 ? "-" : "";
+            src2 += GetSourceRegister(instr.common.GetSrc2(is_inverted),
+                                      is_inverted * instr.common.address_register_index);
+            src2 += "." + GetSelectorSrc2(swizzle);
+
+            std::string dest_reg =
+                (instr.common.dest.Value() < 0x10)
+                    ? outputreg_getter(static_cast<u32>(instr.common.dest.Value().GetIndex()))
+                    : (instr.common.dest.Value() < 0x20)
+                          ? "reg_tmp" + std::to_string(instr.common.dest.Value().GetIndex())
+                          : "";
+
+            switch (instr.opcode.Value().EffectiveOpCode()) {
+            case OpCode::Id::ADD: {
+                set_dest(dest_reg, src1 + " + " + src2, 4, 4);
+                break;
+            }
+
+            case OpCode::Id::MUL: {
+                if (sanitize_mul) {
+                    set_dest(dest_reg, "sanitize_mul(" + src1 + ", " + src2 + ")", 4, 4);
+                } else {
+                    set_dest(dest_reg, src1 + " * " + src2, 4, 4);
+                }
+                break;
+            }
+
+            case OpCode::Id::FLR: {
+                set_dest(dest_reg, "floor(" + src1 + ")", 4, 4);
+                break;
+            }
+
+            case OpCode::Id::MAX: {
+                set_dest(dest_reg, "max(" + src1 + ", " + src2 + ")", 4, 4);
+                break;
+            }
+
+            case OpCode::Id::MIN: {
+                set_dest(dest_reg, "min(" + src1 + ", " + src2 + ")", 4, 4);
+                break;
+            }
+
+            case OpCode::Id::DP3:
+            case OpCode::Id::DP4:
+            case OpCode::Id::DPH:
+            case OpCode::Id::DPHI: {
+                OpCode::Id opcode = instr.opcode.Value().EffectiveOpCode();
+                std::string dot;
+                if (opcode == OpCode::Id::DP3) {
+                    if (sanitize_mul) {
+                        dot = "dot(vec3(sanitize_mul(" + src1 + ", " + src2 + ")), vec3(1.0))";
+                    } else {
+                        dot = "dot(vec3(" + src1 + "), vec3(" + src2 + "))";
+                    }
+                } else {
+                    std::string src1_ = (opcode == OpCode::Id::DPH || opcode == OpCode::Id::DPHI)
+                                            ? "vec4(" + src1 + ".xyz, 1.0)"
+                                            : src1;
+                    if (sanitize_mul) {
+                        dot = "dot(sanitize_mul(" + src1_ + ", " + src2 + "), vec4(1.0))";
+                    } else {
+                        dot = "dot(" + src1 + ", " + src2 + ")";
+                    }
+                }
+
+                set_dest(dest_reg, dot, 4, 1);
+                break;
+            }
+
+            case OpCode::Id::RCP: {
+                set_dest(dest_reg, "(1.0 / " + src1 + ".x)", 4, 1);
+                break;
+            }
+
+            case OpCode::Id::RSQ: {
+                set_dest(dest_reg, "inversesqrt(" + src1 + ".x)", 4, 1);
+                break;
+            }
+
+            case OpCode::Id::MOVA: {
+                set_dest("address_registers", "ivec2(" + src1 + ")", 2, 2);
+                break;
+            }
+
+            case OpCode::Id::MOV: {
+                set_dest(dest_reg, src1, 4, 4);
+                break;
+            }
+
+            case OpCode::Id::SGE:
+            case OpCode::Id::SGEI: {
+                set_dest(dest_reg, "vec4(greaterThanEqual(" + src1 + "," + src2 + "))", 4, 4);
+                break;
+            }
+
+            case OpCode::Id::SLT:
+            case OpCode::Id::SLTI: {
+                set_dest(dest_reg, "vec4(lessThan(" + src1 + "," + src2 + "))", 4, 4);
+                break;
+            }
+
+            case OpCode::Id::CMP: {
+                using CompareOp = Instruction::Common::CompareOpType::Op;
+                const std::map<CompareOp, std::pair<std::string, std::string>> cmp_ops{
+                    {CompareOp::Equal, {"==", "equal"}},
+                    {CompareOp::NotEqual, {"!=", "notEqual"}},
+                    {CompareOp::LessThan, {"<", "lessThan"}},
+                    {CompareOp::LessEqual, {"<=", "lessThanEqual"}},
+                    {CompareOp::GreaterThan, {">", "greaterThan"}},
+                    {CompareOp::GreaterEqual, {">=", "greaterThanEqual"}}};
+
+                const CompareOp op_x = instr.common.compare_op.x.Value();
+                const CompareOp op_y = instr.common.compare_op.y.Value();
+
+                if (cmp_ops.find(op_x) == cmp_ops.end()) {
+                    LOG_ERROR(HW_GPU, "Unknown compare mode %x", static_cast<int>(op_x));
+                } else if (cmp_ops.find(op_y) == cmp_ops.end()) {
+                    LOG_ERROR(HW_GPU, "Unknown compare mode %x", static_cast<int>(op_y));
+                } else if (op_x != op_y) {
+                    shader.AddLine("conditional_code.x = " + src1 + ".x " +
+                                   cmp_ops.find(op_x)->second.first + " " + src2 + ".x;");
+                    shader.AddLine("conditional_code.y = " + src1 + ".y " +
+                                   cmp_ops.find(op_y)->second.first + " " + src2 + ".y;");
+                } else {
+                    shader.AddLine("conditional_code = " + cmp_ops.find(op_x)->second.second +
+                                   "(vec2(" + src1 + "), vec2(" + src2 + "));");
+                }
+                break;
+            }
+
+            case OpCode::Id::EX2: {
+                set_dest(dest_reg, "exp2(" + src1 + ".x)", 4, 1);
+                break;
+            }
+
+            case OpCode::Id::LG2: {
+                set_dest(dest_reg, "log2(" + src1 + ".x)", 4, 1);
+                break;
+            }
+
+            default: {
+                LOG_ERROR(HW_GPU, "Unhandled arithmetic instruction: 0x%02x (%s): 0x%08x",
+                          (int)instr.opcode.Value().EffectiveOpCode(),
+                          instr.opcode.Value().GetInfo().name, instr.hex);
+                DEBUG_ASSERT(false);
+                break;
+            }
+            }
+
+            break;
+        }
+
+        case OpCode::Type::MultiplyAdd: {
+            if ((instr.opcode.Value().EffectiveOpCode() == OpCode::Id::MAD) ||
+                (instr.opcode.Value().EffectiveOpCode() == OpCode::Id::MADI)) {
+                bool is_inverted = (instr.opcode.Value().EffectiveOpCode() == OpCode::Id::MADI);
+
+                std::string src1 = swizzle.negate_src1 ? "-" : "";
+                src1 += GetSourceRegister(instr.mad.GetSrc1(is_inverted), 0);
+                src1 += "." + GetSelectorSrc1(swizzle);
+
+                std::string src2 = swizzle.negate_src2 ? "-" : "";
+                src2 += GetSourceRegister(instr.mad.GetSrc2(is_inverted),
+                                          !is_inverted * instr.mad.address_register_index);
+                src2 += "." + GetSelectorSrc2(swizzle);
+
+                std::string src3 = swizzle.negate_src3 ? "-" : "";
+                src3 += GetSourceRegister(instr.mad.GetSrc3(is_inverted),
+                                          is_inverted * instr.mad.address_register_index);
+                src3 += "." + GetSelectorSrc3(swizzle);
+
+                std::string dest_reg =
+                    (instr.mad.dest.Value() < 0x10)
+                        ? outputreg_getter(static_cast<u32>(instr.mad.dest.Value().GetIndex()))
+                        : (instr.mad.dest.Value() < 0x20)
+                              ? "reg_tmp" + std::to_string(instr.mad.dest.Value().GetIndex())
+                              : "";
+
+                if (sanitize_mul) {
+                    set_dest(dest_reg, "sanitize_mul(" + src1 + ", " + src2 + ") + " + src3, 4, 4);
+                } else {
+                    set_dest(dest_reg, src1 + " * " + src2 + " + " + src3, 4, 4);
+                }
+            } else {
+                LOG_ERROR(HW_GPU, "Unhandled multiply-add instruction: 0x%02x (%s): 0x%08x",
+                          (int)instr.opcode.Value().EffectiveOpCode(),
+                          instr.opcode.Value().GetInfo().name, instr.hex);
+            }
+            break;
+        }
+
+        default: {
+            switch (instr.opcode.Value()) {
+            case OpCode::Id::END: {
+                shader.AddLine("return true;");
+                offset = PROGRAM_END - 1;
+                break;
+            }
+
+            case OpCode::Id::JMPC:
+            case OpCode::Id::JMPU: {
+                std::string condition;
+                if (instr.opcode.Value() == OpCode::Id::JMPC) {
+                    condition = EvaluateCondition(instr.flow_control);
+                } else {
+                    bool invert_test = instr.flow_control.num_instructions & 1;
+                    condition = (invert_test ? "!" : "") +
+                                GetUniformBool(instr.flow_control.bool_uniform_id);
+                }
+
+                shader.AddLine("if (" + condition + ") {");
+                ++shader.scope;
+                shader.AddLine("{ jmp_to = " + std::to_string(instr.flow_control.dest_offset) +
+                               "u; break; }");
+
+                --shader.scope;
+                shader.AddLine("}");
+                break;
+            }
+
+            case OpCode::Id::CALL:
+            case OpCode::Id::CALLC:
+            case OpCode::Id::CALLU: {
+                std::string condition;
+                if (instr.opcode.Value() == OpCode::Id::CALLC) {
+                    condition = EvaluateCondition(instr.flow_control);
+                } else if (instr.opcode.Value() == OpCode::Id::CALLU) {
+                    condition = GetUniformBool(instr.flow_control.bool_uniform_id);
+                }
+
+                shader.AddLine(condition.empty() ? "{" : "if (" + condition + ") {");
+                ++shader.scope;
+
+                auto& call_sub = GetRoutine(instr.flow_control.dest_offset,
+                                            instr.flow_control.dest_offset +
+                                                instr.flow_control.num_instructions);
+
+                CallSubroutine(shader, call_sub);
+                if (instr.opcode.Value() == OpCode::Id::CALL && call_sub.always_end) {
+                    offset = PROGRAM_END - 1;
+                }
+
+                --shader.scope;
+                shader.AddLine("}");
+                break;
+            }
+
+            case OpCode::Id::NOP: {
+                break;
+            }
+
+            case OpCode::Id::IFC:
+            case OpCode::Id::IFU: {
+                std::string condition;
+                if (instr.opcode.Value() == OpCode::Id::IFC) {
+                    condition = EvaluateCondition(instr.flow_control);
+                } else {
+                    condition = GetUniformBool(instr.flow_control.bool_uniform_id);
+                }
+
+                const u32 if_offset = offset + 1;
+                const u32 else_offset = instr.flow_control.dest_offset;
+                const u32 endif_offset =
+                    instr.flow_control.dest_offset + instr.flow_control.num_instructions;
+
+                shader.AddLine("if (" + condition + ") {");
+                ++shader.scope;
+
+                auto& if_sub = GetRoutine(if_offset, else_offset);
+                CallSubroutine(shader, if_sub);
+                offset = else_offset - 1;
+
+                if (instr.flow_control.num_instructions != 0) {
+                    --shader.scope;
+                    shader.AddLine("} else {");
+                    ++shader.scope;
+
+                    auto& else_sub = GetRoutine(else_offset, endif_offset);
+                    CallSubroutine(shader, else_sub);
+                    offset = endif_offset - 1;
+
+                    if (if_sub.always_end && else_sub.always_end) {
+                        offset = PROGRAM_END - 1;
+                    }
+                }
+
+                --shader.scope;
+                shader.AddLine("}");
+
+                if (offset == PROGRAM_END - 1) {
+                    shader.AddLine("return true;");
+                }
+                break;
+            }
+
+            case OpCode::Id::LOOP: {
+                std::string int_uniform =
+                    "uniforms.i[" + std::to_string(instr.flow_control.int_uniform_id) + "]";
+
+                shader.AddLine("address_registers.z = int(" + int_uniform + ".y);");
+
+                std::string loop_var = "loop" + std::to_string(offset);
+                shader.AddLine("for (uint " + loop_var + " = 0u; " + loop_var +
+                               " <= " + int_uniform + ".x; address_registers.z += int(" +
+                               int_uniform + ".z), ++" + loop_var + ") {");
+                ++shader.scope;
+
+                auto& loop_sub = GetRoutine(offset + 1, instr.flow_control.dest_offset + 1);
+                CallSubroutine(shader, loop_sub);
+                offset = instr.flow_control.dest_offset;
+
+                --shader.scope;
+                shader.AddLine("}");
+
+                if (loop_sub.always_end) {
+                    offset = PROGRAM_END - 1;
+                    shader.AddLine("return true;");
+                }
+
+                break;
+            }
+
+            case OpCode::Id::EMIT: {
+                if (!emit_cb.empty()) {
+                    shader.AddLine(emit_cb + "();");
+                }
+                break;
+            }
+
+            case OpCode::Id::SETEMIT: {
+                if (!setemit_cb.empty()) {
+                    ASSERT(instr.setemit.vertex_id < 3);
+                    shader.AddLine(setemit_cb + "(" + std::to_string(instr.setemit.vertex_id) +
+                                   "u, " + ((instr.setemit.prim_emit != 0) ? "true" : "false") +
+                                   ", " + ((instr.setemit.winding != 0) ? "true" : "false") + ");");
+                }
+                break;
+            }
+
+            default: {
+                LOG_ERROR(HW_GPU, "Unhandled instruction: 0x%02x (%s): 0x%08x",
+                          (int)instr.opcode.Value().EffectiveOpCode(),
+                          instr.opcode.Value().GetInfo().name, instr.hex);
+                break;
+            }
+            }
+
+            break;
+        }
+        }
+        return offset + 1;
+    };
+
 public:
     Impl(const std::array<u32, MAX_PROGRAM_CODE_LENGTH>& program_code,
          const std::array<u32, MAX_SWIZZLE_DATA_LENGTH>& swizzle_data, u32 main_offset,
@@ -484,420 +891,10 @@ public:
         }
         shader.AddLine("");
 
-        auto compile_instr = [&shader, this](u32 offset) -> u32 {
-            const Instruction instr = {program_code[offset]};
-
-            size_t swizzle_offset = instr.opcode.Value().GetInfo().type == OpCode::Type::MultiplyAdd
-                                        ? instr.mad.operand_desc_id
-                                        : instr.common.operand_desc_id;
-            const SwizzlePattern swizzle = {swizzle_data[swizzle_offset]};
-
-            if (PRINT_DEBUG) {
-                shader.AddLine("// " + std::to_string(offset) + ": " +
-                               instr.opcode.Value().GetInfo().name);
-            }
-
-            auto set_dest = [&](const std::string& reg, const std::string& value,
-                                u32 dest_num_components, u32 value_num_components) {
-                u32 dest_mask_num_components = 0;
-                std::string dest_mask_swizzle = ".";
-
-                for (u32 i = 0; i < dest_num_components; ++i) {
-                    if (swizzle.DestComponentEnabled(static_cast<int>(i))) {
-                        dest_mask_swizzle += "xyzw"[i];
-                        ++dest_mask_num_components;
-                    }
-                }
-
-                if (reg.empty() || dest_mask_num_components == 0) {
-                    return;
-                }
-                ASSERT(value_num_components >= dest_num_components || value_num_components == 1);
-
-                std::string dest = reg + (dest_num_components != 1 ? dest_mask_swizzle : "");
-
-                std::string src = value;
-                if (value_num_components == 1) {
-                    if (dest_mask_num_components != 1) {
-                        src = "vec" + std::to_string(dest_mask_num_components) + "(" + value + ")";
-                    }
-                } else if (value_num_components != dest_mask_num_components) {
-                    src = "(" + value + ")" + dest_mask_swizzle;
-                }
-
-                shader.AddLine(dest + " = " + src + ";");
-            };
-
-            switch (instr.opcode.Value().GetInfo().type) {
-            case OpCode::Type::Arithmetic: {
-                const bool is_inverted =
-                    (0 != (instr.opcode.Value().GetInfo().subtype & OpCode::Info::SrcInversed));
-
-                std::string src1 = swizzle.negate_src1 ? "-" : "";
-                src1 += GetSourceRegister(instr.common.GetSrc1(is_inverted),
-                                          !is_inverted * instr.common.address_register_index);
-                src1 += "." + GetSelectorSrc1(swizzle);
-
-                std::string src2 = swizzle.negate_src2 ? "-" : "";
-                src2 += GetSourceRegister(instr.common.GetSrc2(is_inverted),
-                                          is_inverted * instr.common.address_register_index);
-                src2 += "." + GetSelectorSrc2(swizzle);
-
-                std::string dest_reg =
-                    (instr.common.dest.Value() < 0x10)
-                        ? outputreg_getter(static_cast<u32>(instr.common.dest.Value().GetIndex()))
-                        : (instr.common.dest.Value() < 0x20)
-                              ? "reg_tmp" + std::to_string(instr.common.dest.Value().GetIndex())
-                              : "";
-
-                switch (instr.opcode.Value().EffectiveOpCode()) {
-                case OpCode::Id::ADD: {
-                    set_dest(dest_reg, src1 + " + " + src2, 4, 4);
-                    break;
-                }
-
-                case OpCode::Id::MUL: {
-                    if (sanitize_mul) {
-                        set_dest(dest_reg, "sanitize_mul(" + src1 + ", " + src2 + ")", 4, 4);
-                    } else {
-                        set_dest(dest_reg, src1 + " * " + src2, 4, 4);
-                    }
-                    break;
-                }
-
-                case OpCode::Id::FLR: {
-                    set_dest(dest_reg, "floor(" + src1 + ")", 4, 4);
-                    break;
-                }
-
-                case OpCode::Id::MAX: {
-                    set_dest(dest_reg, "max(" + src1 + ", " + src2 + ")", 4, 4);
-                    break;
-                }
-
-                case OpCode::Id::MIN: {
-                    set_dest(dest_reg, "min(" + src1 + ", " + src2 + ")", 4, 4);
-                    break;
-                }
-
-                case OpCode::Id::DP3:
-                case OpCode::Id::DP4:
-                case OpCode::Id::DPH:
-                case OpCode::Id::DPHI: {
-                    OpCode::Id opcode = instr.opcode.Value().EffectiveOpCode();
-                    std::string dot;
-                    if (opcode == OpCode::Id::DP3) {
-                        if (sanitize_mul) {
-                            dot = "dot(vec3(sanitize_mul(" + src1 + ", " + src2 + ")), vec3(1.0))";
-                        } else {
-                            dot = "dot(vec3(" + src1 + "), vec3(" + src2 + "))";
-                        }
-                    } else {
-                        std::string src1_ =
-                            (opcode == OpCode::Id::DPH || opcode == OpCode::Id::DPHI)
-                                ? "vec4(" + src1 + ".xyz, 1.0)"
-                                : src1;
-                        if (sanitize_mul) {
-                            dot = "dot(sanitize_mul(" + src1_ + ", " + src2 + "), vec4(1.0))";
-                        } else {
-                            dot = "dot(" + src1 + ", " + src2 + ")";
-                        }
-                    }
-
-                    set_dest(dest_reg, dot, 4, 1);
-                    break;
-                }
-
-                case OpCode::Id::RCP: {
-                    set_dest(dest_reg, "(1.0 / " + src1 + ".x)", 4, 1);
-                    break;
-                }
-
-                case OpCode::Id::RSQ: {
-                    set_dest(dest_reg, "inversesqrt(" + src1 + ".x)", 4, 1);
-                    break;
-                }
-
-                case OpCode::Id::MOVA: {
-                    set_dest("address_registers", "ivec2(" + src1 + ")", 2, 2);
-                    break;
-                }
-
-                case OpCode::Id::MOV: {
-                    set_dest(dest_reg, src1, 4, 4);
-                    break;
-                }
-
-                case OpCode::Id::SGE:
-                case OpCode::Id::SGEI: {
-                    set_dest(dest_reg, "vec4(greaterThanEqual(" + src1 + "," + src2 + "))", 4, 4);
-                    break;
-                }
-
-                case OpCode::Id::SLT:
-                case OpCode::Id::SLTI: {
-                    set_dest(dest_reg, "vec4(lessThan(" + src1 + "," + src2 + "))", 4, 4);
-                    break;
-                }
-
-                case OpCode::Id::CMP: {
-                    using CompareOp = Instruction::Common::CompareOpType::Op;
-                    const std::map<CompareOp, std::pair<std::string, std::string>> cmp_ops{
-                        {CompareOp::Equal, {"==", "equal"}},
-                        {CompareOp::NotEqual, {"!=", "notEqual"}},
-                        {CompareOp::LessThan, {"<", "lessThan"}},
-                        {CompareOp::LessEqual, {"<=", "lessThanEqual"}},
-                        {CompareOp::GreaterThan, {">", "greaterThan"}},
-                        {CompareOp::GreaterEqual, {">=", "greaterThanEqual"}}};
-
-                    const CompareOp op_x = instr.common.compare_op.x.Value();
-                    const CompareOp op_y = instr.common.compare_op.y.Value();
-
-                    if (cmp_ops.find(op_x) == cmp_ops.end()) {
-                        LOG_ERROR(HW_GPU, "Unknown compare mode %x", static_cast<int>(op_x));
-                    } else if (cmp_ops.find(op_y) == cmp_ops.end()) {
-                        LOG_ERROR(HW_GPU, "Unknown compare mode %x", static_cast<int>(op_y));
-                    } else if (op_x != op_y) {
-                        shader.AddLine("conditional_code.x = " + src1 + ".x " +
-                                       cmp_ops.find(op_x)->second.first + " " + src2 + ".x;");
-                        shader.AddLine("conditional_code.y = " + src1 + ".y " +
-                                       cmp_ops.find(op_y)->second.first + " " + src2 + ".y;");
-                    } else {
-                        shader.AddLine("conditional_code = " + cmp_ops.find(op_x)->second.second +
-                                       "(vec2(" + src1 + "), vec2(" + src2 + "));");
-                    }
-                    break;
-                }
-
-                case OpCode::Id::EX2: {
-                    set_dest(dest_reg, "exp2(" + src1 + ".x)", 4, 1);
-                    break;
-                }
-
-                case OpCode::Id::LG2: {
-                    set_dest(dest_reg, "log2(" + src1 + ".x)", 4, 1);
-                    break;
-                }
-
-                default: {
-                    LOG_ERROR(HW_GPU, "Unhandled arithmetic instruction: 0x%02x (%s): 0x%08x",
-                              (int)instr.opcode.Value().EffectiveOpCode(),
-                              instr.opcode.Value().GetInfo().name, instr.hex);
-                    DEBUG_ASSERT(false);
-                    break;
-                }
-                }
-
-                break;
-            }
-
-            case OpCode::Type::MultiplyAdd: {
-                if ((instr.opcode.Value().EffectiveOpCode() == OpCode::Id::MAD) ||
-                    (instr.opcode.Value().EffectiveOpCode() == OpCode::Id::MADI)) {
-                    bool is_inverted = (instr.opcode.Value().EffectiveOpCode() == OpCode::Id::MADI);
-
-                    std::string src1 = swizzle.negate_src1 ? "-" : "";
-                    src1 += GetSourceRegister(instr.mad.GetSrc1(is_inverted), 0);
-                    src1 += "." + GetSelectorSrc1(swizzle);
-
-                    std::string src2 = swizzle.negate_src2 ? "-" : "";
-                    src2 += GetSourceRegister(instr.mad.GetSrc2(is_inverted),
-                                              !is_inverted * instr.mad.address_register_index);
-                    src2 += "." + GetSelectorSrc2(swizzle);
-
-                    std::string src3 = swizzle.negate_src3 ? "-" : "";
-                    src3 += GetSourceRegister(instr.mad.GetSrc3(is_inverted),
-                                              is_inverted * instr.mad.address_register_index);
-                    src3 += "." + GetSelectorSrc3(swizzle);
-
-                    std::string dest_reg =
-                        (instr.mad.dest.Value() < 0x10)
-                            ? outputreg_getter(static_cast<u32>(instr.mad.dest.Value().GetIndex()))
-                            : (instr.mad.dest.Value() < 0x20)
-                                  ? "reg_tmp" + std::to_string(instr.mad.dest.Value().GetIndex())
-                                  : "";
-
-                    if (sanitize_mul) {
-                        set_dest(dest_reg, "sanitize_mul(" + src1 + ", " + src2 + ") + " + src3, 4,
-                                 4);
-                    } else {
-                        set_dest(dest_reg, src1 + " * " + src2 + " + " + src3, 4, 4);
-                    }
-                } else {
-                    LOG_ERROR(HW_GPU, "Unhandled multiply-add instruction: 0x%02x (%s): 0x%08x",
-                              (int)instr.opcode.Value().EffectiveOpCode(),
-                              instr.opcode.Value().GetInfo().name, instr.hex);
-                }
-                break;
-            }
-
-            default: {
-                switch (instr.opcode.Value()) {
-                case OpCode::Id::END: {
-                    shader.AddLine("return true;");
-                    offset = PROGRAM_END - 1;
-                    break;
-                }
-
-                case OpCode::Id::JMPC:
-                case OpCode::Id::JMPU: {
-                    std::string condition;
-                    if (instr.opcode.Value() == OpCode::Id::JMPC) {
-                        condition = EvaluateCondition(instr.flow_control);
-                    } else {
-                        bool invert_test = instr.flow_control.num_instructions & 1;
-                        condition = (invert_test ? "!" : "") +
-                                    GetUniformBool(instr.flow_control.bool_uniform_id);
-                    }
-
-                    shader.AddLine("if (" + condition + ") {");
-                    ++shader.scope;
-                    shader.AddLine("{ jmp_to = " + std::to_string(instr.flow_control.dest_offset) +
-                                   "u; break; }");
-
-                    --shader.scope;
-                    shader.AddLine("}");
-                    break;
-                }
-
-                case OpCode::Id::CALL:
-                case OpCode::Id::CALLC:
-                case OpCode::Id::CALLU: {
-                    std::string condition;
-                    if (instr.opcode.Value() == OpCode::Id::CALLC) {
-                        condition = EvaluateCondition(instr.flow_control);
-                    } else if (instr.opcode.Value() == OpCode::Id::CALLU) {
-                        condition = GetUniformBool(instr.flow_control.bool_uniform_id);
-                    }
-
-                    shader.AddLine(condition.empty() ? "{" : "if (" + condition + ") {");
-                    ++shader.scope;
-
-                    auto& call_sub = GetRoutine(instr.flow_control.dest_offset,
-                                                instr.flow_control.dest_offset +
-                                                    instr.flow_control.num_instructions);
-
-                    CallSubroutine(shader, call_sub);
-                    if (instr.opcode.Value() == OpCode::Id::CALL && call_sub.always_end) {
-                        offset = PROGRAM_END - 1;
-                    }
-
-                    --shader.scope;
-                    shader.AddLine("}");
-                    break;
-                }
-
-                case OpCode::Id::NOP: {
-                    break;
-                }
-
-                case OpCode::Id::IFC:
-                case OpCode::Id::IFU: {
-                    std::string condition;
-                    if (instr.opcode.Value() == OpCode::Id::IFC) {
-                        condition = EvaluateCondition(instr.flow_control);
-                    } else {
-                        condition = GetUniformBool(instr.flow_control.bool_uniform_id);
-                    }
-
-                    const u32 if_offset = offset + 1;
-                    const u32 else_offset = instr.flow_control.dest_offset;
-                    const u32 endif_offset =
-                        instr.flow_control.dest_offset + instr.flow_control.num_instructions;
-
-                    shader.AddLine("if (" + condition + ") {");
-                    ++shader.scope;
-
-                    auto& if_sub = GetRoutine(if_offset, else_offset);
-                    CallSubroutine(shader, if_sub);
-                    offset = else_offset - 1;
-
-                    if (instr.flow_control.num_instructions != 0) {
-                        --shader.scope;
-                        shader.AddLine("} else {");
-                        ++shader.scope;
-
-                        auto& else_sub = GetRoutine(else_offset, endif_offset);
-                        CallSubroutine(shader, else_sub);
-                        offset = endif_offset - 1;
-
-                        if (if_sub.always_end && else_sub.always_end) {
-                            offset = PROGRAM_END - 1;
-                        }
-                    }
-
-                    --shader.scope;
-                    shader.AddLine("}");
-
-                    if (offset == PROGRAM_END - 1) {
-                        shader.AddLine("return true;");
-                    }
-                    break;
-                }
-
-                case OpCode::Id::LOOP: {
-                    std::string int_uniform =
-                        "uniforms.i[" + std::to_string(instr.flow_control.int_uniform_id) + "]";
-
-                    shader.AddLine("address_registers.z = int(" + int_uniform + ".y);");
-
-                    std::string loop_var = "loop" + std::to_string(offset);
-                    shader.AddLine("for (uint " + loop_var + " = 0u; " + loop_var +
-                                   " <= " + int_uniform + ".x; address_registers.z += int(" +
-                                   int_uniform + ".z), ++" + loop_var + ") {");
-                    ++shader.scope;
-
-                    auto& loop_sub = GetRoutine(offset + 1, instr.flow_control.dest_offset + 1);
-                    CallSubroutine(shader, loop_sub);
-                    offset = instr.flow_control.dest_offset;
-
-                    --shader.scope;
-                    shader.AddLine("}");
-
-                    if (loop_sub.always_end) {
-                        offset = PROGRAM_END - 1;
-                        shader.AddLine("return true;");
-                    }
-
-                    break;
-                }
-
-                case OpCode::Id::EMIT: {
-                    if (!emit_cb.empty()) {
-                        shader.AddLine(emit_cb + "();");
-                    }
-                    break;
-                }
-
-                case OpCode::Id::SETEMIT: {
-                    if (!setemit_cb.empty()) {
-                        ASSERT(instr.setemit.vertex_id < 3);
-                        shader.AddLine(setemit_cb + "(" + std::to_string(instr.setemit.vertex_id) +
-                                       "u, " + ((instr.setemit.prim_emit != 0) ? "true" : "false") +
-                                       ", " + ((instr.setemit.winding != 0) ? "true" : "false") +
-                                       ");");
-                    }
-                    break;
-                }
-
-                default: {
-                    LOG_ERROR(HW_GPU, "Unhandled instruction: 0x%02x (%s): 0x%08x",
-                              (int)instr.opcode.Value().EffectiveOpCode(),
-                              instr.opcode.Value().GetInfo().name, instr.hex);
-                    break;
-                }
-                }
-
-                break;
-            }
-            }
-            return offset + 1;
-        };
-
-        auto compile_range = [&compile_instr](u32 begin, u32 end) -> u32 {
+        auto compile_range = [&shader, this](u32 begin, u32 end) -> u32 {
             u32 program_counter;
             for (program_counter = begin; program_counter < (begin > end ? PROGRAM_END : end);) {
-                program_counter = compile_instr(program_counter);
+                program_counter = CompileInstr(shader, program_counter);
             }
             return program_counter;
         };
