@@ -410,6 +410,34 @@ private:
         return "uniforms.b[" + std::to_string(index) + "]";
     };
 
+    static u32 CallSubroutine(ShaderWriter& shader, const Subroutine& subroutine) {
+        std::function<bool(const Subroutine&)> maybe_end_instr =
+            [&maybe_end_instr](const Subroutine& subroutine) -> bool {
+            for (auto& callee : subroutine.calls) {
+                if (maybe_end_instr(*callee.second)) {
+                    return true;
+                }
+            }
+            for (auto& branch : subroutine.branches) {
+                if (maybe_end_instr(*branch.second)) {
+                    return true;
+                }
+            }
+            return subroutine.always_end;
+        };
+
+        if (subroutine.always_end) {
+            shader.AddLine(subroutine.GetName() + "();");
+            shader.AddLine("return true;");
+        } else if (maybe_end_instr(subroutine)) {
+            shader.AddLine("if (" + subroutine.GetName() + "()) { return true; }");
+        } else {
+            shader.AddLine(subroutine.GetName() + "();");
+        }
+
+        return subroutine.end;
+    };
+
 public:
     Impl(const std::array<u32, MAX_PROGRAM_CODE_LENGTH>& program_code,
          const std::array<u32, MAX_SWIZZLE_DATA_LENGTH>& swizzle_data, u32 main_offset,
@@ -456,9 +484,7 @@ public:
         }
         shader.AddLine("");
 
-        std::function<u32(const Subroutine&)> call_subroutine;
-
-        auto compile_instr = [&](u32 offset) -> u32 {
+        auto compile_instr = [&shader, this](u32 offset) -> u32 {
             const Instruction instr = {program_code[offset]};
 
             size_t swizzle_offset = instr.opcode.Value().GetInfo().type == OpCode::Type::MultiplyAdd
@@ -751,7 +777,7 @@ public:
                                                 instr.flow_control.dest_offset +
                                                     instr.flow_control.num_instructions);
 
-                    call_subroutine(call_sub);
+                    CallSubroutine(shader, call_sub);
                     if (instr.opcode.Value() == OpCode::Id::CALL && call_sub.always_end) {
                         offset = PROGRAM_END - 1;
                     }
@@ -783,7 +809,7 @@ public:
                     ++shader.scope;
 
                     auto& if_sub = GetRoutine(if_offset, else_offset);
-                    call_subroutine(if_sub);
+                    CallSubroutine(shader, if_sub);
                     offset = else_offset - 1;
 
                     if (instr.flow_control.num_instructions != 0) {
@@ -792,7 +818,7 @@ public:
                         ++shader.scope;
 
                         auto& else_sub = GetRoutine(else_offset, endif_offset);
-                        call_subroutine(else_sub);
+                        CallSubroutine(shader, else_sub);
                         offset = endif_offset - 1;
 
                         if (if_sub.always_end && else_sub.always_end) {
@@ -822,7 +848,7 @@ public:
                     ++shader.scope;
 
                     auto& loop_sub = GetRoutine(offset + 1, instr.flow_control.dest_offset + 1);
-                    call_subroutine(loop_sub);
+                    CallSubroutine(shader, loop_sub);
                     offset = instr.flow_control.dest_offset;
 
                     --shader.scope;
@@ -868,7 +894,7 @@ public:
             return offset + 1;
         };
 
-        auto compile_range = [&](u32 begin, u32 end) -> u32 {
+        auto compile_range = [&compile_instr](u32 begin, u32 end) -> u32 {
             u32 program_counter;
             for (program_counter = begin; program_counter < (begin > end ? PROGRAM_END : end);) {
                 program_counter = compile_instr(program_counter);
@@ -876,37 +902,9 @@ public:
             return program_counter;
         };
 
-        call_subroutine = [&](const Subroutine& subroutine) -> u32 {
-            std::function<bool(const Subroutine&)> maybe_end_instr =
-                [&maybe_end_instr](const Subroutine& subroutine) -> bool {
-                for (auto& callee : subroutine.calls) {
-                    if (maybe_end_instr(*callee.second)) {
-                        return true;
-                    }
-                }
-                for (auto& branch : subroutine.branches) {
-                    if (maybe_end_instr(*branch.second)) {
-                        return true;
-                    }
-                }
-                return subroutine.always_end;
-            };
-
-            if (subroutine.always_end) {
-                shader.AddLine(subroutine.GetName() + "();");
-                shader.AddLine("return true;");
-            } else if (maybe_end_instr(subroutine)) {
-                shader.AddLine("if (" + subroutine.GetName() + "()) { return true; }");
-            } else {
-                shader.AddLine(subroutine.GetName() + "();");
-            }
-
-            return subroutine.end;
-        };
-
         shader.AddLine("bool exec_shader() {");
         ++shader.scope;
-        call_subroutine(program_main);
+        CallSubroutine(shader, program_main);
         --shader.scope;
         shader.AddLine("}\n");
 
