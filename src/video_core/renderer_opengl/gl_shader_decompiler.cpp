@@ -21,6 +21,35 @@ using nihstro::RegisterType;
 using nihstro::SourceRegister;
 using nihstro::SwizzlePattern;
 
+template <SwizzlePattern::Selector (SwizzlePattern::*getter)(int) const>
+std::string GetSelectorSrc(const SwizzlePattern& pattern) {
+    std::string out;
+    for (std::size_t i = 0; i < 4; ++i) {
+        switch ((pattern.*getter)(i)) {
+        case SwizzlePattern::Selector::x:
+            out += "x";
+            break;
+        case SwizzlePattern::Selector::y:
+            out += "y";
+            break;
+        case SwizzlePattern::Selector::z:
+            out += "z";
+            break;
+        case SwizzlePattern::Selector::w:
+            out += "w";
+            break;
+        default:
+            UNREACHABLE();
+            return "";
+        }
+    }
+    return out;
+}
+
+constexpr auto GetSelectorSrc1 = GetSelectorSrc<&SwizzlePattern::GetSelectorSrc1>;
+constexpr auto GetSelectorSrc2 = GetSelectorSrc<&SwizzlePattern::GetSelectorSrc2>;
+constexpr auto GetSelectorSrc3 = GetSelectorSrc<&SwizzlePattern::GetSelectorSrc3>;
+
 std::string GetCommonDeclarations() {
     return R"(
 struct pica_uniforms {
@@ -407,31 +436,6 @@ public:
         }
         add_line("");
 
-        auto selector_to_string = [](const auto& selector_getter) -> std::string {
-            std::string out;
-            for (int i = 0; i < 4; ++i) {
-                SwizzlePattern::Selector selector = selector_getter(i);
-                switch (selector) {
-                case SwizzlePattern::Selector::x:
-                    out += "x";
-                    break;
-                case SwizzlePattern::Selector::y:
-                    out += "y";
-                    break;
-                case SwizzlePattern::Selector::z:
-                    out += "z";
-                    break;
-                case SwizzlePattern::Selector::w:
-                    out += "w";
-                    break;
-                default:
-                    UNREACHABLE();
-                    return "";
-                }
-            }
-            return out;
-        };
-
         auto get_uniform_bool = [&](u32 index) -> std::string {
             if (!emit_cb.empty() && index == 15) {
                 // The uniform b15 is set to true after every geometry shader invocation.
@@ -494,14 +498,12 @@ public:
                 std::string src1 = swizzle.negate_src1 ? "-" : "";
                 src1 += GetSourceRegister(instr.common.GetSrc1(is_inverted),
                                           !is_inverted * instr.common.address_register_index);
-                src1 += "." +
-                        selector_to_string([&](int comp) { return swizzle.GetSelectorSrc1(comp); });
+                src1 += "." + GetSelectorSrc1(swizzle);
 
                 std::string src2 = swizzle.negate_src2 ? "-" : "";
                 src2 += GetSourceRegister(instr.common.GetSrc2(is_inverted),
                                           is_inverted * instr.common.address_register_index);
-                src2 += "." +
-                        selector_to_string([&](int comp) { return swizzle.GetSelectorSrc2(comp); });
+                src2 += "." + GetSelectorSrc2(swizzle);
 
                 std::string dest_reg =
                     (instr.common.dest.Value() < 0x10)
@@ -658,20 +660,17 @@ public:
 
                     std::string src1 = swizzle.negate_src1 ? "-" : "";
                     src1 += GetSourceRegister(instr.mad.GetSrc1(is_inverted), 0);
-                    src1 += "." + selector_to_string(
-                                      [&](int comp) { return swizzle.GetSelectorSrc1(comp); });
+                    src1 += "." + GetSelectorSrc1(swizzle);
 
                     std::string src2 = swizzle.negate_src2 ? "-" : "";
                     src2 += GetSourceRegister(instr.mad.GetSrc2(is_inverted),
                                               !is_inverted * instr.mad.address_register_index);
-                    src2 += "." + selector_to_string(
-                                      [&](int comp) { return swizzle.GetSelectorSrc2(comp); });
+                    src2 += "." + GetSelectorSrc2(swizzle);
 
                     std::string src3 = swizzle.negate_src3 ? "-" : "";
                     src3 += GetSourceRegister(instr.mad.GetSrc3(is_inverted),
                                               is_inverted * instr.mad.address_register_index);
-                    src3 += "." + selector_to_string(
-                                      [&](int comp) { return swizzle.GetSelectorSrc3(comp); });
+                    src3 += "." + GetSelectorSrc3(swizzle);
 
                     std::string dest_reg =
                         (instr.mad.dest.Value() < 0x10)
