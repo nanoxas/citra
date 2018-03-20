@@ -780,10 +780,6 @@ private:
 
                 --shader.scope;
                 shader.AddLine("}");
-
-                if (offset == PROGRAM_END - 1) {
-                    shader.AddLine("return true;");
-                }
                 break;
             }
 
