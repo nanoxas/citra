@@ -410,7 +410,12 @@ private:
         return "uniforms.b[" + std::to_string(index) + "]";
     };
 
-    static u32 CallSubroutine(ShaderWriter& shader, const Subroutine& subroutine) {
+    /**
+     * Adds code that calls a subroutine.
+     * @param shader a ShaderWriter object to write GLSL code.
+     * @param subroutine the subroutine to call.
+     */
+    static void CallSubroutine(ShaderWriter& shader, const Subroutine& subroutine) {
         std::function<bool(const Subroutine&)> maybe_end_instr =
             [&maybe_end_instr](const Subroutine& subroutine) -> bool {
             for (auto& callee : subroutine.calls) {
@@ -434,10 +439,16 @@ private:
         } else {
             shader.AddLine(subroutine.GetName() + "();");
         }
-
-        return subroutine.end;
     };
 
+    /**
+     * Compiles a single instruction from PICA to GLSL.
+     * @param shader a ShaderWriter object to write GLSL code.
+     * @param offset the offset of the PICA shader instruction.
+     * @return the offset of the next instruction to execute. Usually it is the current offset + 1.
+     * If the current instruction is IF or LOOP, the next instruction is after the IF or LOOP block.
+     * If the current instruction always terminates the program, returns PROGRAM_END.
+     */
     u32 CompileInstr(ShaderWriter& shader, u32 offset) {
         const Instruction instr = {program_code[offset]};
 
@@ -452,7 +463,7 @@ private:
         }
 
         auto set_dest = [&shader, &swizzle](const std::string& reg, const std::string& value,
-                            u32 dest_num_components, u32 value_num_components) {
+                                            u32 dest_num_components, u32 value_num_components) {
             u32 dest_mask_num_components = 0;
             std::string dest_mask_swizzle = ".";
 
@@ -840,6 +851,13 @@ private:
         return offset + 1;
     };
 
+    /**
+     * Compiles a range of instructions from PICA to GLSL.
+     * @param shader a ShaderWriter object to write GLSL code.
+     * @param begin the offset of the starting instruction.
+     * @param end the offset where the compilation should stop (exclusive).
+     * @return the offset of the next instruction to compile. PROGRAM_END if the program terminates.
+     */
     u32 CompileRange(ShaderWriter& shader, u32 begin, u32 end) {
         u32 program_counter;
         for (program_counter = begin; program_counter < (begin > end ? PROGRAM_END : end);) {
@@ -932,6 +950,7 @@ public:
 
                     u32 compile_end = CompileRange(shader, label, next_label);
                     if (compile_end > next_label && compile_end != PROGRAM_END) {
+                        // This happens only when there is a label inside a IF/LOOP block
                         shader.AddLine("{ jmp_to = " + std::to_string(compile_end) + "u; break; }");
                         labels.emplace(compile_end);
                     }
