@@ -5,7 +5,6 @@
 #include <map>
 #include <set>
 #include <string>
-#include <boost/optional.hpp>
 #include <nihstro/shader_bytecode.h>
 #include <queue>
 #include "common/assert.h"
@@ -103,19 +102,14 @@ private:
     /**
      * Finds if all code paths starting from a given point reach an "end" instruction.
      * @param begin the code starting point.
-     * @end the farest point to search for "end" instructions.
-     * @return the total number instructions covered. If there is a code path not reaching an "end"
-     *     instruction, the return value is boost::none.
+     * @end the farthest point to search for "end" instructions.
+     * @return whether the code path always reach an end instruction.
      */
-    boost::optional<size_t> FindEndInstr(u32 begin, u32 end) {
+    bool FindEndInstr(u32 begin, u32 end) {
         // first: offset
         // bool: found END
         std::map<u32, bool> checked_offsets;
-        if (FindEndInstrImpl(begin, end, checked_offsets)) {
-            return checked_offsets.size();
-        } else {
-            return boost::none;
-        }
+        return FindEndInstrImpl(begin, end, checked_offsets);
     }
 
     struct Subroutine {
@@ -151,7 +145,7 @@ private:
         u32 end;
 
         std::set<std::pair<u32, u32>> discovered;
-        boost::optional<size_t> end_instr_distance;
+        bool always_end;
 
         using SubroutineMap = std::map<std::pair<u32 /*begin*/, u32 /*end*/>, const Subroutine*>;
         SubroutineMap branches;
@@ -171,7 +165,7 @@ private:
             subroutines.emplace(std::make_pair(std::make_pair(begin, end), Subroutine{begin, end}));
         auto& sub = iter->second;
         if (inserted) {
-            sub.end_instr_distance = FindEndInstr(sub.begin, sub.end);
+            sub.always_end = FindEndInstr(sub.begin, sub.end);
         }
         return sub;
     }
@@ -222,7 +216,7 @@ private:
                     routine->calls[sub_range] = &sub;
                     discover_queue.emplace(sub_range.first, sub_range.second, &sub);
 
-                    if (instr.opcode.Value() == OpCode::Id::CALL && sub.end_instr_distance) {
+                    if (instr.opcode.Value() == OpCode::Id::CALL && sub.always_end) {
                         // Breaks the outer for loop if the unconditial subroutine ends the program
                         offset = PROGRAM_END;
                     }
@@ -254,7 +248,7 @@ private:
                         routine->branches[{else_offset, endif_offset}] = &sub_else;
                         discover_queue.emplace(else_offset, endif_offset, &sub_else);
 
-                        if (sub_if.end_instr_distance && sub_else.end_instr_distance) {
+                        if (sub_if.always_end && sub_else.always_end) {
                             // Breaks the outer for loop if both branches end the program
                             offset = PROGRAM_END;
                         }
@@ -279,7 +273,7 @@ private:
                     // for loop increment). The two offset-by-one cancel each other here.
                     offset = instr.flow_control.dest_offset;
 
-                    if (sub.end_instr_distance) {
+                    if (sub.always_end) {
                         // Breaks the outer for loop if the loop block ends the program
                         offset = PROGRAM_END;
                     }
@@ -746,7 +740,7 @@ public:
                                                     instr.flow_control.num_instructions);
 
                     call_subroutine(call_sub);
-                    if (instr.opcode.Value() == OpCode::Id::CALL && call_sub.end_instr_distance) {
+                    if (instr.opcode.Value() == OpCode::Id::CALL && call_sub.always_end) {
                         offset = PROGRAM_END - 1;
                     }
 
@@ -789,7 +783,7 @@ public:
                         call_subroutine(else_sub);
                         offset = endif_offset - 1;
 
-                        if (if_sub.end_instr_distance && else_sub.end_instr_distance) {
+                        if (if_sub.always_end && else_sub.always_end) {
                             offset = PROGRAM_END - 1;
                         }
                     }
@@ -822,7 +816,7 @@ public:
                     --scope;
                     add_line("}");
 
-                    if (loop_sub.end_instr_distance) {
+                    if (loop_sub.always_end) {
                         offset = PROGRAM_END - 1;
                         add_line("return true;");
                     }
@@ -882,10 +876,10 @@ public:
                         return true;
                     }
                 }
-                return subroutine.end_instr_distance.is_initialized();
+                return subroutine.always_end;
             };
 
-            if (subroutine.end_instr_distance) {
+            if (subroutine.always_end) {
                 add_line(subroutine.GetName() + "();");
                 add_line("return true;");
             } else if (maybe_end_instr(subroutine)) {
