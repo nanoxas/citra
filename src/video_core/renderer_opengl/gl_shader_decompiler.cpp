@@ -64,6 +64,27 @@ bool exec_shader();
 }
 
 constexpr u32 PROGRAM_END = MAX_PROGRAM_CODE_LENGTH;
+constexpr bool PRINT_DEBUG = true;
+
+class ShaderWriter {
+public:
+    void AddLine(const std::string& text) {
+        ASSERT(scope >= 0);
+        if (PRINT_DEBUG && !text.empty()) {
+            shader_source += std::string(static_cast<size_t>(scope) * 4, ' ');
+        }
+        shader_source += text + '\n';
+    }
+
+    std::string GetResult() const {
+        return shader_source;
+    }
+
+    int scope = 0;
+
+private:
+    std::string shader_source;
+};
 
 class Impl {
 private:
@@ -400,7 +421,6 @@ public:
           sanitize_mul(sanitize_mul), emit_cb(emit_cb), setemit_cb(setemit_cb) {}
 
     std::string Decompile() {
-        constexpr bool PRINT_DEBUG = true;
 
         if (!FindEndInstr(main_offset, PROGRAM_END)) {
             return "";
@@ -411,38 +431,30 @@ public:
         if (HasRecursion())
             return "";
 
-        std::string shader_source;
-        int scope = 0;
-        auto add_line = [&](const std::string& text) {
-            ASSERT(scope >= 0);
-            if (PRINT_DEBUG && !text.empty()) {
-                shader_source += std::string(static_cast<size_t>(scope) * 4, ' ');
-            }
-            shader_source += text + '\n';
-        };
+        ShaderWriter shader;
 
         if (sanitize_mul) {
-            add_line("vec4 sanitize_mul(vec4 lhs, vec4 rhs) {");
-            ++scope;
-            add_line("vec4 product = lhs * rhs;");
-            add_line("return mix(product, mix(mix(vec4(0.0), product, isnan(rhs)), product, "
-                     "isnan(lhs)), isnan(product));");
-            --scope;
-            add_line("}\n");
+            shader.AddLine("vec4 sanitize_mul(vec4 lhs, vec4 rhs) {");
+            ++shader.scope;
+            shader.AddLine("vec4 product = lhs * rhs;");
+            shader.AddLine("return mix(product, mix(mix(vec4(0.0), product, isnan(rhs)), product, "
+                           "isnan(lhs)), isnan(product));");
+            --shader.scope;
+            shader.AddLine("}\n");
         }
 
-        add_line("bvec2 conditional_code = bvec2(false);");
-        add_line("ivec3 address_registers = ivec3(0);");
+        shader.AddLine("bvec2 conditional_code = bvec2(false);");
+        shader.AddLine("ivec3 address_registers = ivec3(0);");
         for (int i = 0; i < 16; ++i) {
-            add_line("vec4 reg_tmp" + std::to_string(i) + " = vec4(0.0, 0.0, 0.0, 1.0);");
+            shader.AddLine("vec4 reg_tmp" + std::to_string(i) + " = vec4(0.0, 0.0, 0.0, 1.0);");
         }
-        add_line("");
+        shader.AddLine("");
 
         for (auto& pair : subroutines) {
             auto& subroutine = pair.second;
-            add_line("bool " + subroutine.GetName() + "();");
+            shader.AddLine("bool " + subroutine.GetName() + "();");
         }
-        add_line("");
+        shader.AddLine("");
 
         std::function<u32(const Subroutine&)> call_subroutine;
 
@@ -455,8 +467,8 @@ public:
             const SwizzlePattern swizzle = {swizzle_data[swizzle_offset]};
 
             if (PRINT_DEBUG) {
-                add_line("// " + std::to_string(offset) + ": " +
-                         instr.opcode.Value().GetInfo().name);
+                shader.AddLine("// " + std::to_string(offset) + ": " +
+                               instr.opcode.Value().GetInfo().name);
             }
 
             auto set_dest = [&](const std::string& reg, const std::string& value,
@@ -487,7 +499,7 @@ public:
                     src = "(" + value + ")" + dest_mask_swizzle;
                 }
 
-                add_line(dest + " = " + src + ";");
+                shader.AddLine(dest + " = " + src + ";");
             };
 
             switch (instr.opcode.Value().GetInfo().type) {
@@ -620,13 +632,13 @@ public:
                     } else if (cmp_ops.find(op_y) == cmp_ops.end()) {
                         LOG_ERROR(HW_GPU, "Unknown compare mode %x", static_cast<int>(op_y));
                     } else if (op_x != op_y) {
-                        add_line("conditional_code.x = " + src1 + ".x " +
-                                 cmp_ops.find(op_x)->second.first + " " + src2 + ".x;");
-                        add_line("conditional_code.y = " + src1 + ".y " +
-                                 cmp_ops.find(op_y)->second.first + " " + src2 + ".y;");
+                        shader.AddLine("conditional_code.x = " + src1 + ".x " +
+                                       cmp_ops.find(op_x)->second.first + " " + src2 + ".x;");
+                        shader.AddLine("conditional_code.y = " + src1 + ".y " +
+                                       cmp_ops.find(op_y)->second.first + " " + src2 + ".y;");
                     } else {
-                        add_line("conditional_code = " + cmp_ops.find(op_x)->second.second +
-                                 "(vec2(" + src1 + "), vec2(" + src2 + "));");
+                        shader.AddLine("conditional_code = " + cmp_ops.find(op_x)->second.second +
+                                       "(vec2(" + src1 + "), vec2(" + src2 + "));");
                     }
                     break;
                 }
@@ -696,7 +708,7 @@ public:
             default: {
                 switch (instr.opcode.Value()) {
                 case OpCode::Id::END: {
-                    add_line("return true;");
+                    shader.AddLine("return true;");
                     offset = PROGRAM_END - 1;
                     break;
                 }
@@ -712,13 +724,13 @@ public:
                                     GetUniformBool(instr.flow_control.bool_uniform_id);
                     }
 
-                    add_line("if (" + condition + ") {");
-                    ++scope;
-                    add_line("{ jmp_to = " + std::to_string(instr.flow_control.dest_offset) +
-                             "u; break; }");
+                    shader.AddLine("if (" + condition + ") {");
+                    ++shader.scope;
+                    shader.AddLine("{ jmp_to = " + std::to_string(instr.flow_control.dest_offset) +
+                                   "u; break; }");
 
-                    --scope;
-                    add_line("}");
+                    --shader.scope;
+                    shader.AddLine("}");
                     break;
                 }
 
@@ -732,8 +744,8 @@ public:
                         condition = GetUniformBool(instr.flow_control.bool_uniform_id);
                     }
 
-                    add_line(condition.empty() ? "{" : "if (" + condition + ") {");
-                    ++scope;
+                    shader.AddLine(condition.empty() ? "{" : "if (" + condition + ") {");
+                    ++shader.scope;
 
                     auto& call_sub = GetRoutine(instr.flow_control.dest_offset,
                                                 instr.flow_control.dest_offset +
@@ -744,8 +756,8 @@ public:
                         offset = PROGRAM_END - 1;
                     }
 
-                    --scope;
-                    add_line("}");
+                    --shader.scope;
+                    shader.AddLine("}");
                     break;
                 }
 
@@ -767,17 +779,17 @@ public:
                     const u32 endif_offset =
                         instr.flow_control.dest_offset + instr.flow_control.num_instructions;
 
-                    add_line("if (" + condition + ") {");
-                    ++scope;
+                    shader.AddLine("if (" + condition + ") {");
+                    ++shader.scope;
 
                     auto& if_sub = GetRoutine(if_offset, else_offset);
                     call_subroutine(if_sub);
                     offset = else_offset - 1;
 
                     if (instr.flow_control.num_instructions != 0) {
-                        --scope;
-                        add_line("} else {");
-                        ++scope;
+                        --shader.scope;
+                        shader.AddLine("} else {");
+                        ++shader.scope;
 
                         auto& else_sub = GetRoutine(else_offset, endif_offset);
                         call_subroutine(else_sub);
@@ -788,11 +800,11 @@ public:
                         }
                     }
 
-                    --scope;
-                    add_line("}");
+                    --shader.scope;
+                    shader.AddLine("}");
 
                     if (offset == PROGRAM_END - 1) {
-                        add_line("return true;");
+                        shader.AddLine("return true;");
                     }
                     break;
                 }
@@ -801,24 +813,24 @@ public:
                     std::string int_uniform =
                         "uniforms.i[" + std::to_string(instr.flow_control.int_uniform_id) + "]";
 
-                    add_line("address_registers.z = int(" + int_uniform + ".y);");
+                    shader.AddLine("address_registers.z = int(" + int_uniform + ".y);");
 
                     std::string loop_var = "loop" + std::to_string(offset);
-                    add_line("for (uint " + loop_var + " = 0u; " + loop_var + " <= " + int_uniform +
-                             ".x; address_registers.z += int(" + int_uniform + ".z), ++" +
-                             loop_var + ") {");
-                    ++scope;
+                    shader.AddLine("for (uint " + loop_var + " = 0u; " + loop_var +
+                                   " <= " + int_uniform + ".x; address_registers.z += int(" +
+                                   int_uniform + ".z), ++" + loop_var + ") {");
+                    ++shader.scope;
 
                     auto& loop_sub = GetRoutine(offset + 1, instr.flow_control.dest_offset + 1);
                     call_subroutine(loop_sub);
                     offset = instr.flow_control.dest_offset;
 
-                    --scope;
-                    add_line("}");
+                    --shader.scope;
+                    shader.AddLine("}");
 
                     if (loop_sub.always_end) {
                         offset = PROGRAM_END - 1;
-                        add_line("return true;");
+                        shader.AddLine("return true;");
                     }
 
                     break;
@@ -826,7 +838,7 @@ public:
 
                 case OpCode::Id::EMIT: {
                     if (!emit_cb.empty()) {
-                        add_line(emit_cb + "();");
+                        shader.AddLine(emit_cb + "();");
                     }
                     break;
                 }
@@ -834,9 +846,10 @@ public:
                 case OpCode::Id::SETEMIT: {
                     if (!setemit_cb.empty()) {
                         ASSERT(instr.setemit.vertex_id < 3);
-                        add_line(setemit_cb + "(" + std::to_string(instr.setemit.vertex_id) +
-                                 "u, " + ((instr.setemit.prim_emit != 0) ? "true" : "false") +
-                                 ", " + ((instr.setemit.winding != 0) ? "true" : "false") + ");");
+                        shader.AddLine(setemit_cb + "(" + std::to_string(instr.setemit.vertex_id) +
+                                       "u, " + ((instr.setemit.prim_emit != 0) ? "true" : "false") +
+                                       ", " + ((instr.setemit.winding != 0) ? "true" : "false") +
+                                       ");");
                     }
                     break;
                 }
@@ -880,22 +893,22 @@ public:
             };
 
             if (subroutine.always_end) {
-                add_line(subroutine.GetName() + "();");
-                add_line("return true;");
+                shader.AddLine(subroutine.GetName() + "();");
+                shader.AddLine("return true;");
             } else if (maybe_end_instr(subroutine)) {
-                add_line("if (" + subroutine.GetName() + "()) { return true; }");
+                shader.AddLine("if (" + subroutine.GetName() + "()) { return true; }");
             } else {
-                add_line(subroutine.GetName() + "();");
+                shader.AddLine(subroutine.GetName() + "();");
             }
 
             return subroutine.end;
         };
 
-        add_line("bool exec_shader() {");
-        ++scope;
+        shader.AddLine("bool exec_shader() {");
+        ++shader.scope;
         call_subroutine(program_main);
-        --scope;
-        add_line("}\n");
+        --shader.scope;
+        shader.AddLine("}\n");
 
         for (auto& pair : subroutines) {
             auto& subroutine = pair.second;
@@ -905,54 +918,54 @@ public:
                 labels.insert(jump.second);
             }
 
-            add_line("bool " + subroutine.GetName() + "() {");
-            ++scope;
+            shader.AddLine("bool " + subroutine.GetName() + "() {");
+            ++shader.scope;
 
             if (labels.empty()) {
                 if (compile_range(subroutine.begin, subroutine.end) != PROGRAM_END) {
-                    add_line("return false;");
+                    shader.AddLine("return false;");
                 }
             } else {
                 labels.insert(subroutine.begin);
-                add_line("uint jmp_to = " + std::to_string(subroutine.begin) + "u;");
-                add_line("while (true) {");
-                ++scope;
+                shader.AddLine("uint jmp_to = " + std::to_string(subroutine.begin) + "u;");
+                shader.AddLine("while (true) {");
+                ++shader.scope;
 
-                add_line("switch (jmp_to) {");
+                shader.AddLine("switch (jmp_to) {");
 
                 for (auto label : labels) {
-                    add_line("case " + std::to_string(label) + "u: {");
-                    ++scope;
+                    shader.AddLine("case " + std::to_string(label) + "u: {");
+                    ++shader.scope;
 
                     auto next_it = labels.lower_bound(label + 1);
                     u32 next_label = next_it == labels.end() ? subroutine.end : *next_it;
 
                     u32 compile_end = compile_range(label, next_label);
                     if (compile_end > next_label && compile_end != PROGRAM_END) {
-                        add_line("{ jmp_to = " + std::to_string(compile_end) + "u; break; }");
+                        shader.AddLine("{ jmp_to = " + std::to_string(compile_end) + "u; break; }");
                         labels.emplace(compile_end);
                     }
 
-                    --scope;
-                    add_line("}");
+                    --shader.scope;
+                    shader.AddLine("}");
                 }
 
-                add_line("default: return false;");
-                add_line("}");
+                shader.AddLine("default: return false;");
+                shader.AddLine("}");
 
-                --scope;
-                add_line("}");
+                --shader.scope;
+                shader.AddLine("}");
 
-                add_line("return false;");
+                shader.AddLine("return false;");
             }
 
-            --scope;
-            add_line("}\n");
+            --shader.scope;
+            shader.AddLine("}\n");
 
-            ASSERT(!scope);
+            ASSERT(shader.scope == 0);
         }
 
-        return shader_source;
+        return shader.GetResult();
     }
 
 private:
