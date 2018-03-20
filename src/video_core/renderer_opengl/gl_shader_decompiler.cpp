@@ -381,6 +381,14 @@ private:
         }
     };
 
+    std::string GetUniformBool(u32 index) const {
+        if (!emit_cb.empty() && index == 15) {
+            // The uniform b15 is set to true after every geometry shader invocation.
+            return "((gl_PrimitiveIDIn == 0) || uniforms.b[15])";
+        }
+        return "uniforms.b[" + std::to_string(index) + "]";
+    };
+
 public:
     Impl(const std::array<u32, MAX_PROGRAM_CODE_LENGTH>& program_code,
          const std::array<u32, MAX_SWIZZLE_DATA_LENGTH>& swizzle_data, u32 main_offset,
@@ -435,14 +443,6 @@ public:
             add_line("bool " + subroutine.GetName() + "();");
         }
         add_line("");
-
-        auto get_uniform_bool = [&](u32 index) -> std::string {
-            if (!emit_cb.empty() && index == 15) {
-                // The uniform b15 is set to true after every geometry shader invocation.
-                return "((gl_PrimitiveIDIn == 0) || uniforms.b[15])";
-            }
-            return "uniforms.b[" + std::to_string(index) + "]";
-        };
 
         std::function<u32(const Subroutine&)> call_subroutine;
 
@@ -709,7 +709,7 @@ public:
                     } else {
                         bool invert_test = instr.flow_control.num_instructions & 1;
                         condition = (invert_test ? "!" : "") +
-                                    get_uniform_bool(instr.flow_control.bool_uniform_id);
+                                    GetUniformBool(instr.flow_control.bool_uniform_id);
                     }
 
                     add_line("if (" + condition + ") {");
@@ -729,7 +729,7 @@ public:
                     if (instr.opcode.Value() == OpCode::Id::CALLC) {
                         condition = EvaluateCondition(instr.flow_control);
                     } else if (instr.opcode.Value() == OpCode::Id::CALLU) {
-                        condition = get_uniform_bool(instr.flow_control.bool_uniform_id);
+                        condition = GetUniformBool(instr.flow_control.bool_uniform_id);
                     }
 
                     add_line(condition.empty() ? "{" : "if (" + condition + ") {");
@@ -759,7 +759,7 @@ public:
                     if (instr.opcode.Value() == OpCode::Id::IFC) {
                         condition = EvaluateCondition(instr.flow_control);
                     } else {
-                        condition = get_uniform_bool(instr.flow_control.bool_uniform_id);
+                        condition = GetUniformBool(instr.flow_control.bool_uniform_id);
                     }
 
                     const u32 if_offset = offset + 1;
