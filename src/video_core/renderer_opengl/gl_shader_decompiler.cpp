@@ -143,15 +143,6 @@ private:
             return false;
         }
 
-        /// Check if this Subroutine is suitable for inlining.
-        bool IsInline() const {
-            if (callers.size() > 1 &&
-                (end_instr_distance ? static_cast<u32>(*end_instr_distance) : end - begin) > 10) {
-                return false;
-            }
-            return jumps.empty();
-        };
-
         std::string GetName() const {
             return "sub_" + std::to_string(begin) + "_" + std::to_string(end);
         }
@@ -418,9 +409,7 @@ public:
 
         for (auto& pair : subroutines) {
             auto& subroutine = pair.second;
-            if (!subroutine.IsInline()) {
-                add_line("bool " + subroutine.GetName() + "();");
-            }
+            add_line("bool " + subroutine.GetName() + "();");
         }
         add_line("");
 
@@ -881,10 +870,6 @@ public:
         };
 
         call_subroutine = [&](const Subroutine& subroutine) -> u32 {
-            if (subroutine.IsInline()) {
-                return compile_range(subroutine.begin, subroutine.end, [](u32) { UNREACHABLE(); });
-            }
-
             std::function<bool(const Subroutine&)> maybe_end_instr =
                 [&maybe_end_instr](const Subroutine& subroutine) -> bool {
                 for (auto& callee : subroutine.calls) {
@@ -920,29 +905,15 @@ public:
 
         for (auto& pair : subroutines) {
             auto& subroutine = pair.second;
-            if (subroutine.IsInline()) {
-                continue;
-            }
 
             std::set<u32> labels;
             for (auto& jump : subroutine.jumps) {
-                const auto& opt_end = FindEndInstr(jump.second, subroutine.end);
-                const u32 end_dist =
-                    opt_end ? static_cast<u32>(*opt_end) : subroutine.end - jump.second;
-                if (jump.second < jump.first || end_dist > 10) {
-                    labels.insert(jump.second);
-                }
+                labels.insert(jump.second);
             }
 
             std::function<void(u32)> jmp_callback;
             jmp_callback = [&](u32 offset) {
-                if (labels.find(offset) == labels.end()) {
-                    if (compile_range(offset, subroutine.end, jmp_callback) != PROGRAM_END) {
-                        add_line("return false;");
-                    }
-                } else {
-                    add_line("{ jmp_to = " + std::to_string(offset) + "u; break; }");
-                }
+                add_line("{ jmp_to = " + std::to_string(offset) + "u; break; }");
             };
 
             add_line("bool " + subroutine.GetName() + "() {");
