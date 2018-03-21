@@ -403,7 +403,7 @@ private:
     };
 
     std::string GetUniformBool(u32 index) const {
-        if (!emit_cb.empty() && index == 15) {
+        if (is_gs && index == 15) {
             // The uniform b15 is set to true after every geometry shader invocation.
             return "((gl_PrimitiveIDIn == 0) || uniforms.b[15])";
         }
@@ -821,16 +821,16 @@ private:
             }
 
             case OpCode::Id::EMIT: {
-                if (!emit_cb.empty()) {
-                    shader.AddLine(emit_cb + "();");
+                if (is_gs) {
+                    shader.AddLine("emit();");
                 }
                 break;
             }
 
             case OpCode::Id::SETEMIT: {
-                if (!setemit_cb.empty()) {
+                if (is_gs) {
                     ASSERT(instr.setemit.vertex_id < 3);
-                    shader.AddLine(setemit_cb + "(" + std::to_string(instr.setemit.vertex_id) +
+                    shader.AddLine("setemit(" + std::to_string(instr.setemit.vertex_id) +
                                    "u, " + ((instr.setemit.prim_emit != 0) ? "true" : "false") +
                                    ", " + ((instr.setemit.winding != 0) ? "true" : "false") + ");");
                 }
@@ -871,10 +871,10 @@ public:
          const std::array<u32, MAX_SWIZZLE_DATA_LENGTH>& swizzle_data, u32 main_offset,
          const std::function<std::string(u32)>& inputreg_getter,
          const std::function<std::string(u32)>& outputreg_getter, bool sanitize_mul,
-         const std::string& emit_cb, const std::string& setemit_cb)
+         bool is_gs)
         : program_code(program_code), swizzle_data(swizzle_data), main_offset(main_offset),
           inputreg_getter(inputreg_getter), outputreg_getter(outputreg_getter),
-          sanitize_mul(sanitize_mul), emit_cb(emit_cb), setemit_cb(setemit_cb) {}
+          sanitize_mul(sanitize_mul), is_gs(is_gs) {}
 
     std::string Decompile() {
 
@@ -984,8 +984,7 @@ private:
     const std::function<std::string(u32)>& inputreg_getter;
     const std::function<std::string(u32)>& outputreg_getter;
     bool sanitize_mul;
-    const std::string& emit_cb;
-    const std::string& setemit_cb;
+    bool is_gs;
 };
 
 std::string DecompileProgram(const std::array<u32, MAX_PROGRAM_CODE_LENGTH>& program_code,
@@ -993,10 +992,9 @@ std::string DecompileProgram(const std::array<u32, MAX_PROGRAM_CODE_LENGTH>& pro
                              u32 main_offset,
                              const std::function<std::string(u32)>& inputreg_getter,
                              const std::function<std::string(u32)>& outputreg_getter,
-                             bool sanitize_mul, const std::string& emit_cb,
-                             const std::string& setemit_cb) {
+                             bool sanitize_mul, bool is_gs) {
     Impl impl(program_code, swizzle_data, main_offset, inputreg_getter, outputreg_getter,
-              sanitize_mul, emit_cb, setemit_cb);
+              sanitize_mul, is_gs);
     return impl.Decompile();
 }
 

@@ -19,8 +19,7 @@ std::string DecompileProgram(const std::array<u32, MAX_PROGRAM_CODE_LENGTH>& pro
                              u32 main_offset,
                              const std::function<std::string(u32)>& inputreg_getter,
                              const std::function<std::string(u32)>& outputreg_getter,
-                             bool sanitize_mul, const std::string& emit_cb = "",
-                             const std::string& setemit_cb = "");
+                             bool sanitize_mul, bool is_gs);
 
 } // namespace Decompiler
 } // namespace Shader
