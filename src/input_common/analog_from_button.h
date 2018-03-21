@@ -5,6 +5,7 @@
 #pragma once
 
 #include <memory>
+#include "common/factory.h"
 #include "core/frontend/input.h"
 
 namespace InputCommon {
@@ -13,7 +14,7 @@ namespace InputCommon {
  * An analog device factory that takes direction button devices and combines them into a analog
  * device.
  */
-class AnalogFromButton final : public Input::Factory<Input::AnalogDevice> {
+class AnalogFromButton final : public Common::Factory<Input::AnalogDevice> {
 public:
     /**
      * Creates an analog device from direction button devices

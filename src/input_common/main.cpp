@@ -3,6 +3,7 @@
 // Refer to the license.txt file included.
 
 #include <memory>
+#include "common/factory.h"
 #include "common/param_package.h"
 #include "input_common/analog_from_button.h"
 #include "input_common/keyboard.h"
@@ -19,11 +20,11 @@ static std::shared_ptr<MotionEmu> motion_emu;
 
 void Init() {
     keyboard = std::make_shared<Keyboard>();
-    Input::RegisterFactory<Input::ButtonDevice>("keyboard", keyboard);
-    Input::RegisterFactory<Input::AnalogDevice>("analog_from_button",
-                                                std::make_shared<AnalogFromButton>());
+    Common::RegisterFactory<Input::ButtonDevice>("keyboard", keyboard);
+    Common::RegisterFactory<Input::AnalogDevice>("analog_from_button",
+                                                 std::make_shared<AnalogFromButton>());
     motion_emu = std::make_shared<MotionEmu>();
-    Input::RegisterFactory<Input::MotionDevice>("motion_emu", motion_emu);
+    Common::RegisterFactory<Input::MotionDevice>("motion_emu", motion_emu);
 
 #ifdef HAVE_SDL2
     SDL::Init();
@@ -31,10 +32,10 @@ void Init() {
 }
 
 void Shutdown() {
-    Input::UnregisterFactory<Input::ButtonDevice>("keyboard");
+    Common::UnregisterFactory<Input::ButtonDevice>("keyboard");
     keyboard.reset();
-    Input::UnregisterFactory<Input::AnalogDevice>("analog_from_button");
-    Input::UnregisterFactory<Input::MotionDevice>("motion_emu");
+    Common::UnregisterFactory<Input::AnalogDevice>("analog_from_button");
+    Common::UnregisterFactory<Input::MotionDevice>("motion_emu");
     motion_emu.reset();
 
 #ifdef HAVE_SDL2

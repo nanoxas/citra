@@ -8,6 +8,7 @@
 #include <unordered_map>
 #include <utility>
 #include <SDL.h>
+#include "common/factory.h"
 #include "common/logging/log.h"
 #include "common/math_util.h"
 #include "common/param_package.h"
@@ -154,7 +155,7 @@ static std::shared_ptr<SDLJoystick> GetJoystick(int joystick_index) {
 }
 
 /// A button device factory that creates button devices from SDL joystick
-class SDLButtonFactory final : public Input::Factory<Input::ButtonDevice> {
+class SDLButtonFactory final : public Common::Factory<Input::ButtonDevice> {
 public:
     /**
      * Creates a button device from a joystick button
@@ -216,7 +217,7 @@ public:
 };
 
 /// An analog device factory that creates analog devices from SDL joystick
-class SDLAnalogFactory final : public Input::Factory<Input::AnalogDevice> {
+class SDLAnalogFactory final : public Common::Factory<Input::AnalogDevice> {
 public:
     /**
      * Creates analog device from joystick axes
@@ -238,8 +239,8 @@ void Init() {
         LOG_CRITICAL(Input, "SDL_Init(SDL_INIT_JOYSTICK) failed with: %s", SDL_GetError());
     } else {
         using namespace Input;
-        RegisterFactory<ButtonDevice>("sdl", std::make_shared<SDLButtonFactory>());
-        RegisterFactory<AnalogDevice>("sdl", std::make_shared<SDLAnalogFactory>());
+        Common::RegisterFactory<ButtonDevice>("sdl", std::make_shared<SDLButtonFactory>());
+        Common::RegisterFactory<AnalogDevice>("sdl", std::make_shared<SDLAnalogFactory>());
         initialized = true;
     }
 }
@@ -247,8 +248,8 @@ void Init() {
 void Shutdown() {
     if (initialized) {
         using namespace Input;
-        UnregisterFactory<ButtonDevice>("sdl");
-        UnregisterFactory<AnalogDevice>("sdl");
+        Common::UnregisterFactory<ButtonDevice>("sdl");
+        Common::UnregisterFactory<AnalogDevice>("sdl");
         SDL_QuitSubSystem(SDL_INIT_JOYSTICK);
     }
 }

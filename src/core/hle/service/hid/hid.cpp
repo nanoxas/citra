@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include "common/factory.h"
 #include "common/logging/log.h"
 #include "core/3ds.h"
 #include "core/core.h"
@@ -64,11 +65,11 @@ DirectionState GetStickDirectionState(s16 circle_pad_x, s16 circle_pad_y) {
 void Module::LoadInputDevices() {
     std::transform(Settings::values.buttons.begin() + Settings::NativeButton::BUTTON_HID_BEGIN,
                    Settings::values.buttons.begin() + Settings::NativeButton::BUTTON_HID_END,
-                   buttons.begin(), Input::CreateDevice<Input::ButtonDevice>);
-    circle_pad = Input::CreateDevice<Input::AnalogDevice>(
+                   buttons.begin(), Common::CreateDevice<Input::ButtonDevice>);
+    circle_pad = Common::CreateDevice<Input::AnalogDevice>(
         Settings::values.analogs[Settings::NativeAnalog::CirclePad]);
-    motion_device = Input::CreateDevice<Input::MotionDevice>(Settings::values.motion_device);
-    touch_device = Input::CreateDevice<Input::TouchDevice>(Settings::values.touch_device);
+    motion_device = Common::CreateDevice<Input::MotionDevice>(Settings::values.motion_device);
+    touch_device = Common::CreateDevice<Input::TouchDevice>(Settings::values.touch_device);
 }
 
 void Module::UpdatePadCallback(u64 userdata, int cycles_late) {

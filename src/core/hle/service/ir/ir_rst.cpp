@@ -2,6 +2,7 @@
 // Licensed under GPLv2 or any later version
 // Refer to the license.txt file included.
 
+#include "common/factory.h"
 #include "core/core_timing.h"
 #include "core/hle/ipc_helpers.h"
 #include "core/hle/kernel/event.h"
@@ -34,11 +35,11 @@ struct SharedMem {
 static_assert(sizeof(SharedMem) == 0x98, "SharedMem has wrong size!");
 
 void IR_RST::LoadInputDevices() {
-    zl_button = Input::CreateDevice<Input::ButtonDevice>(
+    zl_button = Common::CreateDevice<Input::ButtonDevice>(
         Settings::values.buttons[Settings::NativeButton::ZL]);
-    zr_button = Input::CreateDevice<Input::ButtonDevice>(
+    zr_button = Common::CreateDevice<Input::ButtonDevice>(
         Settings::values.buttons[Settings::NativeButton::ZR]);
-    c_stick = Input::CreateDevice<Input::AnalogDevice>(
+    c_stick = Common::CreateDevice<Input::AnalogDevice>(
         Settings::values.analogs[Settings::NativeAnalog::CStick]);
 }
 

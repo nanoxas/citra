@@ -4,11 +4,12 @@
 
 #include <cmath>
 #include <mutex>
+#include "common/factory.h"
 #include "core/frontend/emu_window.h"
 #include "core/frontend/input.h"
 #include "core/settings.h"
 
-class EmuWindow::TouchState : public Input::Factory<Input::TouchDevice>,
+class EmuWindow::TouchState : public Common::Factory<Input::TouchDevice>,
                               public std::enable_shared_from_this<TouchState> {
 public:
     std::unique_ptr<Input::TouchDevice> Create(const Common::ParamPackage&) override {
@@ -44,11 +45,11 @@ EmuWindow::EmuWindow() {
     config.min_client_area_size = std::make_pair(400u, 480u);
     active_config = config;
     touch_state = std::make_shared<TouchState>();
-    Input::RegisterFactory<Input::TouchDevice>("emu_window", touch_state);
+    Common::RegisterFactory<Input::TouchDevice>("emu_window", touch_state);
 }
 
 EmuWindow::~EmuWindow() {
-    Input::UnregisterFactory<Input::TouchDevice>("emu_window");
+    Common::UnregisterFactory<Input::TouchDevice>("emu_window");
 }
 
 /**

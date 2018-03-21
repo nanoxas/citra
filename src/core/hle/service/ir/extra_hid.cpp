@@ -3,6 +3,7 @@
 // Refer to the license.txt file included.
 
 #include "common/alignment.h"
+#include "common/factory.h"
 #include "common/string_util.h"
 #include "core/core_timing.h"
 #include "core/hle/service/ir/extra_hid.h"
@@ -262,11 +263,11 @@ void ExtraHID::RequestInputDevicesReload() {
 }
 
 void ExtraHID::LoadInputDevices() {
-    zl = Input::CreateDevice<Input::ButtonDevice>(
+    zl = Common::CreateDevice<Input::ButtonDevice>(
         Settings::values.buttons[Settings::NativeButton::ZL]);
-    zr = Input::CreateDevice<Input::ButtonDevice>(
+    zr = Common::CreateDevice<Input::ButtonDevice>(
         Settings::values.buttons[Settings::NativeButton::ZR]);
-    c_stick = Input::CreateDevice<Input::AnalogDevice>(
+    c_stick = Common::CreateDevice<Input::AnalogDevice>(
         Settings::values.analogs[Settings::NativeAnalog::CStick]);
 }
 

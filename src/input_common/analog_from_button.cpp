@@ -45,11 +45,11 @@ private:
 
 std::unique_ptr<Input::AnalogDevice> AnalogFromButton::Create(const Common::ParamPackage& params) {
     const std::string null_engine = Common::ParamPackage{{"engine", "null"}}.Serialize();
-    auto up = Input::CreateDevice<Input::ButtonDevice>(params.Get("up", null_engine));
-    auto down = Input::CreateDevice<Input::ButtonDevice>(params.Get("down", null_engine));
-    auto left = Input::CreateDevice<Input::ButtonDevice>(params.Get("left", null_engine));
-    auto right = Input::CreateDevice<Input::ButtonDevice>(params.Get("right", null_engine));
-    auto modifier = Input::CreateDevice<Input::ButtonDevice>(params.Get("modifier", null_engine));
+    auto up = Common::CreateDevice<Input::ButtonDevice>(params.Get("up", null_engine));
+    auto down = Common::CreateDevice<Input::ButtonDevice>(params.Get("down", null_engine));
+    auto left = Common::CreateDevice<Input::ButtonDevice>(params.Get("left", null_engine));
+    auto right = Common::CreateDevice<Input::ButtonDevice>(params.Get("right", null_engine));
+    auto modifier = Common::CreateDevice<Input::ButtonDevice>(params.Get("modifier", null_engine));
     auto modifier_scale = params.Get("modifier_scale", 0.5f);
     return std::make_unique<Analog>(std::move(up), std::move(down), std::move(left),
                                     std::move(right), std::move(modifier), modifier_scale);

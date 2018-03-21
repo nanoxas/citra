@@ -4,13 +4,14 @@
 
 #pragma once
 
+#include "common/factory.h"
 #include "core/frontend/input.h"
 
 namespace InputCommon {
 
 class MotionEmuDevice;
 
-class MotionEmu : public Input::Factory<Input::MotionDevice> {
+class MotionEmu : public Common::Factory<Input::MotionDevice> {
 public:
     /**
      * Creates a motion device emulated from mouse input

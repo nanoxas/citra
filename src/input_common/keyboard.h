@@ -5,6 +5,7 @@
 #pragma once
 
 #include <memory>
+#include "common/factory.h"
 #include "core/frontend/input.h"
 
 namespace InputCommon {
@@ -15,7 +16,7 @@ class KeyButtonList;
  * A button device factory representing a keyboard. It receives keyboard events and forward them
  * to all button devices it created.
  */
-class Keyboard final : public Input::Factory<Input::ButtonDevice> {
+class Keyboard final : public Common::Factory<Input::ButtonDevice> {
 public:
     Keyboard();
 
