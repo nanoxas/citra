@@ -201,7 +201,7 @@ private:
         SubroutineMap branches;
         SubroutineMap calls;
         std::map<u32 /*from*/, const Subroutine*> callers;
-        std::map<u32 /*from*/, u32 /*to*/> jumps;
+        std::set<u32> labels;
     };
 
     std::map<std::pair<u32, u32>, Subroutine> subroutines;
@@ -248,7 +248,7 @@ private:
 
                 case OpCode::Id::JMPC:
                 case OpCode::Id::JMPU: {
-                    routine->jumps[offset] = instr.flow_control.dest_offset;
+                    routine->labels.insert(instr.flow_control.dest_offset);
                     discover_queue.emplace(instr.flow_control.dest_offset, routine->end, routine);
                     break;
                 }
@@ -921,10 +921,7 @@ public:
         for (auto& pair : subroutines) {
             auto& subroutine = pair.second;
 
-            std::set<u32> labels;
-            for (auto& jump : subroutine.jumps) {
-                labels.insert(jump.second);
-            }
+            std::set<u32> labels = subroutine.labels;
 
             shader.AddLine("bool " + subroutine.GetName() + "() {");
             ++shader.scope;
