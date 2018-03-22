@@ -112,7 +112,11 @@ private:
         // This should be handled before evaluating b
         ASSERT(a != ExitMethod::AlwaysEnd);
 
-        if (a == ExitMethod::Undetermined || a == ExitMethod::AlwaysReturn) {
+        if (a == ExitMethod::Undetermined) {
+            return ExitMethod::Undetermined;
+        }
+
+        if (a == ExitMethod::AlwaysReturn) {
             return b;
         }
 
