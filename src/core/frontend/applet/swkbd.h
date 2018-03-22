@@ -57,12 +57,12 @@ struct KeyboardConfig {
         bool disable_profanity; /// Disallow profanity using Nintendo's profanity filter.
         bool enable_callback;   /// Use a callback in order to check the input.
     } filters;
-}; // namespace Frontend
+};
 
 struct KeyboardData {
     std::string text;
     u8 button;
-}
+};
 
 enum class ValidationError {
     NONE,
@@ -74,17 +74,27 @@ public:
 
 protected:
     /**
-     * Returns if the provided string breaks any of the filter rules. This is meant to be called
+     * Validates if the provided string breaks any of the filter rules. This is meant to be called
      * whenever the user input changes to check to see if the new input is valid. Frontends can
      * decide if they want to check the input continuously or once before submission
      */
     ValidationError ValidateFilters(const std::string& input);
 
     /**
+     *
+     */
+    ValidationError ValidateInput(const std::string& input);
+
+    /**
      * Verifies that the selected button is valid. This should be used as the last check before
      * closing.
      */
-    ValidationError Validate(u8 button);
+    ValidationError ValidateButton(u8 button);
+
+    /**
+     * Runs all validation phases. If successful, stores the data in
+     */
+    ValidationError Finialize(KeyboardData);
 
 private:
     KeyboardData ReceiveData() override {
