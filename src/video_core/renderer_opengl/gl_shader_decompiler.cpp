@@ -95,7 +95,7 @@ private:
         AlwaysEnd,
     };
 
-    ExitMethod ParallelExit(ExitMethod a, ExitMethod b) {
+    static ExitMethod ParallelExit(ExitMethod a, ExitMethod b) {
         if (a == ExitMethod::Undetermined) {
             ASSERT_MSG(b != ExitMethod::Undetermined, "Undetermined parellel exit");
             return b;
@@ -109,7 +109,7 @@ private:
         return ExitMethod::Conditional;
     }
 
-    ExitMethod SeriesExit(ExitMethod a, ExitMethod b) {
+    static ExitMethod SeriesExit(ExitMethod a, ExitMethod b) {
         // This should be handled before evaluating b
         ASSERT(a != ExitMethod::AlwaysEnd);
 
@@ -207,7 +207,7 @@ private:
      * Gets the Subroutine object corresponding to the specified address. If it is not in the
      * subroutine list yet, adds it to the list
      */
-    Subroutine& GetRoutine(u32 begin, u32 end) {
+    Subroutine& GetOrAddRoutine(u32 begin, u32 end) {
         auto [iter, inserted] =
             subroutines.emplace(std::make_pair(std::make_pair(begin, end), Subroutine{begin, end}));
         auto& sub = iter->second;
@@ -219,9 +219,16 @@ private:
         return sub;
     }
 
+    /**
+     * Gets the Subroutine object corresponding to the specified address.
+     */
+    const Subroutine& GetRoutine(u32 begin, u32 end) const {
+        return subroutines.at(std::make_pair(begin, end));
+    }
+
     Subroutine& AnalyzeControlFlow() {
         ASSERT(ScanExitMethod(main_offset, PROGRAM_END) == ExitMethod::AlwaysEnd);
-        auto& program_main = GetRoutine(main_offset, PROGRAM_END);
+        auto& program_main = GetOrAddRoutine(main_offset, PROGRAM_END);
 
         std::queue<std::tuple<u32, u32, Subroutine*>> discover_queue;
         discover_queue.emplace(main_offset, PROGRAM_END, &program_main);
@@ -260,7 +267,7 @@ private:
                                                   instr.flow_control.dest_offset +
                                                       instr.flow_control.num_instructions};
 
-                    auto& sub = GetRoutine(sub_range.first, sub_range.second);
+                    auto& sub = GetOrAddRoutine(sub_range.first, sub_range.second);
 
                     discover_queue.emplace(sub_range.first, sub_range.second, &sub);
 
@@ -284,12 +291,12 @@ private:
                     // routine
                     offset = endif_offset - 1;
 
-                    auto& sub_if = GetRoutine(if_offset, else_offset);
+                    auto& sub_if = GetOrAddRoutine(if_offset, else_offset);
 
                     discover_queue.emplace(if_offset, else_offset, &sub_if);
 
                     if (instr.flow_control.num_instructions != 0) {
-                        auto& sub_else = GetRoutine(else_offset, endif_offset);
+                        auto& sub_else = GetOrAddRoutine(else_offset, endif_offset);
 
                         discover_queue.emplace(else_offset, endif_offset, &sub_else);
 
@@ -306,7 +313,7 @@ private:
                     std::pair<u32, u32> sub_range{offset + 1, instr.flow_control.dest_offset + 1};
                     ASSERT(sub_range.second > sub_range.first);
 
-                    auto& sub = GetRoutine(sub_range.first, sub_range.second);
+                    auto& sub = GetOrAddRoutine(sub_range.first, sub_range.second);
 
                     discover_queue.emplace(sub_range.first, sub_range.second, &sub);
 
@@ -417,7 +424,7 @@ private:
      * If the current instruction is IF or LOOP, the next instruction is after the IF or LOOP block.
      * If the current instruction always terminates the program, returns PROGRAM_END.
      */
-    u32 CompileInstr(ShaderWriter& shader, u32 offset) {
+    u32 CompileInstr(ShaderWriter& shader, u32 offset) const {
         const Instruction instr = {program_code[offset]};
 
         size_t swizzle_offset = instr.opcode.Value().GetInfo().type == OpCode::Type::MultiplyAdd
@@ -828,7 +835,7 @@ private:
      * @param end the offset where the compilation should stop (exclusive).
      * @return the offset of the next instruction to compile. PROGRAM_END if the program terminates.
      */
-    u32 CompileRange(ShaderWriter& shader, u32 begin, u32 end) {
+    u32 CompileRange(ShaderWriter& shader, u32 begin, u32 end) const {
         u32 program_counter;
         for (program_counter = begin; program_counter < (begin > end ? PROGRAM_END : end);) {
             program_counter = CompileInstr(shader, program_counter);
