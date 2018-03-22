@@ -97,7 +97,6 @@ private:
 
     static ExitMethod ParallelExit(ExitMethod a, ExitMethod b) {
         if (a == ExitMethod::Undetermined) {
-            ASSERT_MSG(b != ExitMethod::Undetermined, "Undetermined parellel exit");
             return b;
         }
         if (b == ExitMethod::Undetermined) {
@@ -116,6 +115,11 @@ private:
         if (a == ExitMethod::Undetermined || a == ExitMethod::AlwaysReturn) {
             return b;
         }
+
+        if (b == ExitMethod::Undetermined || b == ExitMethod::AlwaysEnd) {
+            return ExitMethod::AlwaysEnd;
+        }
+
         return ExitMethod::Conditional;
     }
 
