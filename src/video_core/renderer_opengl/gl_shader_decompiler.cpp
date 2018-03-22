@@ -88,6 +88,101 @@ private:
 
 class Impl {
 private:
+    enum class ExitMethod {
+        Undetermined,
+        AlwaysReturn,
+        Conditional,
+        AlwaysEnd,
+    };
+
+    ExitMethod ParallelExit(ExitMethod a, ExitMethod b) {
+        if (a == ExitMethod::Undetermined) {
+            ASSERT_MSG(b != ExitMethod::Undetermined, "Undetermined parellel exit");
+            return b;
+        }
+        if (b == ExitMethod::Undetermined) {
+            return a;
+        }
+        if (a == b) {
+            return a;
+        }
+        return ExitMethod::Conditional;
+    }
+
+    ExitMethod SeriesExit(ExitMethod a, ExitMethod b) {
+        // This should be handled before evaluating b
+        ASSERT(a != ExitMethod::AlwaysEnd);
+
+        if (a == ExitMethod::Undetermined || a == ExitMethod::AlwaysReturn) {
+            return b;
+        }
+        return ExitMethod::Conditional;
+    }
+
+    std::map<std::pair<u32, u32>, ExitMethod> exit_method_map;
+    ExitMethod ScanExitMethod(u32 begin, u32 end) {
+        auto [iter, inserted] =
+            exit_method_map.emplace(std::make_pair(begin, end), ExitMethod::Undetermined);
+        ExitMethod& exit_method = iter->second;
+        if (!inserted)
+            return exit_method;
+
+        u32 offset = begin;
+        for (u32 offset = begin; offset < (begin > end ? PROGRAM_END : end); ++offset) {
+            const Instruction instr = {program_code[offset]};
+            switch (instr.opcode.Value()) {
+            case OpCode::Id::END: {
+                return exit_method = ExitMethod::AlwaysEnd;
+            }
+            case OpCode::Id::JMPC:
+            case OpCode::Id::JMPU: {
+                ExitMethod no_jmp = ScanExitMethod(offset + 1, end);
+                ExitMethod jmp = ScanExitMethod(instr.flow_control.dest_offset, end);
+                return exit_method = ParallelExit(no_jmp, jmp);
+            }
+            case OpCode::Id::CALL: {
+                ExitMethod call = ScanExitMethod(instr.flow_control.dest_offset,
+                                                 instr.flow_control.dest_offset +
+                                                     instr.flow_control.num_instructions);
+                if (call == ExitMethod::AlwaysEnd)
+                    return exit_method = ExitMethod::AlwaysEnd;
+                ExitMethod after_call = ScanExitMethod(offset + 1, end);
+                return exit_method = SeriesExit(call, after_call);
+            }
+            case OpCode::Id::LOOP: {
+                ExitMethod loop = ScanExitMethod(offset + 1, instr.flow_control.dest_offset + 1);
+                if (loop == ExitMethod::AlwaysEnd)
+                    return exit_method = ExitMethod::AlwaysEnd;
+                ExitMethod after_loop = ScanExitMethod(instr.flow_control.dest_offset + 1, end);
+                return exit_method = SeriesExit(loop, after_loop);
+            }
+            case OpCode::Id::CALLC:
+            case OpCode::Id::CALLU: {
+                ExitMethod call = ScanExitMethod(instr.flow_control.dest_offset,
+                                                 instr.flow_control.dest_offset +
+                                                     instr.flow_control.num_instructions);
+                ExitMethod after_call = ScanExitMethod(offset + 1, end);
+                return exit_method =
+                           SeriesExit(ParallelExit(call, ExitMethod::AlwaysReturn), after_call);
+            }
+            case OpCode::Id::IFU:
+            case OpCode::Id::IFC: {
+                ExitMethod exit_if = ScanExitMethod(offset + 1, instr.flow_control.dest_offset);
+                ExitMethod exit_else = ScanExitMethod(instr.flow_control.dest_offset,
+                                                      instr.flow_control.dest_offset +
+                                                          instr.flow_control.num_instructions);
+                ExitMethod both = ParallelExit(exit_if, exit_else);
+                if (both == ExitMethod::AlwaysEnd)
+                    return exit_method = ExitMethod::AlwaysEnd;
+                ExitMethod after_call = ScanExitMethod(
+                    instr.flow_control.dest_offset + instr.flow_control.num_instructions, end);
+                return exit_method = SeriesExit(both, after_call);
+            }
+            }
+        }
+        return exit_method = ExitMethod::AlwaysReturn;
+    }
+
     bool FindEndInstrImpl(u32 begin, u32 end, std::map<u32, bool>& checked_offsets) {
         for (u32 offset = begin; offset < (begin > end ? PROGRAM_END : end); ++offset) {
             const Instruction instr = {program_code[offset]};
@@ -196,6 +291,7 @@ private:
 
         std::set<std::pair<u32, u32>> discovered;
         bool always_end;
+        ExitMethod exit_method;
 
         using SubroutineMap = std::map<std::pair<u32 /*begin*/, u32 /*end*/>, const Subroutine*>;
         SubroutineMap branches;
@@ -216,11 +312,14 @@ private:
         auto& sub = iter->second;
         if (inserted) {
             sub.always_end = FindEndInstr(sub.begin, sub.end);
+            sub.exit_method = exit_method_map.at(std::make_pair(begin, end));
+            ASSERT_MSG(sub.exit_method != ExitMethod::Undetermined, "Undetermined exit in subroutine");
         }
         return sub;
     }
 
     Subroutine& AnalyzeControlFlow() {
+        ScanExitMethod(main_offset, PROGRAM_END);
         auto& program_main = GetRoutine(main_offset, PROGRAM_END);
 
         std::queue<std::tuple<u32, u32, Subroutine*>> discover_queue;
@@ -432,11 +531,14 @@ private:
         };
 
         if (subroutine.always_end) {
+            ASSERT_MSG(subroutine.exit_method == ExitMethod::AlwaysEnd, "Should be AlwaysEnd");
             shader.AddLine(subroutine.GetName() + "();");
             shader.AddLine("return true;");
         } else if (maybe_end_instr(subroutine)) {
+            ASSERT_MSG(subroutine.exit_method == ExitMethod::Conditional, "Should be Conditional");
             shader.AddLine("if (" + subroutine.GetName() + "()) { return true; }");
         } else {
+            ASSERT_MSG(subroutine.exit_method == ExitMethod::AlwaysReturn, "Should be AlwaysReturn");
             shader.AddLine(subroutine.GetName() + "();");
         }
     };
@@ -830,9 +932,9 @@ private:
             case OpCode::Id::SETEMIT: {
                 if (is_gs) {
                     ASSERT(instr.setemit.vertex_id < 3);
-                    shader.AddLine("setemit(" + std::to_string(instr.setemit.vertex_id) +
-                                   "u, " + ((instr.setemit.prim_emit != 0) ? "true" : "false") +
-                                   ", " + ((instr.setemit.winding != 0) ? "true" : "false") + ");");
+                    shader.AddLine("setemit(" + std::to_string(instr.setemit.vertex_id) + "u, " +
+                                   ((instr.setemit.prim_emit != 0) ? "true" : "false") + ", " +
+                                   ((instr.setemit.winding != 0) ? "true" : "false") + ");");
                 }
                 break;
             }
@@ -870,8 +972,7 @@ public:
     Impl(const std::array<u32, MAX_PROGRAM_CODE_LENGTH>& program_code,
          const std::array<u32, MAX_SWIZZLE_DATA_LENGTH>& swizzle_data, u32 main_offset,
          const std::function<std::string(u32)>& inputreg_getter,
-         const std::function<std::string(u32)>& outputreg_getter, bool sanitize_mul,
-         bool is_gs)
+         const std::function<std::string(u32)>& outputreg_getter, bool sanitize_mul, bool is_gs)
         : program_code(program_code), swizzle_data(swizzle_data), main_offset(main_offset),
           inputreg_getter(inputreg_getter), outputreg_getter(outputreg_getter),
           sanitize_mul(sanitize_mul), is_gs(is_gs) {}
