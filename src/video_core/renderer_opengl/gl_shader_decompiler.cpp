@@ -183,80 +183,6 @@ private:
         return exit_method = ExitMethod::AlwaysReturn;
     }
 
-    bool FindEndInstrImpl(u32 begin, u32 end, std::map<u32, bool>& checked_offsets) {
-        for (u32 offset = begin; offset < (begin > end ? PROGRAM_END : end); ++offset) {
-            const Instruction instr = {program_code[offset]};
-
-            auto [checked_offset_iter, inserted] = checked_offsets.emplace(offset, false);
-            if (!inserted) {
-                if (checked_offset_iter->second) {
-                    return true;
-                }
-                continue;
-            }
-
-            switch (instr.opcode.Value()) {
-            case OpCode::Id::END: {
-                checked_offset_iter->second = true;
-                return true;
-            }
-            case OpCode::Id::JMPC:
-            case OpCode::Id::JMPU: {
-                bool opt_end = FindEndInstrImpl(offset + 1, end, checked_offsets);
-                bool opt_jmp =
-                    FindEndInstrImpl(instr.flow_control.dest_offset, end, checked_offsets);
-                if (opt_end && opt_jmp) {
-                    checked_offset_iter->second = true;
-                    return true;
-                }
-                return false;
-            }
-            case OpCode::Id::CALL: {
-                bool opt = FindEndInstrImpl(instr.flow_control.dest_offset,
-                                            instr.flow_control.dest_offset +
-                                                instr.flow_control.num_instructions,
-                                            checked_offsets);
-                if (opt) {
-                    checked_offset_iter->second = true;
-                    return true;
-                }
-                break;
-            }
-            case OpCode::Id::IFU:
-            case OpCode::Id::IFC: {
-                if (instr.flow_control.num_instructions != 0) {
-                    bool opt_if = FindEndInstrImpl(offset + 1, instr.flow_control.dest_offset,
-                                                   checked_offsets);
-                    bool opt_else = FindEndInstrImpl(instr.flow_control.dest_offset,
-                                                     instr.flow_control.dest_offset +
-                                                         instr.flow_control.num_instructions,
-                                                     checked_offsets);
-                    if (opt_if && opt_else) {
-                        checked_offset_iter->second = true;
-                        return true;
-                    }
-                }
-                offset = instr.flow_control.dest_offset + instr.flow_control.num_instructions - 1;
-                break;
-            }
-            };
-        }
-        return false;
-    }
-
-    /**
-     * Finds if all code paths starting from a given point reach an "end" instruction.
-     * @param begin the code starting point.
-     * @end the farthest point to search for "end" instructions.
-     * @return whether the code path always reach an end instruction.
-     */
-    bool FindEndInstr(u32 begin, u32 end) {
-        // first: offset
-        // bool: found END
-        std::map<u32, bool> checked_offsets;
-        return FindEndInstrImpl(begin, end, checked_offsets);
-    }
-
     struct Subroutine {
         Subroutine(u32 begin_, u32 end_) : begin(begin_), end(end_) {}
 
@@ -290,12 +216,9 @@ private:
         u32 end;
 
         std::set<std::pair<u32, u32>> discovered;
-        bool always_end;
         ExitMethod exit_method;
 
-        using SubroutineMap = std::map<std::pair<u32 /*begin*/, u32 /*end*/>, const Subroutine*>;
-        SubroutineMap branches;
-        SubroutineMap calls;
+        std::map<std::pair<u32 /*begin*/, u32 /*end*/>, const Subroutine*> calls;
         std::map<u32 /*from*/, const Subroutine*> callers;
         std::set<u32> labels;
     };
@@ -311,7 +234,6 @@ private:
             subroutines.emplace(std::make_pair(std::make_pair(begin, end), Subroutine{begin, end}));
         auto& sub = iter->second;
         if (inserted) {
-            sub.always_end = FindEndInstr(sub.begin, sub.end);
             sub.exit_method = exit_method_map.at(std::make_pair(begin, end));
             ASSERT_MSG(sub.exit_method != ExitMethod::Undetermined, "Undetermined exit in subroutine");
         }
@@ -319,7 +241,7 @@ private:
     }
 
     Subroutine& AnalyzeControlFlow() {
-        ScanExitMethod(main_offset, PROGRAM_END);
+        ASSERT(ScanExitMethod(main_offset, PROGRAM_END) == ExitMethod::AlwaysEnd);
         auto& program_main = GetRoutine(main_offset, PROGRAM_END);
 
         std::queue<std::tuple<u32, u32, Subroutine*>> discover_queue;
@@ -365,7 +287,7 @@ private:
                     routine->calls[sub_range] = &sub;
                     discover_queue.emplace(sub_range.first, sub_range.second, &sub);
 
-                    if (instr.opcode.Value() == OpCode::Id::CALL && sub.always_end) {
+                    if (instr.opcode.Value() == OpCode::Id::CALL && sub.exit_method == ExitMethod::AlwaysEnd) {
                         // Breaks the outer for loop if the unconditial subroutine ends the program
                         offset = PROGRAM_END;
                     }
@@ -387,17 +309,15 @@ private:
                     auto& sub_if = GetRoutine(if_offset, else_offset);
 
                     sub_if.callers.emplace(offset, routine);
-                    routine->branches[{if_offset, else_offset}] = &sub_if;
                     discover_queue.emplace(if_offset, else_offset, &sub_if);
 
                     if (instr.flow_control.num_instructions != 0) {
                         auto& sub_else = GetRoutine(else_offset, endif_offset);
 
                         sub_else.callers.emplace(offset, routine);
-                        routine->branches[{else_offset, endif_offset}] = &sub_else;
                         discover_queue.emplace(else_offset, endif_offset, &sub_else);
 
-                        if (sub_if.always_end && sub_else.always_end) {
+                        if (sub_if.exit_method == ExitMethod::AlwaysEnd && sub_else.exit_method == ExitMethod::AlwaysEnd) {
                             // Breaks the outer for loop if both branches end the program
                             offset = PROGRAM_END;
                         }
@@ -412,7 +332,6 @@ private:
                     auto& sub = GetRoutine(sub_range.first, sub_range.second);
 
                     sub.callers.emplace(offset, routine);
-                    routine->branches[sub_range] = &sub;
                     discover_queue.emplace(sub_range.first, sub_range.second, &sub);
 
                     // The lopp block is treated as subroutine, so skips the if-else block in this
@@ -422,7 +341,7 @@ private:
                     // for loop increment). The two offset-by-one cancel each other here.
                     offset = instr.flow_control.dest_offset;
 
-                    if (sub.always_end) {
+                    if (sub.exit_method == ExitMethod::AlwaysEnd) {
                         // Breaks the outer for loop if the loop block ends the program
                         offset = PROGRAM_END;
                     }
@@ -515,30 +434,12 @@ private:
      * @param subroutine the subroutine to call.
      */
     static void CallSubroutine(ShaderWriter& shader, const Subroutine& subroutine) {
-        std::function<bool(const Subroutine&)> maybe_end_instr =
-            [&maybe_end_instr](const Subroutine& subroutine) -> bool {
-            for (auto& callee : subroutine.calls) {
-                if (maybe_end_instr(*callee.second)) {
-                    return true;
-                }
-            }
-            for (auto& branch : subroutine.branches) {
-                if (maybe_end_instr(*branch.second)) {
-                    return true;
-                }
-            }
-            return subroutine.always_end;
-        };
-
-        if (subroutine.always_end) {
-            ASSERT_MSG(subroutine.exit_method == ExitMethod::AlwaysEnd, "Should be AlwaysEnd");
+        if (subroutine.exit_method == ExitMethod::AlwaysEnd) {
             shader.AddLine(subroutine.GetName() + "();");
             shader.AddLine("return true;");
-        } else if (maybe_end_instr(subroutine)) {
-            ASSERT_MSG(subroutine.exit_method == ExitMethod::Conditional, "Should be Conditional");
+        } else if (subroutine.exit_method == ExitMethod::Conditional) {
             shader.AddLine("if (" + subroutine.GetName() + "()) { return true; }");
         } else {
-            ASSERT_MSG(subroutine.exit_method == ExitMethod::AlwaysReturn, "Should be AlwaysReturn");
             shader.AddLine(subroutine.GetName() + "();");
         }
     };
@@ -843,7 +744,7 @@ private:
                                                 instr.flow_control.num_instructions);
 
                 CallSubroutine(shader, call_sub);
-                if (instr.opcode.Value() == OpCode::Id::CALL && call_sub.always_end) {
+                if (instr.opcode.Value() == OpCode::Id::CALL && call_sub.exit_method == ExitMethod::AlwaysEnd) {
                     offset = PROGRAM_END - 1;
                 }
 
@@ -886,7 +787,7 @@ private:
                     CallSubroutine(shader, else_sub);
                     offset = endif_offset - 1;
 
-                    if (if_sub.always_end && else_sub.always_end) {
+                    if (if_sub.exit_method == ExitMethod::AlwaysEnd && else_sub.exit_method == ExitMethod::AlwaysEnd) {
                         offset = PROGRAM_END - 1;
                     }
                 }
@@ -915,7 +816,7 @@ private:
                 --shader.scope;
                 shader.AddLine("}");
 
-                if (loop_sub.always_end) {
+                if (loop_sub.exit_method == ExitMethod::AlwaysEnd) {
                     offset = PROGRAM_END - 1;
                 }
 
@@ -978,11 +879,6 @@ public:
           sanitize_mul(sanitize_mul), is_gs(is_gs) {}
 
     std::string Decompile() {
-
-        if (!FindEndInstr(main_offset, PROGRAM_END)) {
-            return "";
-        }
-
         auto& program_main = AnalyzeControlFlow();
 
         if (HasRecursion())
