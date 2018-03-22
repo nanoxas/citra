@@ -144,6 +144,7 @@ private:
                 ExitMethod call = ScanExitMethod(instr.flow_control.dest_offset,
                                                  instr.flow_control.dest_offset +
                                                      instr.flow_control.num_instructions);
+                ASSERT_MSG(call != ExitMethod::Undetermined, "Recursive function call detected");
                 if (call == ExitMethod::AlwaysEnd)
                     return exit_method = ExitMethod::AlwaysEnd;
                 ExitMethod after_call = ScanExitMethod(offset + 1, end);
@@ -161,6 +162,7 @@ private:
                 ExitMethod call = ScanExitMethod(instr.flow_control.dest_offset,
                                                  instr.flow_control.dest_offset +
                                                      instr.flow_control.num_instructions);
+                ASSERT_MSG(call != ExitMethod::Undetermined, "Recursive function call detected");
                 ExitMethod after_call = ScanExitMethod(offset + 1, end);
                 return exit_method =
                            SeriesExit(ParallelExit(call, ExitMethod::AlwaysReturn), after_call);
@@ -186,28 +188,6 @@ private:
     struct Subroutine {
         Subroutine(u32 begin_, u32 end_) : begin(begin_), end(end_) {}
 
-        /// Check if the specified Subroutine calls this Subroutine (directly or indirectly).
-        bool IsCalledBy(const Subroutine* caller, std::set<const Subroutine*> stack = {}) const {
-            for (auto& pair : callers) {
-                if (!stack.emplace(pair.second).second) {
-                    continue;
-                }
-                if (pair.second == caller || pair.second->IsCalledBy(caller, stack)) {
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        bool HasRecursion() const {
-            for (auto& callee : calls) {
-                if (IsCalledBy(callee.second) || callee.second->HasRecursion()) {
-                    return true;
-                }
-            }
-            return false;
-        }
-
         std::string GetName() const {
             return "sub_" + std::to_string(begin) + "_" + std::to_string(end);
         }
@@ -218,8 +198,6 @@ private:
         std::set<std::pair<u32, u32>> discovered;
         ExitMethod exit_method;
 
-        std::map<std::pair<u32 /*begin*/, u32 /*end*/>, const Subroutine*> calls;
-        std::map<u32 /*from*/, const Subroutine*> callers;
         std::set<u32> labels;
     };
 
@@ -235,7 +213,8 @@ private:
         auto& sub = iter->second;
         if (inserted) {
             sub.exit_method = exit_method_map.at(std::make_pair(begin, end));
-            ASSERT_MSG(sub.exit_method != ExitMethod::Undetermined, "Undetermined exit in subroutine");
+            ASSERT_MSG(sub.exit_method != ExitMethod::Undetermined,
+                       "Undetermined exit in subroutine");
         }
         return sub;
     }
@@ -283,11 +262,10 @@ private:
 
                     auto& sub = GetRoutine(sub_range.first, sub_range.second);
 
-                    sub.callers.emplace(offset, routine);
-                    routine->calls[sub_range] = &sub;
                     discover_queue.emplace(sub_range.first, sub_range.second, &sub);
 
-                    if (instr.opcode.Value() == OpCode::Id::CALL && sub.exit_method == ExitMethod::AlwaysEnd) {
+                    if (instr.opcode.Value() == OpCode::Id::CALL &&
+                        sub.exit_method == ExitMethod::AlwaysEnd) {
                         // Breaks the outer for loop if the unconditial subroutine ends the program
                         offset = PROGRAM_END;
                     }
@@ -308,16 +286,15 @@ private:
 
                     auto& sub_if = GetRoutine(if_offset, else_offset);
 
-                    sub_if.callers.emplace(offset, routine);
                     discover_queue.emplace(if_offset, else_offset, &sub_if);
 
                     if (instr.flow_control.num_instructions != 0) {
                         auto& sub_else = GetRoutine(else_offset, endif_offset);
 
-                        sub_else.callers.emplace(offset, routine);
                         discover_queue.emplace(else_offset, endif_offset, &sub_else);
 
-                        if (sub_if.exit_method == ExitMethod::AlwaysEnd && sub_else.exit_method == ExitMethod::AlwaysEnd) {
+                        if (sub_if.exit_method == ExitMethod::AlwaysEnd &&
+                            sub_else.exit_method == ExitMethod::AlwaysEnd) {
                             // Breaks the outer for loop if both branches end the program
                             offset = PROGRAM_END;
                         }
@@ -331,7 +308,6 @@ private:
 
                     auto& sub = GetRoutine(sub_range.first, sub_range.second);
 
-                    sub.callers.emplace(offset, routine);
                     discover_queue.emplace(sub_range.first, sub_range.second, &sub);
 
                     // The lopp block is treated as subroutine, so skips the if-else block in this
@@ -351,17 +327,6 @@ private:
             }
         }
         return program_main;
-    }
-
-    bool HasRecursion() {
-        for (auto& pair : subroutines) {
-            auto& subroutine = pair.second;
-            if (subroutine.HasRecursion()) {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     /// Generates condition evaluation code for the flow control instruction.
@@ -744,7 +709,8 @@ private:
                                                 instr.flow_control.num_instructions);
 
                 CallSubroutine(shader, call_sub);
-                if (instr.opcode.Value() == OpCode::Id::CALL && call_sub.exit_method == ExitMethod::AlwaysEnd) {
+                if (instr.opcode.Value() == OpCode::Id::CALL &&
+                    call_sub.exit_method == ExitMethod::AlwaysEnd) {
                     offset = PROGRAM_END - 1;
                 }
 
@@ -787,7 +753,8 @@ private:
                     CallSubroutine(shader, else_sub);
                     offset = endif_offset - 1;
 
-                    if (if_sub.exit_method == ExitMethod::AlwaysEnd && else_sub.exit_method == ExitMethod::AlwaysEnd) {
+                    if (if_sub.exit_method == ExitMethod::AlwaysEnd &&
+                        else_sub.exit_method == ExitMethod::AlwaysEnd) {
                         offset = PROGRAM_END - 1;
                     }
                 }
@@ -880,9 +847,6 @@ public:
 
     std::string Decompile() {
         auto& program_main = AnalyzeControlFlow();
-
-        if (HasRecursion())
-            return "";
 
         ShaderWriter shader;
 
