@@ -39,7 +39,6 @@
 #include "common/logging/log.h"
 #include "common/logging/text_formatter.h"
 #include "common/microprofile.h"
-#include "common/platform.h"
 #include "common/scm_rev.h"
 #include "common/scope_exit.h"
 #include "common/string_util.h"
@@ -52,6 +51,13 @@
 
 #ifdef QT_STATICPLUGIN
 Q_IMPORT_PLUGIN(QWindowsIntegrationPlugin);
+#endif
+
+#ifdef _WIN32
+extern "C" {
+// tells Nvidia drivers to use the dedicated GPU by default on laptops with switchable graphics
+__declspec(dllexport) unsigned long NvOptimusEnablement = 0x00000001;
+}
 #endif
 
 /**
