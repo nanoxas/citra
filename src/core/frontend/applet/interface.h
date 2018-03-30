@@ -5,8 +5,16 @@
 #pragma once
 
 #include <atomic>
+#include <memory>
 
 namespace Frontend {
+
+enum class AppletType {
+    SoftwareKeyboard,
+};
+
+class AppletConfig {};
+class AppletData {};
 
 class AppletInterface {
 public:
@@ -16,8 +24,7 @@ public:
      * On applet start, the applet specific configuration will be passed in along with the
      * framebuffer.
      */
-    template <typename Config>
-    virtual void Start(const Config&, /* framebuffer */) = 0;
+    // virtual void Setup(const Config* /*,  framebuffer */) = 0;
 
     /**
      * Called on a fixed schedule to have the applet update any state such as the framebuffer.
@@ -33,15 +40,27 @@ public:
     }
 
 private:
-    /**
-     * Called after the applet has stopped running. Receives the data from the applet to pass to the
-     * calling program
-     */
-    template <typename Data>
-    virtual Data ReceiveData() = 0;
-
     // framebuffer;
     std::atomic_bool running = false;
 };
+
+/**
+ * Frontends call this method to pass a frontend applet implementation to the core. If the core
+ * already has a applet registered, then this replaces the old applet
+ *
+ * @param applet - Frontend Applet implementation that the HLE applet code will launch
+ * @param type - Which type of applet
+ */
+void RegisterFrontendApplet(std::shared_ptr<AppletInterface> applet, AppletType type);
+
+/**
+ * Frontends call this to prevent future requests
+ */
+void UnregisterFrontendApplet(AppletType type);
+
+/**
+ * Returns the Frontend Applet for the provided type
+ */
+std::shared_ptr<AppletInterface> GetRegisteredApplet(AppletType type);
 
 } // namespace Frontend

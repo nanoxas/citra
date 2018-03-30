@@ -6,6 +6,7 @@
 
 #include "common/common_funcs.h"
 #include "common/common_types.h"
+#include "core/frontend/applet/swkbd.h"
 #include "core/hle/applets/applet.h"
 #include "core/hle/kernel/kernel.h"
 #include "core/hle/kernel/shared_memory.h"
@@ -153,7 +154,7 @@ struct SoftwareKeyboardConfig {
     u32 shared_memory_size; ///< Size of the SharedMemory
     u32 version;
 
-    SwkbdResult return_code;
+    SoftwareKeyboardResult return_code;
 
     u32 status_offset;
     u32 learning_offset;

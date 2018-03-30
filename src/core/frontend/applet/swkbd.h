@@ -11,21 +11,21 @@
 namespace Frontend {
 
 enum class AcceptedInput {
-    ANYTHING = 0,      /// All inputs are accepted.
-    NOTEMPTY,          /// Empty inputs are not accepted.
-    NOTEMPTY_NOTBLANK, /// Empty or blank inputs (consisting solely of whitespace) are not
-                       /// accepted.
-    NOTBLANK, /// Blank inputs (consisting solely of whitespace) are not accepted, but empty
-              /// inputs are.
-    FIXEDLEN, /// The input must have a fixed length (specified by maxTextLength in
-              /// swkbdInit).
+    Anything = 0,        /// All inputs are accepted.
+    NotEmpty,            /// Empty inputs are not accepted.
+    NotEmptyAndNotBlank, /// Empty or blank inputs (consisting solely of whitespace) are not
+                         /// accepted.
+    NotBlank,    /// Blank inputs (consisting solely of whitespace) are not accepted, but empty
+                 /// inputs are.
+    FixedLength, /// The input must have a fixed length (specified by maxTextLength in
+                 /// swkbdInit).
 };
 
 enum class ButtonConfig {
-    SINGLE_BUTTON = 0, /// Ok button
-    DUAL_BUTTON,       /// Cancel | Ok buttons
-    TRIPLE_BUTTON,     /// Cancel | I Forgot | Ok buttons
-    NO_BUTTON,         /// No button (returned by swkbdInputText in special cases)
+    Single = 0, /// Ok button
+    Dual,       /// Cancel | Ok buttons
+    Triple,     /// Cancel | I Forgot | Ok buttons
+    None,       /// No button (returned by swkbdInputText in special cases)
 };
 
 /// Default English button text mappings. Frontends may need to copy this to internationalize it.
@@ -33,14 +33,15 @@ static const char* BUTTON_OKAY = "Ok";
 static const char* BUTTON_CANCEL = "Cancel";
 static const char* BUTTON_FORGOT = "I Forgot";
 static const std::unordered_map<ButtonConfig, std::vector<std::string>> DEFAULT_BUTTON_MAPPING = {
-    {SINGLE_BUTTON, {BUTTON_OKAY}},
-    {DUAL_BUTTON, {BUTTON_CANCEL, BUTTON_OKAY}},
-    {TRIPLE_BUTTON, {BUTTON_CANCEL, BUTTON_FORGOT, BUTTON_OKAY}},
+    {ButtonConfig::Single, {BUTTON_OKAY}},
+    {ButtonConfig::Dual, {BUTTON_CANCEL, BUTTON_OKAY}},
+    {ButtonConfig::Triple, {BUTTON_CANCEL, BUTTON_FORGOT, BUTTON_OKAY}},
 };
 
 /// Configuration thats relevent to frontend implementation of applets. Anything missing that we
 /// later learn is needed can be added here and filled in by the backed HLE applet
 struct KeyboardConfig {
+    ButtonConfig button_config;
     AcceptedInput accept_mode;   /// What kinds of input are accepted (blank/empty/fixed width)
     bool multiline_mode;         /// True if the keyboard accepts multiple lines of input
     u16 max_text_length;         /// Maximum number of letters allowed if its a text input
@@ -49,12 +50,12 @@ struct KeyboardConfig {
     bool has_custom_button_text; /// If true, use the button_text instead
     std::vector<std::string> button_text; /// Contains the button text that the caller provides
     struct Filters {
-        bool disable_digit;   /// Disallow the use of more than a certain number of digits (TODO how
+        bool prevent_digit;   /// Disallow the use of more than a certain number of digits (TODO how
                               /// many is a certain number)
-        bool disable_at;      /// Disallow the use of the @ sign.
-        bool disable_percent; /// Disallow the use of the % sign.
-        bool disable_backslash; /// Disallow the use of the \ sign.
-        bool disable_profanity; /// Disallow profanity using Nintendo's profanity filter.
+        bool prevent_at;      /// Disallow the use of the @ sign.
+        bool prevent_percent; /// Disallow the use of the % sign.
+        bool prevent_backslash; /// Disallow the use of the \ sign.
+        bool prevent_profanity; /// Disallow profanity using Nintendo's profanity filter.
         bool enable_callback;   /// Use a callback in order to check the input.
     } filters;
 };
@@ -65,7 +66,20 @@ struct KeyboardData {
 };
 
 enum class ValidationError {
-    NONE,
+    None,
+    // Button Selection
+    ButtonOutOfRange,
+    // Configured Filters
+    DigitNotAllowed,
+    AtSignNotAllowed,
+    PercentNotAllowed,
+    BackslashNotAllowed,
+    ProfanityNotAllowed,
+    CallbackFailed,
+    // Allowed Input Type
+    FixedLengthRequired,
+    BlankInputNotAllowed,
+    EmptyInputNotAllowed,
 };
 
 class SoftwareKeyboard : public AppletInterface {
@@ -81,7 +95,8 @@ protected:
     ValidationError ValidateFilters(const std::string& input);
 
     /**
-     *
+     * Validates the the provided string doesn't break any extra rules like "input must not be
+     * empty". This will be called by Finalize but can be called earlier if the frontend needs
      */
     ValidationError ValidateInput(const std::string& input);
 
@@ -92,13 +107,14 @@ protected:
     ValidationError ValidateButton(u8 button);
 
     /**
-     * Runs all validation phases. If successful, stores the data in
+     * Runs all validation phases. If successful, stores the data so that the HLE applet in core can
+     * send this to the calling application
      */
-    ValidationError Finialize(KeyboardData);
+    ValidationError Finialize(const std::string&, u8 button);
 
 private:
     KeyboardData ReceiveData() override {
-        return {};
+        return data;
     }
 
     KeyboardConfig config;
