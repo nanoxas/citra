@@ -12,7 +12,7 @@
 
 namespace Network {
 
-constexpr u32 network_version = 2; ///< The version of this Room and RoomMember
+constexpr u32 network_version = 3; ///< The version of this Room and RoomMember
 
 constexpr u16 DefaultRoomPort = 24872;
 
@@ -57,7 +57,8 @@ enum RoomMessageTypes : u8 {
     IdMacCollision,
     IdVersionMismatch,
     IdWrongPassword,
-    IdCloseRoom
+    IdCloseRoom,
+    IdRoomIsFull,
 };
 
 /// This is what a server [person creating a server] would use.
