@@ -8,16 +8,26 @@
 #include <map>
 #include <unordered_map>
 #include <QCoreApplication>
+#include <QFileInfo>
 #include <QImage>
 #include <QObject>
 #include <QPainter>
 #include <QRunnable>
 #include <QStandardItem>
 #include <QString>
+#include "citra_qt/ui_settings.h"
 #include "citra_qt/util/util.h"
 #include "common/logging/log.h"
 #include "common/string_util.h"
 #include "core/loader/smdh.h"
+
+enum class GameListItemType {
+    Game = QStandardItem::UserType + 1,
+    CustomDir = QStandardItem::UserType + 2,
+    InstalledDir = QStandardItem::UserType + 3,
+    SystemDir = QStandardItem::UserType + 4,
+    AddDir = QStandardItem::UserType + 5
+};
 
 /**
  * Gets the game icon from SMDH data.
@@ -165,6 +175,10 @@ public:
                 TitleRole);
     }
 
+    int type() const override {
+        return static_cast<int>(GameListItemType::Game);
+    }
+
     QVariant data(int role) const override {
         if (role == Qt::DisplayRole) {
             std::string filename;
@@ -181,6 +195,7 @@ public:
 class GameListItemCompat : public GameListItem {
 public:
     static const int CompatNumberRole = Qt::UserRole + 1;
+
     GameListItemCompat() = default;
     explicit GameListItemCompat(const QString compatiblity) {
         auto iterator = status_data.find(compatiblity);
@@ -193,6 +208,10 @@ public:
         setText(QCoreApplication::translate("GameList", status.text));
         setToolTip(QCoreApplication::translate("GameList", status.tooltip));
         setData(CreateCirclePixmapFromColor(status.color), Qt::DecorationRole);
+    }
+
+    int type() const override {
+        return static_cast<int>(GameListItemType::Game);
     }
 
     bool operator<(const QStandardItem& other) const override {
@@ -242,6 +261,10 @@ public:
         }
     }
 
+    int type() const override {
+        return static_cast<int>(GameListItemType::Game);
+    }
+
     /**
      * This operator is, in practice, only used by the TreeView sorting systems.
      * Override it so that it will correctly sort by numerical value instead of by string
@@ -249,6 +272,49 @@ public:
      */
     bool operator<(const QStandardItem& other) const override {
         return data(SizeRole).toULongLong() < other.data(SizeRole).toULongLong();
+    }
+};
+
+class GameListDir : public GameListItem {
+public:
+    int type() const override {
+        return static_cast<int>(dir_type);
+    }
+    explicit GameListDir(UISettings::GameDir& directory,
+                         GameListItemType type = GameListItemType::CustomDir)
+        : dir_type{type} {
+        UISettings::GameDir* game_dir = &directory;
+        setData(QVariant::fromValue(game_dir), GameDirRole);
+        switch (dir_type) {
+        case GameListItemType::InstalledDir:
+            setData(QIcon::fromTheme("sd_card").pixmap(48), Qt::DecorationRole);
+            setData("Installed Titles", Qt::DisplayRole);
+            break;
+        case GameListItemType::SystemDir:
+            setData(QIcon::fromTheme("chip").pixmap(48), Qt::DecorationRole);
+            setData("System Titles", Qt::DisplayRole);
+            break;
+        case GameListItemType::CustomDir:
+            QString icon_name = QFileInfo::exists(game_dir->path) ? "folder" : "bad_folder";
+            setData(QIcon::fromTheme(icon_name).pixmap(48), Qt::DecorationRole);
+            setData(game_dir->path, Qt::DisplayRole);
+            break;
+        };
+    };
+    static const int GameDirRole = Qt::UserRole + 1;
+
+private:
+    GameListItemType dir_type;
+};
+
+class GameListAddDir : public GameListItem {
+public:
+    int type() const override {
+        return static_cast<int>(GameListItemType::AddDir);
+    }
+    explicit GameListAddDir() {
+        setData(QIcon::fromTheme("plus").pixmap(48), Qt::DecorationRole);
+        setData("Add New Game Directory", Qt::DisplayRole);
     }
 };
 
@@ -260,10 +326,9 @@ class GameListWorker : public QObject, public QRunnable {
     Q_OBJECT
 
 public:
-    GameListWorker(QString dir_path, bool deep_scan,
-                   const std::unordered_map<std::string, QString>& compatibility_list)
-        : QObject(), QRunnable(), dir_path(dir_path), deep_scan(deep_scan),
-          compatibility_list(compatibility_list) {}
+    explicit GameListWorker(QList<UISettings::GameDir>& game_dirs,
+                            const std::unordered_map<std::string, QString>& compatibility_list)
+        : QObject(), QRunnable(), game_dirs(game_dirs), compatibility_list(compatibility_list) {}
 
 public slots:
     /// Starts the processing of directory tree information.
@@ -275,22 +340,24 @@ signals:
     /**
      * The `EntryReady` signal is emitted once an entry has been prepared and is ready
      * to be added to the game list.
-     * @param entry_items a list with `QStandardItem`s that make up the columns of the new entry.
+     * @param entry_items a list with `QStandardItem`s that make up the columns of the new
+     * entry.
      */
-    void EntryReady(QList<QStandardItem*> entry_items);
+    void DirEntryReady(GameListDir* entry_items);
+    void EntryReady(QList<QStandardItem*> entry_items, GameListDir* parent_dir);
 
     /**
-     * After the worker has traversed the game directory looking for entries, this signal is emmited
-     * with a list of folders that should be watched for changes as well.
+     * After the worker has traversed the game directory looking for entries, this signal is
+     * emitted with a list of folders that should be watched for changes as well.
      */
     void Finished(QStringList watch_list);
 
 private:
     QStringList watch_list;
-    QString dir_path;
-    bool deep_scan;
     const std::unordered_map<std::string, QString>& compatibility_list;
+    QList<UISettings::GameDir>& game_dirs;
     std::atomic_bool stop_processing;
 
-    void AddFstEntriesToGameList(const std::string& dir_path, unsigned int recursion = 0);
+    void AddFstEntriesToGameList(const std::string& dir_path, unsigned int recursion,
+                                 GameListDir* parent_dir);
 };
