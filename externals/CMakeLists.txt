@@ -55,9 +55,8 @@ if (ARCHITECTURE_x86_64)
     target_compile_definitions(xbyak INTERFACE XBYAK_NO_OP_NAMES)
 endif()
 
-# ENet
-add_subdirectory(enet)
-target_include_directories(enet INTERFACE ./enet/include)
+# Yojimbo
+add_subdirectory(yojimbo)
 
 if (ENABLE_WEB_SERVICE)
     # LibreSSL

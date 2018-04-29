@@ -29,7 +29,8 @@ public:
     /// The current game name, id and version
     GameInfo current_game_info;
 
-    std::atomic<State> state{State::Idle}; ///< Current state of the RoomMember.
+    std::atomic<State> state{
+        {ConnectionState::Idle, DisconnectReason::Left}}; ///< Current state of the RoomMember.
     void SetState(const State new_state);
     bool IsConnected() const;
 
@@ -125,7 +126,7 @@ void RoomMember::RoomMemberImpl::SetState(const State new_state) {
 }
 
 bool RoomMember::RoomMemberImpl::IsConnected() const {
-    return state == State::Joining || state == State::Joined;
+    return state.status == ConnectionStatus::Joining || state.status == ConnectionStatus::Joined;
 }
 
 void RoomMember::RoomMemberImpl::MemberLoop() {
@@ -152,28 +153,28 @@ void RoomMember::RoomMemberImpl::MemberLoop() {
                     ASSERT_MSG(member_information.size() > 0,
                                "We have not yet received member information.");
                     HandleJoinPacket(&event); // Get the MAC Address for the client
-                    SetState(State::Joined);
+                    SetState({ConnectionStatus::Joined, DisconnectReason::None});
                     break;
                 case IdNameCollision:
-                    SetState(State::NameCollision);
+                    SetState({ConnectionStatus::Disconnected, DisconnectReason::NameCollision});
                     break;
                 case IdMacCollision:
-                    SetState(State::MacCollision);
+                    SetState({ConnectionStatus::Disconnected, DisconnectReason::MacCollision});
                     break;
                 case IdVersionMismatch:
-                    SetState(State::WrongVersion);
+                    SetState({ConnectionStatus::Disconnected, DisconnectReason::WrongVersion});
                     break;
                 case IdWrongPassword:
-                    SetState(State::WrongPassword);
+                    SetState({ConnectionStatus::Disconnected, DisconnectReason::WrongPassword});
                     break;
                 case IdCloseRoom:
-                    SetState(State::LostConnection);
+                    SetState({ConnectionStatus::Disconnected, DisconnectReason::LostConnection});
                     break;
                 }
                 enet_packet_destroy(event.packet);
                 break;
             case ENET_EVENT_TYPE_DISCONNECT:
-                SetState(State::LostConnection);
+                SetState({ConnectionStatus::Disconnected, DisconnectReason::LostConnection});
                 break;
             }
         }

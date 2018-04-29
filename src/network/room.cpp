@@ -10,7 +10,6 @@
 #include <sstream>
 #include <thread>
 #include "common/logging/log.h"
-#include "enet/enet.h"
 #include "network/packet.h"
 #include "network/room.h"
 

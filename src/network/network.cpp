@@ -4,8 +4,8 @@
 
 #include "common/assert.h"
 #include "common/logging/log.h"
-#include "enet/enet.h"
 #include "network/network.h"
+#include "yojimbo/yojimbo.h"
 
 namespace Network {
 
@@ -14,8 +14,8 @@ static std::shared_ptr<Room> g_room;              ///< Room (Server) for network
 // TODO(B3N30): Put these globals into a networking class
 
 bool Init() {
-    if (enet_initialize() != 0) {
-        NGLOG_ERROR(Network, "Error initalizing ENet");
+    if (!InitializeYojimbo()) {
+        NGLOG_ERROR(Network, "Error initalizing yojimbo");
         return false;
     }
     g_room = std::make_shared<Room>();
@@ -43,7 +43,7 @@ void Shutdown() {
             g_room->Destroy();
         g_room.reset();
     }
-    enet_deinitialize();
+    ShutdownYojimbo();
     NGLOG_DEBUG(Network, "shutdown OK");
 }
 

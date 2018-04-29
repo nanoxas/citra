@@ -34,6 +34,7 @@ struct WifiPacket {
 
 /// Represents a chat message.
 struct ChatEntry {
+    u8 client_id;
     std::string nickname; ///< Nickname of the client who sent this message.
     std::string message;  ///< Body of the message.
 };
@@ -45,22 +46,36 @@ struct ChatEntry {
  */
 class RoomMember final {
 public:
-    enum class State : u8 {
-        Idle,    ///< Default state
-        Error,   ///< Some error [permissions to network device missing or something]
-        Joining, ///< The client is attempting to join a room.
-        Joined,  ///< The client is connected to the room and is ready to send/receive packets.
-        LostConnection, ///< Connection closed
+    // When updating either the State or DisconnectReason enums, please add new entries to the end,
+    // so it doesn't break compatibility between older and newer clients *too* much
+    enum class ConnectionStatus : u8 {
+        Idle,         ///< Default state
+        Error,        ///< Some error [permissions to network device missing or something]
+        Joining,      ///< The client is attempting to join a room.
+        Joined,       ///< The client is connected to the room and is ready to send/receive packets.
+        Disconnected, ///< Connection closed by server
+    };
+    enum class DisconnectReason : u8 {
+        None,               ///< Default for events that don't disconnect
+        Left,               ///< Member chose to leave the room
+        LostConnection,     ///< Server closed or the network connection dropped
+        Kicked,             ///< Server kicked this member
+        IsBanned,           ///< Attempting to join a room after being banned
+        NameCollision,      ///< Someone else already has that nickname in the room
+        MacCollision,       ///< Someone else already has that mac address in the room
+        ConsoleIDCollision, ///< Someone else already has that console id in the room
+        WrongVersion,       ///< Server and client versions mismatch
+        WrongPassword,      ///< Server is password protected and the password sent doesn't match
+        RoomIsFull,         ///< Server is at max players
+    };
 
-        // Reasons why connection was rejected
-        NameCollision,  ///< Somebody is already using this name
-        MacCollision,   ///< Somebody is already using that mac-address
-        WrongVersion,   ///< The room version is not the same as for this RoomMember
-        WrongPassword,  ///< The password doesn't match the one from the Room
-        CouldNotConnect ///< The room is not responding to a connection attempt
+    struct State {
+        ConnectionStatus status;
+        DisconnectReason reason;
     };
 
     struct MemberInformation {
+        u8 client_id;           ///< Id of the member.
         std::string nickname;   ///< Nickname of the member.
         GameInfo game_info;     ///< Name of the game they're currently playing, or empty if they're
                                 /// not playing anything.
@@ -101,6 +116,11 @@ public:
      * Returns the MAC address of the RoomMember.
      */
     const MacAddress& GetMacAddress() const;
+
+    /**
+     * Returns the hash of the console ID for this RoomMember.
+     */
+    const std::string& GetConsoleID() const;
 
     /**
      * Returns information about the room we're currently connected to.
@@ -187,28 +207,46 @@ private:
     std::unique_ptr<RoomMemberImpl> room_member_impl;
 };
 
-static const char* GetStateStr(const RoomMember::State& s) {
+static const char* GetConnectionStatusStr(const RoomMember::ConnectionStatus& s) {
     switch (s) {
-    case RoomMember::State::Idle:
+    case RoomMember::ConnectionStatus::Idle:
         return "Idle";
-    case RoomMember::State::Error:
+    case RoomMember::ConnectionStatus::Error:
         return "Error";
-    case RoomMember::State::Joining:
+    case RoomMember::ConnectionStatus::Joining:
         return "Joining";
-    case RoomMember::State::Joined:
+    case RoomMember::ConnectionStatus::Joined:
         return "Joined";
-    case RoomMember::State::LostConnection:
+    case RoomMember::ConnectionStatus::Disconnected:
+        return "Disconnected";
+    }
+    return "Unknown";
+}
+
+static const char* GetDisconnectReasonStr(const RoomMember::DisconnectReason& s) {
+    switch (s) {
+    case RoomMember::DisconnectReason::None:
+        return "None";
+    case RoomMember::DisconnectReason::Left:
+        return "Left";
+    case RoomMember::DisconnectReason::LostConnection:
         return "LostConnection";
-    case RoomMember::State::NameCollision:
+    case RoomMember::DisconnectReason::NameCollision:
         return "NameCollision";
-    case RoomMember::State::MacCollision:
+    case RoomMember::DisconnectReason::MacCollision:
         return "MacCollision";
-    case RoomMember::State::WrongVersion:
+    case RoomMember::DisconnectReason::WrongVersion:
         return "WrongVersion";
-    case RoomMember::State::WrongPassword:
+    case RoomMember::DisconnectReason::WrongPassword:
         return "WrongPassword";
-    case RoomMember::State::CouldNotConnect:
-        return "CouldNotConnect";
+    case RoomMember::DisconnectReason::RoomIsFull:
+        return "RoomIsFull";
+    case RoomMember::DisconnectReason::Kicked:
+        return "Kicked";
+    case RoomMember::DisconnectReason::IsBanned:
+        return "IsBanned";
+    case RoomMember::DisconnectReason::ConsoleIDCollision:
+        return "ConsoleIDCollision";
     }
     return "Unknown";
 }

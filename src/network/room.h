@@ -23,21 +23,9 @@ static constexpr u32 MaxConcurrentConnections = 254;
 
 constexpr size_t NumChannels = 1; // Number of channels used for the connection
 
-struct RoomInformation {
-    std::string name;           ///< Name of the server
-    u32 member_slots;           ///< Maximum number of members in this room
-    std::string uid;            ///< The unique ID of the room
-    u16 port;                   ///< The port of this room
-    std::string preferred_game; ///< Game to advertise that you want to play
-    u64 preferred_game_id;      ///< Title ID for the advertised game
-};
-
-struct GameInfo {
-    std::string name{""};
-    u64 id{0};
-};
-
 using MacAddress = std::array<u8, 6>;
+using SHA1Hash = std::array<u8, 20>;
+
 /// A special MAC address that tells the room we're joining to assign us a MAC address
 /// automatically.
 constexpr MacAddress NoPreferredMac = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
@@ -45,19 +33,17 @@ constexpr MacAddress NoPreferredMac = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 // 802.11 broadcast MAC address
 constexpr MacAddress BroadcastMac = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 
-// The different types of messages that can be sent. The first byte of each packet defines the type
-enum RoomMessageTypes : u8 {
-    IdJoinRequest = 1,
-    IdJoinSuccess,
-    IdRoomInformation,
-    IdSetGameInfo,
-    IdWifiPacket,
-    IdChatMessage,
-    IdNameCollision,
-    IdMacCollision,
-    IdVersionMismatch,
-    IdWrongPassword,
-    IdCloseRoom
+struct GameInfo {
+    u64 id{0};
+    std::string name{""};
+};
+
+struct RoomInformation {
+    u8 member_slots;                        ///< Maximum number of members in this room
+    u16 port;                               ///< The port of this room
+    std::string name{""};                   ///< Name of the server
+    std::string uid{""};                    ///< The unique ID of the room
+    std::vector<GameInfo> preferred_game{}; ///< Game(s) to advertise that you want to play
 };
 
 /// This is what a server [person creating a server] would use.
@@ -69,9 +55,11 @@ public:
     };
 
     struct Member {
-        std::string nickname;   ///< The nickname of the member.
-        GameInfo game_info;     ///< The current game of the member
-        MacAddress mac_address; ///< The assigned mac address of the member.
+        u8 client_id;                ///< Id of the member.
+        std::string nickname{""};    ///< The nickname of the member.
+        GameInfo game_info{};        ///< The current game of the member
+        MacAddress mac_address{0};   ///< The assigned mac address of the member.
+        SHA1Hash console_id_hash{0}; ///< Hash of the connected member console id
     };
 
     Room();
