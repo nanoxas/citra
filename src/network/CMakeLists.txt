@@ -1,4 +1,5 @@
 add_library(network STATIC
+    client_server_common.h
     network.cpp
     network.h
     packet.cpp

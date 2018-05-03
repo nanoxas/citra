@@ -15,17 +15,17 @@ target_include_directories(yojimbo PRIVATE yojimbo/netcode.io yojimbo/reliable.i
 
 if (MSVC)
     target_include_directories(yojimbo PRIVATE yojimbo/windows)
-    target_link_libraries(yojimbo PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/yojimbo/windows/sodium)
+    target_link_libraries(yojimbo PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/yojimbo/windows/sodium/sodium.lib)
 else()
-    find_package(libsodium)
+    find_package(sodium)
     if (NOT ${sodium_FOUND})
-        message(FATAL "Libsodium cannot be found! Please install libsodium")
+        message(FATAL_ERROR "Libsodium cannot be found! Please install libsodium")
     endif()
     target_include_directories(yojimbo PRIVATE ${sodium_INCLUDE_DIR})
     target_link_libraries(yojimbo PRIVATE ${sodium_LIBRARY_RELEASE})
 endif()
 
-target_compile_definitions(yojimbo INTERFACE -DYOJIMBO_WITH_MBEDTLS=0)
-target_include_directories(yojimbo INTERFACE yojimbo)
+target_compile_definitions(yojimbo PUBLIC YOJIMBO_WITH_MBEDTLS=0)
+target_include_directories(yojimbo INTERFACE ./yojimbo)
 
 create_target_directory_groups(yojimbo)

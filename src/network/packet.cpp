@@ -9,6 +9,7 @@
 #endif
 #include <cstring>
 #include <string>
+#include <yojimbo.h>
 #include "network/packet.h"
 
 namespace Network {
@@ -252,6 +253,19 @@ Packet& Packet::operator<<(const std::string& in_data) {
         Append(in_data.c_str(), length * sizeof(std::string::value_type));
 
     return *this;
+}
+
+template <typename Stream>
+bool Packet::Serialize(Stream& stream) {
+    u8* ptr = data.data();
+    u32 len = static_cast<u16>(data.size());
+
+    serialize_uint32(stream, len);
+    serialize_bytes(stream, ptr, len);
+    if (stream.IsReading()) {
+        data.assign(ptr, len);
+    }
+    return true;
 }
 
 bool Packet::CheckSize(std::size_t size) {

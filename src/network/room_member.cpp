@@ -8,7 +8,6 @@
 #include <set>
 #include <thread>
 #include "common/assert.h"
-#include "enet/enet.h"
 #include "network/packet.h"
 #include "network/room_member.h"
 

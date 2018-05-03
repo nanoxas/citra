@@ -2,10 +2,10 @@
 // Licensed under GPLv2 or any later version
 // Refer to the license.txt file included.
 
+#include <yojimbo.h>
 #include "common/assert.h"
 #include "common/logging/log.h"
 #include "network/network.h"
-#include "yojimbo/yojimbo.h"
 
 namespace Network {
 

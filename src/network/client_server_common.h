@@ -7,9 +7,10 @@
 #include <array>
 #include <string>
 #include <vector>
+#include <yojimbo.h>
 #include "common/common_types.h"
+#include "network/packet.h"
 #include "network/room.h"
-#include "yojimbo/yojimbo.h"
 
 // Common configuration that should be shared between room and member
 // As this includes yojimbo, it should not be directly pulled into another header
@@ -27,6 +28,42 @@ enum RoomMessageTypes : u8 {
     COUNT,
 };
 
+template <>
+Packet& Packet::operator<<(const GameInfo& g) {
+    *this << g.id;
+    *this << g.name;
+    return *this;
+}
+
+template <>
+Packet& Packet::operator<<(const Room::Member& m) {
+    *this << m.client_id;
+    *this << m.console_id_hash;
+    *this << m.mac_address;
+    *this << m.nickname;
+    *this << m.game_info.id;
+    *this << m.game_info.name;
+    return *this;
+}
+
+template <>
+Packet& Packet::operator>>(GameInfo& g) {
+    *this >> g.id;
+    *this >> g.name;
+    return *this;
+}
+
+template <>
+Packet& Packet::operator>>(Room::Member& m) {
+    *this >> m.client_id;
+    *this >> m.console_id_hash;
+    *this >> m.mac_address;
+    *this >> m.nickname;
+    *this >> m.game_info.id;
+    *this >> m.game_info.name;
+    return *this;
+}
+
 // Using the yojimbo macros will auto generate all of the different possible serialization types
 // (read, write, and measure). In order to do that, we need to write the templated Serialize method
 // in such a way that its valid for all of them.
@@ -40,23 +77,23 @@ struct JoinRequestMessage : public yojimbo::Message {
 
     template <typename Stream>
     bool Serialize(Stream& stream) {
-        serialize_uint64(stream, game_id);
-        serialize_bytes(stream, preferred_mac.data(), preferred_mac.size());
-        serialize_bytes(stream, console_id_hash.data(), console_id_hash.size());
-
-        int len = nickname.size();
-        char* str = nickname.c_str();
-        serialize_string(stream, str, len);
+        Packet p;
+        if (stream.IsWriting()) {
+            p << game_id;
+            p << preferred_mac;
+            p << console_id_hash;
+            p << nickname;
+            p << password;
+        }
+        serialize_object(stream, p);
         if (stream.IsReading()) {
-            nickname.assign(str, len);
+            p >> game_id;
+            p >> preferred_mac;
+            p >> console_id_hash;
+            p >> nickname;
+            p >> password;
         }
 
-        len = password.size();
-        str = password.c_str();
-        serialize_string(stream, str, len);
-        if (stream.IsReading()) {
-            password.assign(str, len);
-        }
         return true;
     }
     YOJIMBO_VIRTUAL_SERIALIZE_FUNCTIONS();
@@ -67,7 +104,14 @@ struct JoinSuccessMessage : public yojimbo::Message {
 
     template <typename Stream>
     bool Serialize(Stream& stream) {
-        serialize_bytes(stream, assigned_mac.data(), 6);
+        Packet p;
+        if (stream.IsWriting()) {
+            p << assigned_mac;
+        }
+        serialize_object(stream, p);
+        if (stream.IsReading()) {
+            p >> assigned_mac;
+        }
         return true;
     }
     YOJIMBO_VIRTUAL_SERIALIZE_FUNCTIONS();
@@ -83,75 +127,97 @@ struct RoomInformationMessage : public yojimbo::Message {
 
     template <typename Stream>
     bool Serialize(Stream& stream) {
-        serialize_bits(stream, port, 16);
-        serialize_bits(stream, member_slots, 8);
-
-        int len = name.size();
-        char* str = name.c_str();
-        serialize_string(stream, str, len);
+        Packet p;
+        if (stream.IsWriting()) {
+            p << port;
+            p << member_slots;
+            p << name;
+            p << uid;
+            p << preferred_games;
+            p << members;
+        }
+        serialize_object(stream, p);
         if (stream.IsReading()) {
-            name.assign(str, len);
+            p >> port;
+            p >> member_slots;
+            p >> name;
+            p >> uid;
+            p >> preferred_games;
+            p >> members;
         }
+        return true;
+    }
 
-        len = uid.size();
-        str = uid.c_str();
-        serialize_string(stream, str, len);
+    YOJIMBO_VIRTUAL_SERIALIZE_FUNCTIONS();
+};
+
+struct SetGameInfoMessage : public yojimbo::Message {
+    GameInfo game_info;
+
+    template <typename Stream>
+    bool Serialize(Stream& stream) {
+        Packet p;
+        if (stream.IsWriting()) {
+            p << game_info;
+        }
+        serialize_object(stream, p);
         if (stream.IsReading()) {
-            uid.assign(str, len);
+            p >> game_info;
         }
+        return true;
+    }
+    YOJIMBO_VIRTUAL_SERIALIZE_FUNCTIONS();
+};
 
-        u8 vector_size = preferred_games.size();
-        serialize_bits(stream, vector_size, 8);
-        for (int i = 0; i < vector_size; ++i) {
-            GameInfo game_info;
-            if (stream.IsWriting()) {
-                game_info = preferred_games[i];
-            }
-            serialize_uint64(stream, game_info.id);
+struct WifiPacketMessage : public yojimbo::Message {
+    MacAddress assigned_mac{0};
 
-            len = game_info.name.size();
-            str = game_info.name.c_str();
-            serialize_string(stream, str, len);
-            if (stream.IsReading()) {
-                game_info.name.assign(str, len);
-                preferred_games.push_back(game_info);
-            }
+    template <typename Stream>
+    bool Serialize(Stream& stream) {
+        Packet p;
+        if (stream.IsWriting()) {
+            p << assigned_mac;
         }
-
-        vector_size = members.size();
-        serialize_byte(stream, vector_size, 8);
-        for (int i = 0; i < vector_size; ++i) {
-            Room::Member member{};
-            if (stream.IsWriting()) {
-                member = members[i];
-            }
-            serialize_uint8(stream, member.client_id);
-
-            len = member.nickname.size();
-            str = member.nickname.c_str();
-            serialize_string(stream, str, len);
-            if (stream.IsReading()) {
-                member.nickname.assign(str, len);
-            }
-
-            GameInfo game_info;
-            if (stream.IsWriting()) {
-                game_info = preferred_games[i];
-            }
-            serialize_uint64(stream, game_info.id);
-
-            len = game_info.name.size();
-            str = game_info.name.c_str();
-            serialize_string(stream, str, len);
-            if (stream.IsReading()) {
-                game_info.name.assign(str, len);
-                member.game_info = game_info;
-            }
-
-            serialize_bytes(stream, member.preferred_mac.data(), member.preferred_mac.size());
-            serialize_bytes(stream, member.console_id_hash.data(), member.console_id_hash.size());
+        serialize_object(stream, p);
+        if (stream.IsReading()) {
+            p >> assigned_mac;
         }
+        return true;
+    }
+    YOJIMBO_VIRTUAL_SERIALIZE_FUNCTIONS();
+};
 
+struct JoinFailureMessage : public yojimbo::Message {
+    MacAddress assigned_mac{0};
+
+    template <typename Stream>
+    bool Serialize(Stream& stream) {
+        Packet p;
+        if (stream.IsWriting()) {
+            p << assigned_mac;
+        }
+        serialize_object(stream, p);
+        if (stream.IsReading()) {
+            p >> assigned_mac;
+        }
+        return true;
+    }
+    YOJIMBO_VIRTUAL_SERIALIZE_FUNCTIONS();
+};
+
+struct CloseRoomMessage : public yojimbo::Message {
+    MacAddress assigned_mac{0};
+
+    template <typename Stream>
+    bool Serialize(Stream& stream) {
+        Packet p;
+        if (stream.IsWriting()) {
+            p << assigned_mac;
+        }
+        serialize_object(stream, p);
+        if (stream.IsReading()) {
+            p >> assigned_mac;
+        }
         return true;
     }
     YOJIMBO_VIRTUAL_SERIALIZE_FUNCTIONS();

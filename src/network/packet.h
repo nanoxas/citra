@@ -5,6 +5,7 @@
 #pragma once
 
 #include <array>
+#include <type_traits>
 #include <vector>
 #include "common/common_types.h"
 
@@ -82,6 +83,8 @@ public:
     Packet& operator>>(std::vector<T>& out_data);
     template <typename T, std::size_t S>
     Packet& operator>>(std::array<T, S>& out_data);
+    template <typename T>
+    Packet& operator>>(T& out_data);
 
     /// Overloads of operator << to write data into the packet
     Packet& operator<<(bool in_data);
@@ -101,6 +104,11 @@ public:
     Packet& operator<<(const std::vector<T>& in_data);
     template <typename T, std::size_t S>
     Packet& operator<<(const std::array<T, S>& data);
+    template <typename T>
+    Packet& operator<<(const T& data);
+
+    template <typename Stream>
+    bool Serialize(Stream& stream);
 
 private:
     /**
@@ -112,7 +120,7 @@ private:
     bool CheckSize(std::size_t size);
 
     // Member data
-    std::vector<char> data;   ///< Data stored in the packet
+    std::vector<u8> data;     ///< Data stored in the packet
     std::size_t read_pos = 0; ///< Current reading position in the packet
     bool is_valid = true;     ///< Reading state of the packet
 };
@@ -160,6 +168,20 @@ Packet& Packet::operator<<(const std::array<T, S>& in_data) {
     for (std::size_t i = 0; i < in_data.size(); ++i) {
         *this << in_data[i];
     }
+    return *this;
+}
+
+template <typename T>
+Packet& Packet::operator<<(const T& data) {
+    static_assert(std::is_pod<T>::value, "Type must be POD!");
+    Append(data, sizeof(data));
+    return *this;
+}
+
+template <typename T>
+Packet& Packet::operator>>(T& data) {
+    static_assert(std::is_pod<T>::value, "Type must be POD!");
+    Read(data, sizeof(data));
     return *this;
 }
 
