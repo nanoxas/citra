@@ -157,3 +157,27 @@ bool ComboBoxProxyModel::lessThan(const QModelIndex& left, const QModelIndex& ri
     auto rightData = right.data(Qt::DisplayRole).toString();
     return leftData.compare(rightData) < 0;
 }
+
+// Override rowCount to exclude any folder headings
+int ComboBoxProxyModel::rowCount(const QModelIndex& parent) const {
+    int total = sourceModel()->rowCount(parent);
+    for (int i = 0; i < total; ++i) {
+        auto folder = sourceModel()->index(i, 0);
+        if (sourceModel()->itemData(folder)[GameListItem::TypeRole] == "INSTALLED") {
+        }
+    }
+    NGLOG_INFO(Frontend, "total {}", total);
+    if (parent == QModelIndex()) {
+    }
+
+    return total;
+}
+
+bool ComboBoxProxyModel::filterAcceptsRow(int source_row, const QModelIndex& source_parent) const {
+    // if (source_parent == QModelIndex()) {
+    //    LOG_INFO(Frontend, "ignoring");
+    //    return false;
+    //}
+    NGLOG_INFO(Frontend, "accepting. is parent: {}", source_parent == QModelIndex());
+    return true;
+}

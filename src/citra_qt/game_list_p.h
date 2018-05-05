@@ -13,6 +13,7 @@
 #include <QObject>
 #include <QPainter>
 #include <QRunnable>
+#include <QSortFilterProxyModel>
 #include <QStandardItem>
 #include <QString>
 #include "citra_qt/ui_settings.h"
@@ -135,6 +136,7 @@ const static inline std::map<QString, CompatStatus> status_data = {
 
 class GameListItem : public QStandardItem {
 public:
+    static const int TypeRole = Qt::UserRole + 10;
     GameListItem() : QStandardItem() {}
     GameListItem(const QString& string) : QStandardItem(string) {}
     virtual ~GameListItem() override {}
@@ -173,10 +175,7 @@ public:
         // Get title from SMDH
         setData(GetQStringShortTitleFromSMDH(smdh, Loader::SMDH::TitleLanguage::English),
                 TitleRole);
-    }
-
-    int type() const override {
-        return static_cast<int>(GameListItemType::Game);
+        setData(static_cast<int>(GameListItemType::Game), TypeRole);
     }
 
     QVariant data(int role) const override {
@@ -208,10 +207,7 @@ public:
         setText(QCoreApplication::translate("GameList", status.text));
         setToolTip(QCoreApplication::translate("GameList", status.tooltip));
         setData(CreateCirclePixmapFromColor(status.color), Qt::DecorationRole);
-    }
-
-    int type() const override {
-        return static_cast<int>(GameListItemType::Game);
+        setData(static_cast<int>(GameListItemType::Game), TypeRole);
     }
 
     bool operator<(const QStandardItem& other) const override {
@@ -259,10 +255,7 @@ public:
         } else {
             GameListItem::setData(value, role);
         }
-    }
-
-    int type() const override {
-        return static_cast<int>(GameListItemType::Game);
+        GameListItem::setData(static_cast<int>(GameListItemType::Game), TypeRole);
     }
 
     /**
@@ -277,15 +270,18 @@ public:
 
 class GameListDir : public GameListItem {
 public:
-    int type() const override {
-        return static_cast<int>(dir_type);
-    }
-    explicit GameListDir(UISettings::GameDir& directory,
-                         GameListItemType type = GameListItemType::CustomDir)
-        : dir_type{type} {
-        UISettings::GameDir* game_dir = &directory;
-        setData(QVariant::fromValue(game_dir), GameDirRole);
-        switch (dir_type) {
+    static const int PathRole = Qt::UserRole + 1;
+    static const int ScanRole = Qt::UserRole + 2;
+    static const int ExpandedRole = Qt::UserRole + 3;
+
+    explicit GameListDir(const UISettings::GameDir& directory,
+                         GameListItemType type = GameListItemType::CustomDir) {
+
+        setData(directory.path, PathRole);
+        setData(directory.deep_scan, ScanRole);
+        setData(directory.expanded, ExpandedRole);
+        setData(static_cast<int>(type), TypeRole);
+        switch (type) {
         case GameListItemType::InstalledDir:
             setData(QIcon::fromTheme("sd_card").pixmap(48), Qt::DecorationRole);
             setData("Installed Titles", Qt::DisplayRole);
@@ -295,26 +291,20 @@ public:
             setData("System Titles", Qt::DisplayRole);
             break;
         case GameListItemType::CustomDir:
-            QString icon_name = QFileInfo::exists(game_dir->path) ? "folder" : "bad_folder";
+            QString icon_name = QFileInfo::exists(directory.path) ? "folder" : "bad_folder";
             setData(QIcon::fromTheme(icon_name).pixmap(48), Qt::DecorationRole);
-            setData(game_dir->path, Qt::DisplayRole);
+            setData(directory.path, Qt::DisplayRole);
             break;
         };
     };
-    static const int GameDirRole = Qt::UserRole + 1;
-
-private:
-    GameListItemType dir_type;
 };
 
 class GameListAddDir : public GameListItem {
 public:
-    int type() const override {
-        return static_cast<int>(GameListItemType::AddDir);
-    }
     explicit GameListAddDir() {
         setData(QIcon::fromTheme("plus").pixmap(48), Qt::DecorationRole);
         setData("Add New Game Directory", Qt::DisplayRole);
+        setData(static_cast<int>(GameListItemType::AddDir), TypeRole);
     }
 };
 
@@ -360,4 +350,13 @@ private:
 
     void AddFstEntriesToGameList(const std::string& dir_path, unsigned int recursion,
                                  GameListDir* parent_dir);
+};
+
+// Proxy to hide the installed/system folders if empty
+class GameListProxyModel : public QSortFilterProxyModel {
+    Q_OBJECT;
+
+public:
+    explicit GameListProxyModel(QObject* parent) : QSortFilterProxyModel(parent) {}
+    bool filterAcceptsRow(int sourceRow, const QModelIndex& sourceParent) const override;
 };

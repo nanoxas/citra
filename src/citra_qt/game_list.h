@@ -10,6 +10,7 @@
 #include "common/common_types.h"
 #include "ui_settings.h"
 
+class GameListProxyModel;
 class GameListWorker;
 class GameListDir;
 class GMainWindow;
@@ -116,8 +117,8 @@ private:
 
     void PopupContextMenu(const QPoint& menu_location);
     void AddGamePopup(QMenu& context_menu, u64 program_id);
-    void AddCustomDirPopup(QMenu& context_menu, QStandardItem* child);
-    void AddPermDirPopup(QMenu& context_menu, QStandardItem* child);
+    void AddCustomDirPopup(QMenu& context_menu, QModelIndex& selected);
+    void AddPermDirPopup(QMenu& context_menu, QModelIndex& selected);
 
     SearchField* search_field;
     GMainWindow* main_window = nullptr;
@@ -125,6 +126,7 @@ private:
     QTreeView* tree_view = nullptr;
     QStandardItemModel* item_model = nullptr;
     GameListWorker* current_worker = nullptr;
+    GameListProxyModel* proxy_model = nullptr;
     QFileSystemWatcher* watcher = nullptr;
     std::unordered_map<std::string, QString> compatibility_list;
 };
