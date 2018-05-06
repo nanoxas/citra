@@ -10,6 +10,7 @@
 #include "common/bit_set.h"
 #include "common/logging/log.h"
 #include "core/core.h"
+#include "core/settings.h"
 #include "video_core/regs_framebuffer.h"
 #include "video_core/regs_lighting.h"
 #include "video_core/regs_rasterizer.h"
@@ -226,7 +227,7 @@ void PicaShaderConfigCommon::Init(const Pica::ShaderRegs& regs, Pica::Shader::Sh
     program_hash = setup.GetProgramCodeHash();
     swizzle_hash = setup.GetSwizzleDataHash();
     main_offset = regs.main_offset;
-    sanitize_mul = false; // TODO (wwylele): stubbed now. Should sync with user settings
+    sanitize_mul = Settings::values.shaders_accurate_mul;
 
     num_outputs = 0;
     output_map.fill(16);
