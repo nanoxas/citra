@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include <boost/functional/hash.hpp>
 #include <boost/variant.hpp>
+#include "core/frontend/emu_window.h"
 #include "video_core/renderer_opengl/gl_shader_manager.h"
 
 static void SetShaderUniformBlockBinding(GLuint shader, const char* name, UniformBindings binding,
@@ -186,6 +187,7 @@ public:
 
 private:
     bool separable;
+    std::unordered_map<std::string, std::future<GLuint>> async_map;
     std::unordered_map<KeyConfigType, OGLShaderStage*> shader_map;
     std::unordered_map<std::string, OGLShaderStage> shader_cache;
 };

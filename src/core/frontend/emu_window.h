@@ -4,11 +4,56 @@
 
 #pragma once
 
+#include <atomic>
 #include <memory>
+#include <string>
 #include <tuple>
 #include <utility>
 #include "common/common_types.h"
+#include "common/threadsafe_queue.h"
 #include "core/frontend/framebuffer_layout.h"
+
+/**
+ * Represents a GPU context for the current graphics device. When setting up the video core, it may
+ * be desirable to have multiple contexts on different threads for different tasks, and this class
+ * defines the base functionality
+ */
+class GraphicsContext {
+public:
+    /// Swap buffers to display the next frame
+    virtual void SwapBuffers() = 0;
+
+    /// Makes the graphics context current for the caller thread
+    virtual void MakeCurrent() = 0;
+
+    /// Releases (dunno if this is the "right" word) the GLFW context from the caller thread
+    virtual void DoneCurrent() = 0;
+};
+
+/**
+ * Frontends can optionally create and pass to the core a thread that will be used for async shader
+ * compilation. The GraphicsContext must be assigned to the thread that the task is running on by
+ * the frontend (as required by OpenGL)
+ */
+using ShaderCompilationTask = std::function<int()>;
+class ShaderCompilationThread : public Common::TaskQueue<ShaderCompilationTask> {
+public:
+    explicit ShaderCompilationThread(std::unique_ptr<GraphicsContext> context)
+        : context(std::move(context)) {}
+
+    std::future<int> Accept(ShaderCompilationTask task) override {
+        auto t = [&] {
+            context->MakeCurrent();
+            int val = task();
+            context->DoneCurrent();
+            return val;
+        };
+        return this->Common::TaskQueue<ShaderCompilationTask>::Accept(t);
+    }
+
+protected:
+    std::unique_ptr<GraphicsContext> context;
+};
 
 /**
  * Abstraction class used to provide an interface between emulation code and the frontend
@@ -17,8 +62,8 @@
  * Design notes on the interaction between EmuWindow and the emulation core:
  * - Generally, decisions on anything visible to the user should be left up to the GUI.
  *   For example, the emulation core should not try to dictate some window title or size.
- *   This stuff is not the core's business and only causes problems with regards to thread-safety
- *   anyway.
+ *   This stuff is not the core's business and only causes problems with regards to
+ * thread-safety anyway.
  * - Under certain circumstances, it may be desirable for the core to politely request the GUI
  *   to set e.g. a minimum window size. However, the GUI should always be free to ignore any
  *   such hints.
@@ -28,7 +73,7 @@
  * - DO NOT TREAT THIS CLASS AS A GUI TOOLKIT ABSTRACTION LAYER. That's not what it is. Please
  *   re-read the upper points again and think about it if you don't see this.
  */
-class EmuWindow {
+class EmuWindow : public GraphicsContext {
 public:
     /// Data structure to store emuwindow configuration
     struct WindowConfig {
@@ -38,17 +83,8 @@ public:
         std::pair<unsigned, unsigned> min_client_area_size;
     };
 
-    /// Swap buffers to display the next frame
-    virtual void SwapBuffers() = 0;
-
     /// Polls window events
     virtual void PollEvents() = 0;
-
-    /// Makes the graphics context current for the caller thread
-    virtual void MakeCurrent() = 0;
-
-    /// Releases (dunno if this is the "right" word) the GLFW context from the caller thread
-    virtual void DoneCurrent() = 0;
 
     /**
      * Signal that a touch pressed event has occurred (e.g. mouse click pressed)

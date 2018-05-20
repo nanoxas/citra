@@ -15,8 +15,9 @@
 
 class QKeyEvent;
 class QScreen;
+class QOpenGLContext;
 
-class GGLWidgetInternal;
+class GGLWindowInternal;
 class GMainWindow;
 class GRenderWindow;
 
@@ -101,6 +102,12 @@ signals:
     void ErrorThrown(Core::System::ResultStatus, std::string);
 };
 
+class GShaderThread : public ShaderCompilationThread, public QThread {
+public:
+    explicit GShaderThread(QOpenGLContext* share_context);
+    void run() override;
+};
+
 class GRenderWindow : public QWidget, public EmuWindow {
     Q_OBJECT
 
@@ -136,6 +143,12 @@ public:
 
     void InitRenderTarget();
 
+    /**
+     * Build a shader compilation thread by sharing the current rendering context.
+     * Returns nullptr if the `InitRenderTarget` hasn't been called first
+     */
+    std::unique_ptr<GShaderThread> CreateShaderThread();
+
 public slots:
     void moveContext(); // overridden
 
@@ -151,7 +164,9 @@ private:
     void OnMinimalClientAreaChangeRequest(
         const std::pair<unsigned, unsigned>& minimal_size) override;
 
-    GGLWidgetInternal* child;
+    GGLWindowInternal* child;
+    QWidget* docked;
+    QOpenGLContext* context;
 
     QByteArray geometry;
 

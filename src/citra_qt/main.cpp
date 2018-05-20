@@ -12,6 +12,7 @@
 #include <QFileDialog>
 #include <QFutureWatcher>
 #include <QMessageBox>
+#include <QSurfaceFormat>
 #include <QtConcurrent/QtConcurrentRun>
 #include <QtGui>
 #include <QtWidgets>
@@ -572,17 +573,18 @@ bool GMainWindow::LoadROM(const QString& filename) {
 
     render_window->InitRenderTarget();
     render_window->MakeCurrent();
-
     if (!gladLoadGL()) {
         QMessageBox::critical(this, tr("Error while initializing OpenGL 3.3 Core!"),
                               tr("Your GPU may not support OpenGL 3.3, or you do not "
                                  "have the latest graphics driver."));
         return false;
     }
+    shader_thread = render_window->CreateShaderThread();
 
     Core::System& system{Core::System::GetInstance()};
 
-    const Core::System::ResultStatus result{system.Load(render_window, filename.toStdString())};
+    const Core::System::ResultStatus result{
+        system.Load(render_window, filename.toStdString(), shader_thread.get())};
 
     if (result != Core::System::ResultStatus::Success) {
         switch (result) {
@@ -654,6 +656,7 @@ void GMainWindow::BootGame(const QString& filename) {
     emu_thread = std::make_unique<EmuThread>(render_window);
     emit EmulationStarting(emu_thread.get());
     render_window->moveContext();
+    shader_thread->start();
     emu_thread->start();
 
     connect(render_window, &GRenderWindow::Closed, this, &GMainWindow::OnStopGame);

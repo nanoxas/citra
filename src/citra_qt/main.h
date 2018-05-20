@@ -27,6 +27,7 @@ class GraphicsBreakPointsWidget;
 class GraphicsTracingWidget;
 class GraphicsVertexShaderWidget;
 class GRenderWindow;
+class GShaderThread;
 class MicroProfileDialog;
 class MultiplayerState;
 class ProfilerWidget;
@@ -198,6 +199,7 @@ private:
     // Whether emulation is currently running in Citra.
     bool emulation_running = false;
     std::unique_ptr<EmuThread> emu_thread;
+    std::unique_ptr<GShaderThread> shader_thread;
 
     // Debugger panes
     ProfilerWidget* profilerWidget;

@@ -14,7 +14,9 @@
 
 namespace VideoCore {
 
-EmuWindow* g_emu_window = nullptr;        ///< Frontend emulator window
+EmuWindow* g_emu_window = nullptr; ///< Frontend emulator window
+ShaderCompilationThread* g_shader_thread =
+    nullptr;                              ///< Optional thread for compiling shaders asynchronously
 std::unique_ptr<RendererBase> g_renderer; ///< Renderer plugin
 
 std::atomic<bool> g_hw_renderer_enabled;
@@ -24,10 +26,11 @@ std::atomic<bool> g_hw_shader_accurate_gs;
 std::atomic<bool> g_hw_shader_accurate_mul;
 
 /// Initialize the video core
-bool Init(EmuWindow* emu_window) {
+bool Init(EmuWindow* emu_window, ShaderCompilationThread* shader_thread) {
     Pica::Init();
 
     g_emu_window = emu_window;
+    g_shader_thread = shader_thread;
     g_renderer = std::make_unique<RendererOpenGL>();
     g_renderer->SetWindow(g_emu_window);
     if (g_renderer->Init()) {

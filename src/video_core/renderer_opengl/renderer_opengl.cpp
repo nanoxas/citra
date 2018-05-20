@@ -418,6 +418,10 @@ void RendererOpenGL::SetWindow(EmuWindow* window) {
     render_window = window;
 }
 
+void RendererOpenGL::SetShaderCompilationThread(ShaderCompilationThread* shader_thread) {
+    this->shader_thread = shader_thread;
+}
+
 static const char* GetSource(GLenum source) {
 #define RET(s)                                                                                     \
     case GL_DEBUG_SOURCE_##s:                                                                      \

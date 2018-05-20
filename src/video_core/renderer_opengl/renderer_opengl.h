@@ -14,6 +14,7 @@
 #include "video_core/renderer_opengl/gl_state.h"
 
 class EmuWindow;
+class ShaderCompilationThread;
 
 /// Structure used for storing information about the textures for each 3DS screen
 struct TextureInfo {
@@ -46,6 +47,8 @@ public:
      */
     void SetWindow(EmuWindow* window) override;
 
+    void SetShaderCompilationThread(ShaderCompilationThread* shader_thread) override;
+
     /// Initialize the renderer
     bool Init() override;
 
@@ -67,6 +70,8 @@ private:
     void LoadColorToActiveGLTexture(u8 color_r, u8 color_g, u8 color_b, const TextureInfo& texture);
 
     EmuWindow* render_window; ///< Handle to render window
+    ShaderCompilationThread*
+        shader_thread; ///< Handle to a task queue to offload shader compilation to
 
     OpenGLState state;
 
