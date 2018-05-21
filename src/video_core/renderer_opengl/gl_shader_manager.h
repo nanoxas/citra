@@ -10,6 +10,7 @@
 #include "video_core/renderer_opengl/gl_shader_gen.h"
 #include "video_core/renderer_opengl/pica_to_gl.h"
 
+class ShaderCompilationThread;
 enum class UniformBindings : GLuint { Common, VS, GS };
 
 struct LightSrc {
@@ -88,7 +89,7 @@ static_assert(sizeof(GSUniformData) < 16384,
 /// A class that manage different shader stages and configures them with given config data.
 class ShaderProgramManager {
 public:
-    explicit ShaderProgramManager(bool separable);
+    explicit ShaderProgramManager(bool separable, ShaderCompilationThread* shader_thread);
     ~ShaderProgramManager();
 
     bool UseProgrammableVertexShader(const GLShader::PicaVSConfig& config,

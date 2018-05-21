@@ -95,6 +95,7 @@ static std::array<GLfloat, 3 * 2> MakeOrthographicMatrix(const float width, cons
 }
 
 RendererOpenGL::RendererOpenGL() = default;
+
 RendererOpenGL::~RendererOpenGL() = default;
 
 /// Swap buffers (render frame)

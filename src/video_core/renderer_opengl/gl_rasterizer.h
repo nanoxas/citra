@@ -31,10 +31,11 @@
 
 struct ScreenInfo;
 class ShaderProgramManager;
+class ShaderCompilationThread;
 
 class RasterizerOpenGL : public VideoCore::RasterizerInterface {
 public:
-    RasterizerOpenGL();
+    RasterizerOpenGL(ShaderCompilationThread* shader_thread);
     ~RasterizerOpenGL() override;
 
     void AddTriangle(const Pica::Shader::OutputVertex& v0, const Pica::Shader::OutputVertex& v1,
@@ -265,6 +266,7 @@ private:
         bool dirty;
     } uniform_block_data = {};
 
+    ShaderCompilationThread* shader_thread;
     std::unique_ptr<ShaderProgramManager> shader_program_manager;
 
     // They shall be big enough for about one frame.

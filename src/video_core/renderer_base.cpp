@@ -6,6 +6,7 @@
 #include <memory>
 #include "video_core/renderer_base.h"
 #include "video_core/renderer_opengl/gl_rasterizer.h"
+#include "video_core/renderer_opengl/renderer_opengl.h"
 #include "video_core/swrasterizer/swrasterizer.h"
 #include "video_core/video_core.h"
 
@@ -15,7 +16,9 @@ void RendererBase::RefreshRasterizerSetting() {
         opengl_rasterizer_active = hw_renderer_enabled;
 
         if (hw_renderer_enabled) {
-            rasterizer = std::make_unique<RasterizerOpenGL>();
+            // TODO figure out how best to pass the shader thread in
+            rasterizer = std::make_unique<RasterizerOpenGL>(
+                dynamic_cast<RendererOpenGL*>(this)->shader_thread);
         } else {
             rasterizer = std::make_unique<VideoCore::SWRasterizer>();
         }

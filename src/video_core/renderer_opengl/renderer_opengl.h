@@ -55,6 +55,9 @@ public:
     /// Shutdown the renderer
     void ShutDown() override;
 
+    // TODO figure out how best to pass in the shader thread
+    ShaderCompilationThread* shader_thread;
+
 private:
     void InitOpenGLObjects();
     void ConfigureFramebufferTexture(TextureInfo& texture,
@@ -69,9 +72,8 @@ private:
     // Fills active OpenGL texture with the given RGB color.
     void LoadColorToActiveGLTexture(u8 color_r, u8 color_g, u8 color_b, const TextureInfo& texture);
 
-    EmuWindow* render_window; ///< Handle to render window
-    ShaderCompilationThread*
-        shader_thread; ///< Handle to a task queue to offload shader compilation to
+    /// Handle to render window
+    EmuWindow* render_window;
 
     OpenGLState state;
 

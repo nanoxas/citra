@@ -34,7 +34,7 @@ MICROPROFILE_DEFINE(OpenGL_Drawing, "OpenGL", "Drawing", MP_RGB(128, 128, 192));
 MICROPROFILE_DEFINE(OpenGL_Blits, "OpenGL", "Blits", MP_RGB(100, 100, 255));
 MICROPROFILE_DEFINE(OpenGL_CacheManagement, "OpenGL", "Cache Mgmt", MP_RGB(100, 255, 100));
 
-RasterizerOpenGL::RasterizerOpenGL()
+RasterizerOpenGL::RasterizerOpenGL(ShaderCompilationThread* shader_thread)
     : shader_dirty(true), vertex_buffer(GL_ARRAY_BUFFER, VERTEX_BUFFER_SIZE),
       uniform_buffer(GL_UNIFORM_BUFFER, UNIFORM_BUFFER_SIZE),
       index_buffer(GL_ELEMENT_ARRAY_BUFFER, INDEX_BUFFER_SIZE) {
@@ -191,7 +191,7 @@ RasterizerOpenGL::RasterizerOpenGL()
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffer.GetHandle());
 
     shader_program_manager =
-        std::make_unique<ShaderProgramManager>(GLAD_GL_ARB_separate_shader_objects);
+        std::make_unique<ShaderProgramManager>(GLAD_GL_ARB_separate_shader_objects, shader_thread);
 
     glEnable(GL_BLEND);
 

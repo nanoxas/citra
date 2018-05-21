@@ -3,6 +3,7 @@
 // Refer to the license.txt file included.
 
 #include <algorithm>
+#include <tuple>
 #include <unordered_map>
 #include <boost/functional/hash.hpp>
 #include <boost/variant.hpp>
@@ -111,6 +112,15 @@ public:
         }
     }
 
+    // Sets the internal handle. Used to set the result from an async shader compilation
+    void SetHandle(GLuint handle) {
+        if (shader_or_program.which() == 0) {
+            boost::get<OGLShader>(shader_or_program).handle = handle;
+        } else {
+            boost::get<OGLProgram>(shader_or_program).handle = handle;
+        }
+    }
+
 private:
     boost::variant<OGLShader, OGLProgram> shader_or_program;
 };
@@ -158,7 +168,8 @@ template <typename KeyConfigType,
           GLenum ShaderType>
 class ShaderDoubleCache {
 public:
-    explicit ShaderDoubleCache(bool separable) : separable(separable) {}
+    explicit ShaderDoubleCache(bool separable, ShaderCompilationThread* shader_thread)
+        : separable(separable), shader_thread(shader_thread) {}
     GLuint Get(const KeyConfigType& key, const Pica::Shader::ShaderSetup& setup) {
         auto map_it = shader_map.find(key);
         if (map_it == shader_map.end()) {
@@ -169,11 +180,53 @@ public:
             }
 
             std::string& program = program_opt.get();
+
+            // Check to see if the generated shader has been cached before
+            auto program_it = shader_cache.find(program);
+            if (program_it != shader_cache.end()) {
+                auto& cached_shader = program_it->second;
+                // Add it to the first cache with this config as well to reduce calls to
+                // CodeGenerator
+                shader_map[key] = &cached_shader;
+                return cached_shader.GetHandle();
+            }
+
+            GLuint created_handle;
+            // If the async thread is available, pass off the task to a worker thread or get the
+            // result from the future
+            if (shader_thread) {
+                auto async_it = async_map.find(program);
+                // Shader is not in the cache, so start compiling it
+                if (async_it == async_map.end()) {
+                    auto future = shader_thread->Accept([&] {
+                        OGLShaderStage shader(separable);
+                        shader.Create(program.c_str(), ShaderType);
+                        return static_cast<u32>(shader.GetHandle());
+                    });
+                    LOG_ERROR(Render_OpenGL, "Setting future");
+                    async_map[program] = std::move(future);
+                    return 0;
+                }
+                // Shader is being compiled async right now, so check for success
+                auto& future = async_it->second;
+                if (future.wait_for(std::chrono::seconds(0)) != std::future_status::ready) {
+                    return 0;
+                }
+                // Async Shader compilation complete, so set the handle and clear it
+                LOG_CRITICAL(Render_OpenGL, "Getting future");
+                created_handle = static_cast<GLuint>(future.get());
+                async_map.erase(async_it);
+            } else {
+                // Otherwise just create it synchronously
+                OGLShaderStage create_shader{separable};
+                create_shader.Create(program.c_str(), ShaderType);
+                created_handle = create_shader.GetHandle();
+            }
+
+            // Add the compiled shader to both caches for future use
             auto [iter, new_shader] = shader_cache.emplace(program, OGLShaderStage{separable});
             OGLShaderStage& cached_shader = iter->second;
-            if (new_shader) {
-                cached_shader.Create(program.c_str(), ShaderType);
-            }
+            cached_shader.SetHandle(created_handle);
             shader_map[key] = &cached_shader;
             return cached_shader.GetHandle();
         }
@@ -187,7 +240,8 @@ public:
 
 private:
     bool separable;
-    std::unordered_map<std::string, std::future<GLuint>> async_map;
+    ShaderCompilationThread* shader_thread;
+    std::unordered_map<std::string, std::future<u32>> async_map;
     std::unordered_map<KeyConfigType, OGLShaderStage*> shader_map;
     std::unordered_map<std::string, OGLShaderStage> shader_cache;
 };
@@ -208,9 +262,9 @@ using FragmentShaders =
 
 class ShaderProgramManager::Impl {
 public:
-    explicit Impl(bool separable)
-        : separable(separable), programmable_vertex_shaders(separable),
-          trivial_vertex_shader(separable), programmable_geometry_shaders(separable),
+    explicit Impl(bool separable, ShaderCompilationThread* shader_thread)
+        : separable(separable), programmable_vertex_shaders(separable, shader_thread),
+          trivial_vertex_shader(separable), programmable_geometry_shaders(separable, shader_thread),
           fixed_geometry_shaders(separable), fragment_shaders(separable) {
         if (separable)
             pipeline.Create();
@@ -255,8 +309,8 @@ public:
     OGLPipeline pipeline;
 };
 
-ShaderProgramManager::ShaderProgramManager(bool separable)
-    : impl(std::make_unique<Impl>(separable)) {}
+ShaderProgramManager::ShaderProgramManager(bool separable, ShaderCompilationThread* shader_thread)
+    : impl(std::make_unique<Impl>(separable, shader_thread)) {}
 
 ShaderProgramManager::~ShaderProgramManager() = default;
 

@@ -33,6 +33,7 @@ bool Init(EmuWindow* emu_window, ShaderCompilationThread* shader_thread) {
     g_shader_thread = shader_thread;
     g_renderer = std::make_unique<RendererOpenGL>();
     g_renderer->SetWindow(g_emu_window);
+    g_renderer->SetShaderCompilationThread(g_shader_thread);
     if (g_renderer->Init()) {
         LOG_DEBUG(Render, "initialized OK");
     } else {

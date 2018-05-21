@@ -35,13 +35,13 @@ public:
  * compilation. The GraphicsContext must be assigned to the thread that the task is running on by
  * the frontend (as required by OpenGL)
  */
-using ShaderCompilationTask = std::function<int()>;
+using ShaderCompilationTask = std::function<u32()>;
 class ShaderCompilationThread : public Common::TaskQueue<ShaderCompilationTask> {
 public:
     explicit ShaderCompilationThread(std::unique_ptr<GraphicsContext> context)
         : context(std::move(context)) {}
 
-    std::future<int> Accept(ShaderCompilationTask task) override {
+    std::future<u32> Accept(ShaderCompilationTask task) override {
         auto t = [&] {
             context->MakeCurrent();
             int val = task();

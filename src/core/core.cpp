@@ -105,7 +105,7 @@ System::ResultStatus System::Load(EmuWindow* emu_window, const std::string& file
         }
     }
 
-    ResultStatus init_result{Init(emu_window, system_mode.first.get())};
+    ResultStatus init_result{Init(emu_window, system_mode.first.get(), shader_thread)};
     if (init_result != ResultStatus::Success) {
         LOG_CRITICAL(Core, "Failed to initialize system (Error %u)!",
                      static_cast<u32>(init_result));
