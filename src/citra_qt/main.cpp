@@ -579,6 +579,7 @@ bool GMainWindow::LoadROM(const QString& filename) {
                                  "have the latest graphics driver."));
         return false;
     }
+    render_window->DoneCurrent();
     shader_thread = render_window->CreateShaderThread();
 
     Core::System& system{Core::System::GetInstance()};
@@ -655,8 +656,9 @@ void GMainWindow::BootGame(const QString& filename) {
     // Create and start the emulation thread
     emu_thread = std::make_unique<EmuThread>(render_window);
     emit EmulationStarting(emu_thread.get());
+    if (shader_thread)
+        shader_thread->start();
     render_window->moveContext();
-    shader_thread->start();
     emu_thread->start();
 
     connect(render_window, &GRenderWindow::Closed, this, &GMainWindow::OnStopGame);

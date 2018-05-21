@@ -166,7 +166,9 @@ private:
 
     GGLWindowInternal* child;
     QWidget* docked;
+    /// Context for the render thread
     QOpenGLContext* context;
+    QOpenGLContext* share_context = nullptr;
 
     QByteArray geometry;
 

@@ -16,12 +16,14 @@ namespace Debugger {
 void ToggleConsole() {
 #ifdef _WIN32
     FILE* temp;
+    FILE* temp2;
+    FILE* temp3;
     if (UISettings::values.show_console) {
         if (AllocConsole()) {
             // The first parameter for freopen_s is a out parameter, so we can just ignore it
             freopen_s(&temp, "CONIN$", "r", stdin);
-            freopen_s(&temp, "CONOUT$", "w", stdout);
-            freopen_s(&temp, "CONOUT$", "w", stderr);
+            freopen_s(&temp2, "CONOUT$", "w", stdout);
+            freopen_s(&temp3, "CONOUT$", "w", stderr);
             Log::AddBackend(std::make_unique<Log::ColorConsoleBackend>());
         }
     } else {
@@ -29,9 +31,9 @@ void ToggleConsole() {
             // In order to close the console, we have to also detach the streams on it.
             // Just redirect them to NUL if there is no console window
             Log::RemoveBackend(Log::ColorConsoleBackend::Name());
-            freopen_s(&temp, "NUL", "r", stdin);
-            freopen_s(&temp, "NUL", "w", stdout);
-            freopen_s(&temp, "NUL", "w", stderr);
+            // freopen_s(&temp, "NUL", "r", stdin);
+            // freopen_s(&temp2, "NUL", "w", stdout);
+            // freopen_s(&temp3, "NUL", "w", stderr);
         }
     }
 #else

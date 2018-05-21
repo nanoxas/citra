@@ -504,7 +504,7 @@ bool RendererOpenGL::Init() {
     InitOpenGLObjects();
 
     RefreshRasterizerSetting();
-
+    render_window->DoneCurrent();
     return true;
 }
 

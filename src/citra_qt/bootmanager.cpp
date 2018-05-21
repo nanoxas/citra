@@ -81,7 +81,7 @@ public:
         context->setShareContext(share_context);
         context->setFormat(share_context->format());
         context->setScreen(surface->screen());
-        context->create();
+        NGLOG_CRITICAL(Frontend, "context created? {}", context->create());
     }
 
     // Do nothing
@@ -187,11 +187,14 @@ void GRenderWindow::SwapBuffers() {
 }
 
 void GRenderWindow::MakeCurrent() {
-    LOG_CRITICAL(Frontend, "MakeCurrent in emu thread");
+    // NGLOG_CRITICAL(Frontend, "MakeCurrent in thread {}",
+    //              QThread::currentThread()->objectName().toStdString());
     context->makeCurrent(child);
 }
 
 void GRenderWindow::DoneCurrent() {
+    // NGLOG_CRITICAL(Frontend, "DoneCurrent in thread {}",
+    //               QThread::currentThread()->objectName().toStdString());
     context->doneCurrent();
 }
 
@@ -293,6 +296,10 @@ void GRenderWindow::InitRenderTarget() {
         delete child;
     }
 
+    if (share_context) {
+        delete share_context;
+    }
+
     if (context) {
         delete context;
     }
@@ -311,20 +318,24 @@ void GRenderWindow::InitRenderTarget() {
     fmt.setVersion(3, 3);
     fmt.setProfile(QSurfaceFormat::CoreProfile);
     // TODO: expose a setting for buffer value (ie default/single/double/triple)
-    // fmt.setSwapBehavior(QSurfaceFormat::DefaultSwapBehavior);
-    fmt.setSwapBehavior(QSurfaceFormat::SingleBuffer);
+    fmt.setSwapBehavior(QSurfaceFormat::DefaultSwapBehavior);
+    // fmt.setSwapBehavior(QSurfaceFormat::SingleBuffer);
     fmt.setSwapInterval(Settings::values.use_vsync);
 
     // QSurfaceFormat::setDefaultFormat(fmt);
     // Requests a forward-compatible context, which is required to get a 3.2+ context on OS X
     // fmt.setOption(QOpenGL::NoDeprecatedFunctions);
 
+    share_context = new QOpenGLContext();
+    share_context->setFormat(fmt);
+
+    child = new GGLWindowInternal(this, share_context);
+    child->setFormat(fmt);
+
     context = new QOpenGLContext();
     context->setFormat(fmt);
-    // context->setScreen(child->screen());
+    context->setScreen(child->screen());
     NGLOG_CRITICAL(Frontend, "success? {}", context->create());
-
-    child = new GGLWindowInternal(this, context);
 
     // context->setShareContext(QOpenGLContext::globalShareContext());
     // bool worked = context->create();
@@ -348,6 +359,7 @@ void GRenderWindow::InitRenderTarget() {
 
     BackupGeometry();
     show();
+    // child->makeCurrent();
 }
 
 std::unique_ptr<GShaderThread> GRenderWindow::CreateShaderThread() {
@@ -355,7 +367,11 @@ std::unique_ptr<GShaderThread> GRenderWindow::CreateShaderThread() {
     if (!context)
         return {nullptr};
     LOG_CRITICAL(Frontend, "Create shader thread success!");
-    return std::make_unique<GShaderThread>(context);
+    // DoneCurrent();
+    // std::unique_ptr<GShaderThread> ret = {nullptr};
+    auto ret = std::make_unique<GShaderThread>(share_context);
+    // MakeCurrent();
+    return ret;
 }
 
 void GRenderWindow::OnMinimalClientAreaChangeRequest(
