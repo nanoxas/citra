@@ -42,9 +42,10 @@ public:
         : context(std::move(context)) {}
 
     std::future<u32> Accept(ShaderCompilationTask task) override {
-        auto t = [&] {
+        auto t = [this, task] {
             context->MakeCurrent();
-            int val = task();
+            u32 val = task();
+            NGLOG_CRITICAL(Common, "result of task, {}", val);
             context->DoneCurrent();
             return val;
         };

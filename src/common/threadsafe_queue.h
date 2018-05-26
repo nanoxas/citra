@@ -145,15 +145,18 @@ public:
 
     virtual auto Accept(F task, Args... args) -> std::future<ResultType> {
         LOG_CRITICAL(Common, "Accepting task");
-        std::packaged_task<ResultType(void)> p([=] { return task(std::forward<Args>(args)...); });
+        std::packaged_task<ResultType(void)> p([task, args...] {
+            ResultType val = task(std::forward<Args>(args)...);
+            NGLOG_CRITICAL(Common, "result of Accept {}", val);
+            return val;
+        });
         auto future = p.get_future();
         {
             std::lock_guard<std::mutex> lock(has_work);
             task_list.Push(std::move(p));
             has_work_cv.notify_one();
         }
-        NGLOG_ERROR(Common, "Address of task {} Address of future {}", static_cast<void*>(&task),
-                    static_cast<void*>(&future));
+
         return future;
     }
 

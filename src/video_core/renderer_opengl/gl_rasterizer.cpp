@@ -192,6 +192,7 @@ RasterizerOpenGL::RasterizerOpenGL(ShaderCompilationThread* shader_thread)
 
     shader_program_manager =
         std::make_unique<ShaderProgramManager>(GLAD_GL_ARB_separate_shader_objects, shader_thread);
+    // shader_program_manager = std::make_unique<ShaderProgramManager>(false, shader_thread);
 
     glEnable(GL_BLEND);
 

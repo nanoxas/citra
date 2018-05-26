@@ -2,6 +2,7 @@
 // Licensed under GPLv2 or any later version
 // Refer to the license.txt file included.
 
+#include <mutex>
 #include <vector>
 #include <glad/glad.h>
 #include "common/assert.h"
@@ -9,7 +10,8 @@
 #include "video_core/renderer_opengl/gl_shader_util.h"
 
 namespace GLShader {
-
+static std::mutex shader{};
+static std::mutex program{};
 GLuint LoadShader(const char* source, GLenum type) {
     const char* debug_type;
     switch (type) {
@@ -26,7 +28,11 @@ GLuint LoadShader(const char* source, GLenum type) {
         UNREACHABLE();
     }
 
-    GLuint shader_id = glCreateShader(type);
+    GLuint shader_id;
+    {
+        std::lock_guard<std::mutex> lock(shader);
+        shader_id = glCreateShader(type);
+    }
     glShaderSource(shader_id, 1, &source, nullptr);
     NGLOG_DEBUG(Render_OpenGL, "Compiling {} shader...", debug_type);
     glCompileShader(shader_id);
@@ -47,15 +53,18 @@ GLuint LoadShader(const char* source, GLenum type) {
             NGLOG_ERROR(Render_OpenGL, "Shader source code:\n{}", source);
         }
     }
+    // NGLOG_CRITICAL(Render_OpenGL, "shader id: {}", shader_id);
     return shader_id;
 }
 
 GLuint LoadProgram(bool separable_program, const std::vector<GLuint>& shaders) {
     // Link the program
     NGLOG_DEBUG(Render_OpenGL, "Linking program...");
-
-    GLuint program_id = glCreateProgram();
-
+    GLuint program_id;
+    {
+        std::lock_guard<std::mutex> lock(program);
+        program_id = glCreateProgram();
+    }
     for (GLuint shader : shaders) {
         if (shader != 0) {
             glAttachShader(program_id, shader);
@@ -92,6 +101,7 @@ GLuint LoadProgram(bool separable_program, const std::vector<GLuint>& shaders) {
         }
     }
 
+    // NGLOG_CRITICAL(Render_OpenGL, "program id: {}", program_id);
     return program_id;
 }
 

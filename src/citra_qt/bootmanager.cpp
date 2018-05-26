@@ -328,6 +328,7 @@ void GRenderWindow::InitRenderTarget() {
 
     share_context = new QOpenGLContext();
     share_context->setFormat(fmt);
+    share_context->create();
 
     child = new GGLWindowInternal(this, share_context);
     child->setFormat(fmt);
@@ -335,9 +336,8 @@ void GRenderWindow::InitRenderTarget() {
     context = new QOpenGLContext();
     context->setFormat(fmt);
     context->setScreen(child->screen());
+    context->setShareContext(share_context);
     NGLOG_CRITICAL(Frontend, "success? {}", context->create());
-
-    // context->setShareContext(QOpenGLContext::globalShareContext());
     // bool worked = context->create();
     // NGLOG_ERROR(Frontend, "Worked? {}", worked);
     // context->makeCurrent(child);
