@@ -309,7 +309,7 @@ void RendererOpenGL::ConfigureFramebufferTexture(TextureInfo& texture,
     case GPU::Regs::PixelFormat::RGBA8:
         internal_format = GL_RGBA;
         texture.gl_format = GL_RGBA;
-        texture.gl_type = GL_UNSIGNED_INT_8_8_8_8;
+        texture.gl_type = GL_UNSIGNED_BYTE;
         break;
 
     case GPU::Regs::PixelFormat::RGB8:
@@ -318,7 +318,7 @@ void RendererOpenGL::ConfigureFramebufferTexture(TextureInfo& texture,
         // mostly everywhere) for words or half-words.
         // TODO: check how those behave on big-endian processors.
         internal_format = GL_RGB;
-        texture.gl_format = GL_BGR;
+        texture.gl_format = GL_RGB;
         texture.gl_type = GL_UNSIGNED_BYTE;
         break;
 
@@ -519,7 +519,7 @@ bool RendererOpenGL::Init() {
     Core::Telemetry().AddField(Telemetry::FieldType::UserSystem, "GPU_Model", gpu_model);
     Core::Telemetry().AddField(Telemetry::FieldType::UserSystem, "GPU_OpenGL_Version", gl_version);
 
-    if (!GLAD_GL_VERSION_3_3) {
+    if (!GL_ES_VERSION_3_2) {
         return false;
     }
 

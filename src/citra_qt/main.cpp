@@ -596,7 +596,7 @@ bool GMainWindow::LoadROM(const QString& filename) {
     render_window->InitRenderTarget();
     render_window->MakeCurrent();
 
-    if (!gladLoadGL()) {
+    if (!gladLoadGLES2Loader(eglGetProcAddress)) {
         QMessageBox::critical(this, tr("Error while initializing OpenGL 3.3 Core!"),
                               tr("Your GPU may not support OpenGL 3.3, or you do not "
                                  "have the latest graphics driver."));

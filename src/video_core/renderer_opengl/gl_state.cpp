@@ -45,7 +45,7 @@ OpenGLState::OpenGLState() {
     blend.color.blue = 0.0f;
     blend.color.alpha = 0.0f;
 
-    logic_op = GL_COPY;
+    // logic_op = GL_COPY;
 
     for (auto& texture_unit : texture_units) {
         texture_unit.texture_2d = 0;
@@ -164,10 +164,10 @@ void OpenGLState::Apply() const {
     if (blend.enabled != cur_state.blend.enabled) {
         if (blend.enabled) {
             glEnable(GL_BLEND);
-            glDisable(GL_COLOR_LOGIC_OP);
+            // glDisable(GL_COLOR_LOGIC_OP);
         } else {
             glDisable(GL_BLEND);
-            glEnable(GL_COLOR_LOGIC_OP);
+            // glEnable(GL_COLOR_LOGIC_OP);
         }
     }
 
@@ -191,9 +191,9 @@ void OpenGLState::Apply() const {
         glBlendEquationSeparate(blend.rgb_equation, blend.a_equation);
     }
 
-    if (logic_op != cur_state.logic_op) {
-        glLogicOp(logic_op);
-    }
+    // if (logic_op != cur_state.logic_op) {
+    //    glLogicOp(logic_op);
+    //}
 
     // Textures
     for (unsigned i = 0; i < ARRAY_SIZE(texture_units); ++i) {
@@ -319,11 +319,11 @@ void OpenGLState::Apply() const {
     // Clip distance
     for (size_t i = 0; i < clip_distance.size(); ++i) {
         if (clip_distance[i] != cur_state.clip_distance[i]) {
-            if (clip_distance[i]) {
-                glEnable(GL_CLIP_DISTANCE0 + static_cast<GLenum>(i));
-            } else {
-                glDisable(GL_CLIP_DISTANCE0 + static_cast<GLenum>(i));
-            }
+            // if (clip_distance[i]) {
+            //    glEnable(GL_CLIP_DISTANCE0 + static_cast<GLenum>(i));
+            //} else {
+            //    glDisable(GL_CLIP_DISTANCE0 + static_cast<GLenum>(i));
+            //}
         }
     }
 

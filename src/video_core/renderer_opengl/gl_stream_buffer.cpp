@@ -24,12 +24,12 @@ OGLStreamBuffer::OGLStreamBuffer(GLenum target, GLsizeiptr size, bool prefer_coh
         allocate_size *= 2;
     }
 
-    if (GLAD_GL_ARB_buffer_storage) {
+    if (GLAD_GL_EXT_buffer_storage) {
         persistent = true;
         coherent = prefer_coherent;
         GLbitfield flags =
-            GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | (coherent ? GL_MAP_COHERENT_BIT : 0);
-        glBufferStorage(gl_target, allocate_size, nullptr, flags);
+            GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT_EXT | (coherent ? GL_MAP_COHERENT_BIT_EXT : 0);
+        glBufferStorageEXT(gl_target, allocate_size, nullptr, flags);
         mapped_ptr = static_cast<u8*>(glMapBufferRange(
             gl_target, 0, buffer_size, flags | (coherent ? 0 : GL_MAP_FLUSH_EXPLICIT_BIT)));
     } else {
@@ -73,8 +73,8 @@ std::tuple<u8*, GLintptr, bool> OGLStreamBuffer::Map(GLsizeiptr size, GLintptr a
     }
 
     if (invalidate | !persistent) {
-        GLbitfield flags = GL_MAP_WRITE_BIT | (persistent ? GL_MAP_PERSISTENT_BIT : 0) |
-                           (coherent ? GL_MAP_COHERENT_BIT : GL_MAP_FLUSH_EXPLICIT_BIT) |
+        GLbitfield flags = GL_MAP_WRITE_BIT | (persistent ? GL_MAP_PERSISTENT_BIT_EXT : 0) |
+                           (coherent ? GL_MAP_COHERENT_BIT_EXT : GL_MAP_FLUSH_EXPLICIT_BIT) |
                            (invalidate ? GL_MAP_INVALIDATE_BUFFER_BIT : GL_MAP_UNSYNCHRONIZED_BIT);
         mapped_ptr = static_cast<u8*>(
             glMapBufferRange(gl_target, buffer_pos, buffer_size - buffer_pos, flags));

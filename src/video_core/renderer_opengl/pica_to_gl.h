@@ -156,6 +156,7 @@ inline GLenum BlendFunc(Pica::FramebufferRegs::BlendFactor factor) {
     return blend_func_table[index];
 }
 
+<<<<<<< HEAD
 inline GLenum LogicOp(Pica::FramebufferRegs::LogicOp op) {
     static constexpr std::array<GLenum, 16> logic_op_table{{
         GL_CLEAR,         // Clear
@@ -188,6 +189,40 @@ inline GLenum LogicOp(Pica::FramebufferRegs::LogicOp op) {
 
     return logic_op_table[index];
 }
+=======
+// inline GLenum LogicOp(Pica::FramebufferRegs::LogicOp op) {
+//    static constexpr std::array<GLenum, 16> logic_op_table{{
+//        GL_CLEAR,         // Clear
+//        GL_AND,           // And
+//        GL_AND_REVERSE,   // AndReverse
+//        GL_COPY,          // Copy
+//        GL_SET,           // Set
+//        GL_COPY_INVERTED, // CopyInverted
+//        GL_NOOP,          // NoOp
+//        GL_INVERT,        // Invert
+//        GL_NAND,          // Nand
+//        GL_OR,            // Or
+//        GL_NOR,           // Nor
+//        GL_XOR,           // Xor
+//        GL_EQUIV,         // Equiv
+//        GL_AND_INVERTED,  // AndInverted
+//        GL_OR_REVERSE,    // OrReverse
+//        GL_OR_INVERTED,   // OrInverted
+//    }};
+//
+//    const auto index = static_cast<size_t>(op);
+//
+//    // Range check table for input
+//    if (index >= logic_op_table.size()) {
+//        NGLOG_CRITICAL(Render_OpenGL, "Unknown logic op {}", index);
+//        UNREACHABLE();
+//
+//        return GL_COPY;
+//    }
+//
+//    return logic_op_table[index];
+//}
+>>>>>>> 33ca19dc7... MEMES
 
 inline GLenum CompareFunc(Pica::FramebufferRegs::CompareFunc func) {
     static constexpr std::array<GLenum, 8> compare_func_table{{

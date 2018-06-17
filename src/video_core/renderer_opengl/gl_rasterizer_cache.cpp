@@ -41,8 +41,9 @@ struct FormatTuple {
 };
 
 static constexpr std::array<FormatTuple, 5> fb_format_tuples = {{
-    {GL_RGBA8, GL_RGBA, GL_UNSIGNED_INT_8_8_8_8},     // RGBA8
-    {GL_RGB8, GL_BGR, GL_UNSIGNED_BYTE},              // RGB8
+    {GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE},            // RGBA8
+                                                      // TODO this is supposed to be GL_BGR
+    {GL_RGB8, GL_RGB, GL_UNSIGNED_BYTE},              // RGB8
     {GL_RGB5_A1, GL_RGBA, GL_UNSIGNED_SHORT_5_5_5_1}, // RGB5A1
     {GL_RGB565, GL_RGB, GL_UNSIGNED_SHORT_5_6_5},     // RGB565
     {GL_RGBA4, GL_RGBA, GL_UNSIGNED_SHORT_4_4_4_4},   // RGBA4
@@ -831,8 +832,8 @@ void CachedSurface::DownloadGLTexture(const MathUtil::Rectangle<u32>& rect, GLui
         state.texture_units[0].texture_2d = unscaled_tex.handle;
         state.Apply();
 
-        glActiveTexture(GL_TEXTURE0);
-        glGetTexImage(GL_TEXTURE_2D, 0, tuple.format, tuple.type, &gl_buffer[buffer_offset]);
+        // glActiveTexture(GL_TEXTURE0);
+        // glGetTexImage(GL_TEXTURE_2D, 0, tuple.format, tuple.type, &gl_buffer[buffer_offset]);
     } else {
         state.ResetTexture(texture.handle);
         state.draw.read_framebuffer = read_fb_handle;

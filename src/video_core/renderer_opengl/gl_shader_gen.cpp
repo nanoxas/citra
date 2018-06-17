@@ -1213,7 +1213,7 @@ std::string GenerateFragmentShader(const PicaFSConfig& config, bool separable_sh
     if (separable_shader) {
         out += "#extension GL_ARB_separate_shader_objects : enable\n";
     }
-
+    out += "#extension GL_NV_fragdepth : enable\n";
     out += GetVertexInterfaceDeclaration(false, separable_shader);
 
     out += R"(
@@ -1748,7 +1748,7 @@ std::string GenerateFixedGeometryShader(const PicaFixedGSConfig& config, bool se
     if (separable_shader) {
         out += "#extension GL_ARB_separate_shader_objects : enable\n\n";
     }
-
+    out += "#extension GL_EXT_geometry_shader : enable\n";
     out += R"(
 layout(triangles) in;
 layout(triangle_strip, max_vertices = 3) out;
@@ -1783,6 +1783,7 @@ boost::optional<std::string> GenerateGeometryShader(const Pica::Shader::ShaderSe
     if (separable_shader) {
         out += "#extension GL_ARB_separate_shader_objects : enable\n";
     }
+    out += "#extension GL_EXT_geometry_shader : enable\n";
 
     if (config.state.num_inputs % config.state.attributes_per_vertex != 0)
         return boost::none;
