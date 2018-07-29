@@ -3,6 +3,8 @@
 // Refer to the license.txt file included.
 
 #include <memory>
+#include <QAudioDeviceInfo>
+#include <QtGlobal>
 #include "audio_core/sink.h"
 #include "audio_core/sink_details.h"
 #include "citra_qt/configuration/configure_audio.h"
@@ -19,14 +21,22 @@ ConfigureAudio::ConfigureAudio(QWidget* parent)
         ui->output_sink_combo_box->addItem(sink_detail.id);
     }
 
+    ui->input_device_combo_box->clear();
+    ui->input_device_combo_box->addItem(tr("Default"));
+    for (const auto& device : QAudioDeviceInfo::availableDevices(QAudio::AudioInput)) {
+        ui->input_device_combo_box->addItem(device.deviceName());
+    }
+
+    connect(ui->input_type_combo_box, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
+            &ConfigureAudio::updateAudioInputDevices);
+
     connect(ui->volume_slider, &QSlider::valueChanged, [this] {
         ui->volume_indicator->setText(tr("%1 %").arg(ui->volume_slider->sliderPosition()));
     });
 
     this->setConfiguration();
-    connect(ui->output_sink_combo_box,
-            static_cast<void (QComboBox::*)(int)>(&QComboBox::currentIndexChanged), this,
-            &ConfigureAudio::updateAudioDevices);
+    connect(ui->output_sink_combo_box, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
+            &ConfigureAudio::updateAudioOutputDevices);
 }
 
 ConfigureAudio::~ConfigureAudio() {}
@@ -44,7 +54,7 @@ void ConfigureAudio::setConfiguration() {
     ui->toggle_audio_stretching->setChecked(Settings::values.enable_audio_stretching);
 
     // The device list cannot be pre-populated (nor listed) until the output sink is known.
-    updateAudioDevices(new_sink_index);
+    updateAudioOutputDevices(new_sink_index);
 
     int new_device_index = -1;
     for (int index = 0; index < ui->audio_device_combo_box->count(); index++) {
@@ -55,6 +65,11 @@ void ConfigureAudio::setConfiguration() {
         }
     }
     ui->audio_device_combo_box->setCurrentIndex(new_device_index);
+
+    ui->input_type_combo_box->setCurrentIndex(Settings::values.mic_input_type);
+    ui->input_device_combo_box->setCurrentText(
+        QString::fromStdString(Settings::values.mic_input_device));
+    updateAudioInputDevices(Settings::values.mic_input_type);
 
     ui->volume_slider->setValue(Settings::values.volume * ui->volume_slider->maximum());
     ui->volume_indicator->setText(tr("%1 %").arg(ui->volume_slider->sliderPosition()));
@@ -72,7 +87,7 @@ void ConfigureAudio::applyConfiguration() {
         static_cast<float>(ui->volume_slider->sliderPosition()) / ui->volume_slider->maximum();
 }
 
-void ConfigureAudio::updateAudioDevices(int sink_index) {
+void ConfigureAudio::updateAudioOutputDevices(int sink_index) {
     ui->audio_device_combo_box->clear();
     ui->audio_device_combo_box->addItem(AudioCore::auto_device_name);
 
@@ -81,6 +96,11 @@ void ConfigureAudio::updateAudioDevices(int sink_index) {
     for (const auto& device : device_list) {
         ui->audio_device_combo_box->addItem(device.c_str());
     }
+}
+
+void ConfigureAudio::updateAudioInputDevices(int index) {
+    // TODO: Don't hardcode this?
+    ui->input_device_combo_box->setEnabled(index == 1);
 }
 
 void ConfigureAudio::retranslateUi() {
