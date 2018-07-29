@@ -189,5 +189,6 @@ private:
 
 void InstallInterfaces(SM::ServiceManager& service_manager);
 
+void ChangeMicImpl();
 } // namespace MIC
 } // namespace Service
