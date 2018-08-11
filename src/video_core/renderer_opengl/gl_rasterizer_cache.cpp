@@ -1504,6 +1504,45 @@ void RasterizerCacheOpenGL::DuplicateSurface(const Surface& src_surface,
     }
 }
 
+static const char* PixelFormatAsString(SurfaceParams::PixelFormat format) {
+    switch (format) {
+    case SurfaceParams::PixelFormat::RGBA8:
+        return "RGBA8";
+    case SurfaceParams::PixelFormat::RGB8:
+        return "RGB8";
+    case SurfaceParams::PixelFormat::RGB5A1:
+        return "RGB5A1";
+    case SurfaceParams::PixelFormat::RGB565:
+        return "RGB565";
+    case SurfaceParams::PixelFormat::RGBA4:
+        return "RGBA4";
+    case SurfaceParams::PixelFormat::IA8:
+        return "IA8";
+    case SurfaceParams::PixelFormat::I8:
+        return "I8";
+    case SurfaceParams::PixelFormat::A8:
+        return "A8";
+    case SurfaceParams::PixelFormat::IA4:
+        return "IA4";
+    case SurfaceParams::PixelFormat::I4:
+        return "I4";
+    case SurfaceParams::PixelFormat::A4:
+        return "A4";
+    case SurfaceParams::PixelFormat::ETC1:
+        return "ETC1";
+    case SurfaceParams::PixelFormat::ETC1A4:
+        return "ETC1A4";
+    case SurfaceParams::PixelFormat::D16:
+        return "D16";
+    case SurfaceParams::PixelFormat::D24:
+        return "D24";
+    case SurfaceParams::PixelFormat::D24S8:
+        return "D24S8";
+    default:
+        return "Not a real pixel format";
+    }
+}
+
 void RasterizerCacheOpenGL::ValidateSurface(const Surface& surface, PAddr addr, u32 size) {
     if (size == 0)
         return;
@@ -1522,6 +1561,8 @@ void RasterizerCacheOpenGL::ValidateSurface(const Surface& surface, PAddr addr, 
         validate_regions.erase(interval);
     };
 
+    bool flushed_from_cpu = false;
+    std::set<u32> formats;
     while (true) {
         const auto it = validate_regions.begin();
         if (it == validate_regions.end())
@@ -1573,6 +1614,7 @@ void RasterizerCacheOpenGL::ValidateSurface(const Surface& surface, PAddr addr, 
             for (const auto& pair : RangeFromInterval(dirty_regions, interval)) {
                 // Don't actually validate the region, and instead just skip it for now
                 validate_regions.erase(pair.first & interval);
+                formats.insert(static_cast<u32>(pair.second->pixel_format));
                 retry = true;
             }
 
@@ -1586,6 +1628,19 @@ void RasterizerCacheOpenGL::ValidateSurface(const Surface& surface, PAddr addr, 
         surface->UploadGLTexture(surface->GetSubRect(params), read_framebuffer.handle,
                                  draw_framebuffer.handle);
         notify_validated(params.GetInterval());
+        flushed_from_cpu = true;
+    }
+
+    if (!flushed_from_cpu && !formats.empty()) {
+        std::string s;
+        for (auto format : formats) {
+            s += PixelFormatAsString(static_cast<PixelFormat>(format));
+            s += ", ";
+        }
+        LOG_DEBUG(Debug_GPU,
+                  "Validating surface with pixel format {} and found surfaces created on the gpu "
+                  "that have the following pixel formats: {}",
+                  PixelFormatAsString(surface->pixel_format), s);
     }
 }
 
