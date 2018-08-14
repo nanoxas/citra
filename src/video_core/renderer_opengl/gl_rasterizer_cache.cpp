@@ -21,7 +21,9 @@
 #include "common/math_util.h"
 #include "common/microprofile.h"
 #include "common/scope_exit.h"
+#include "common/telemetry.h"
 #include "common/vector_math.h"
+#include "core/core.h"
 #include "core/frontend/emu_window.h"
 #include "core/memory.h"
 #include "core/settings.h"
@@ -1641,6 +1643,8 @@ void RasterizerCacheOpenGL::ValidateSurface(const Surface& surface, PAddr addr, 
                   "Validating surface with pixel format {} and found surfaces created on the gpu "
                   "that have the following pixel formats: {}",
                   PixelFormatAsString(surface->pixel_format), s);
+        Core::Telemetry().AddField(Telemetry::FieldType::Session, "VideoCore_FormatReinterpret",
+                                   true);
     }
 }
 
