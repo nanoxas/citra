@@ -323,7 +323,9 @@ MIC_U::MIC_U() : ServiceFramework{"mic:u", 1}, impl{std::make_unique<Impl>()} {
     RegisterHandlers(functions);
 }
 
-MIC_U::~MIC_U() = default;
+MIC_U::~MIC_U() {
+    impl->mic->StopSampling();
+}
 
 void InstallInterfaces(SM::ServiceManager& service_manager) {
     std::make_shared<MIC_U>()->InstallAsService(service_manager);
