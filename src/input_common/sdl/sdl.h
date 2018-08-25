@@ -28,6 +28,10 @@ void Init();
 /// Unresisters SDL device factories and shut them down.
 void Shutdown();
 
+void HandleGameControllerEvent(const SDL_Event& event);
+
+void PollEvent();
+
 /// Creates a ParamPackage from an SDL_Event that can directly be used to create a ButtonDevice
 Common::ParamPackage SDLEventToButtonParamPackage(const SDL_Event& event);
 

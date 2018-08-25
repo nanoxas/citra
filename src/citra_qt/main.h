@@ -14,6 +14,8 @@
 #include "core/hle/service/am/am.h"
 #include "ui_main.h"
 
+#include "input_common/sdl/sdl.h"
+
 class AboutDialog;
 class Config;
 class ClickableLabel;
@@ -38,6 +40,41 @@ class QProgressBar;
 class RegistersWidget;
 class Updater;
 class WaitTreeWidget;
+
+class JoystickEventTicker : public QObject
+{
+    Q_OBJECT
+public:
+
+    JoystickEventTicker(QObject *pParent = nullptr)
+        : QObject(pParent)
+    {}
+
+public slots:
+
+    void launch()
+    {
+        tickNext();
+    }
+
+private slots:
+
+    void tick()
+    {
+        InputCommon::SDL::PollEvent();
+        // Continue ticking
+        tickNext();
+    }
+
+private:
+
+    void tickNext()
+    {
+        // Trigger the tick() invokation when the event loop runs next time
+        QMetaObject::invokeMethod(this, "tick", Qt::QueuedConnection);
+    }
+
+};
 
 class GMainWindow : public QMainWindow {
     Q_OBJECT

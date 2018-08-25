@@ -1523,6 +1523,9 @@ int main(int argc, char* argv[]) {
     Frontend::RegisterDefaultApplets();
     Frontend::RegisterSoftwareKeyboard(std::make_shared<QtKeyboard>(main_window));
 
+    JoystickEventTicker ticker;
+    ticker.launch();
+
     main_window.show();
     return app.exec();
 }

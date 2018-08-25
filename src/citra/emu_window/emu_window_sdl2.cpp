@@ -17,6 +17,7 @@
 #include "input_common/keyboard.h"
 #include "input_common/main.h"
 #include "input_common/motion_emu.h"
+#include "input_common/sdl/sdl.h"
 #include "network/network.h"
 
 void EmuWindow_SDL2::OnMouseMotion(s32 x, s32 y) {
@@ -187,6 +188,8 @@ void EmuWindow_SDL2::PollEvents() {
         case SDL_QUIT:
             is_open = false;
             break;
+        default:
+            InputCommon::SDL::HandleGameControllerEvent(event);
         }
     }
 }
