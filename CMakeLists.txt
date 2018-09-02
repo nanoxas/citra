@@ -1,5 +1,5 @@
 # CMake 3.8 required for 17 to be a valid value for CXX_STANDARD
-cmake_minimum_required(VERSION 3.8)
+cmake_minimum_required(VERSION 3.6)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMakeModules")
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/externals/cmake-modules")
 include(DownloadExternals)
@@ -101,8 +101,8 @@ message(STATUS "Target architecture: ${ARCHITECTURE}")
 # Configure compilation flags
 # ===========================
 
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
+#set(CMAKE_CXX_STANDARD 17)
+#set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 if (NOT MSVC)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-attributes")
@@ -180,12 +180,21 @@ add_definitions(-DEMU_ARCH_BITS=${EMU_ARCH_BITS})
 
 # System imported libraries
 # ======================
-
+set(Boost_ADDITIONAL_VERSIONS
+    "1.68.0" "1.68"
+    "1.67.0" "1.67"
+    "1.66.0" "1.66"
+    "1.65.1" "1.65.0" "1.65"
+    "1.64.0" "1.64"
+    "1.63.0" "1.63"
+    "1.62.0" "1.62"
+    "1.61.0" "1.61"
+)
 find_package(Boost 1.66.0 QUIET)
 if (NOT Boost_FOUND)
     message(STATUS "Boost 1.66.0 or newer not found, falling back to externals")
-
     set(BOOST_ROOT "${CMAKE_SOURCE_DIR}/externals/boost")
+    set(Boost_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/externals/boost")
     set(Boost_NO_SYSTEM_PATHS OFF)
     find_package(Boost QUIET REQUIRED)
 endif()
