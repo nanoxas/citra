@@ -17,7 +17,7 @@
 #include <windows.h>
 #include "common/common_funcs.h"
 #else
-#include <iconv.h>
+//#include <iconv.h>
 #endif
 
 namespace Common {
@@ -269,7 +269,7 @@ std::string CP1252ToUTF8(const std::string& input) {
 
 template <typename T>
 static std::string CodeToUTF8(const char* fromcode, const std::basic_string<T>& input) {
-    iconv_t const conv_desc = iconv_open("UTF-8", fromcode);
+    /*iconv_t const conv_desc = iconv_open("UTF-8", fromcode);
     if ((iconv_t)(-1) == conv_desc) {
         LOG_ERROR(Common, "Iconv initialization failure [{}]: {}", fromcode, strerror(errno));
         iconv_close(conv_desc);
@@ -309,13 +309,13 @@ static std::string CodeToUTF8(const char* fromcode, const std::basic_string<T>& 
     out_buffer.resize(out_buffer_size - dst_bytes);
     out_buffer.swap(result);
 
-    iconv_close(conv_desc);
+    iconv_close(conv_desc);*/
 
-    return result;
+    return "";
 }
 
 std::u16string UTF8ToUTF16(const std::string& input) {
-    iconv_t const conv_desc = iconv_open("UTF-16LE", "UTF-8");
+    /*iconv_t const conv_desc = iconv_open("UTF-16LE", "UTF-8");
     if ((iconv_t)(-1) == conv_desc) {
         LOG_ERROR(Common, "Iconv initialization failure [UTF-8]: {}", strerror(errno));
         iconv_close(conv_desc);
@@ -355,9 +355,9 @@ std::u16string UTF8ToUTF16(const std::string& input) {
     out_buffer.resize(out_buffer_size - dst_bytes);
     out_buffer.swap(result);
 
-    iconv_close(conv_desc);
+    iconv_close(conv_desc);*/
 
-    return result;
+    return "";
 }
 
 std::string UTF16ToUTF8(const std::u16string& input) {
