@@ -37,8 +37,8 @@ function(check_submodules_present)
     foreach(module ${gitmodules})
         string(REGEX REPLACE "path *= *" "" module ${module})
         if (NOT EXISTS "${CMAKE_SOURCE_DIR}/${module}/.git")
-            message(SEND_ERROR "Git submodule ${module} not found."
-                    "Please run: git submodule update --init --recursive")
+            #message(SEND_ERROR "Git submodule ${module} not found."
+            #        "Please run: git submodule update --init --recursive")
         endif()
     endforeach()
 endfunction()
