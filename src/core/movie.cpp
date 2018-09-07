@@ -5,7 +5,7 @@
 #include <cstring>
 #include <string>
 #include <vector>
-#include <cryptopp/hex.h>
+//#include <cryptopp/hex.h>
 #include "common/bit_field.h"
 #include "common/common_types.h"
 #include "common/file_util.h"
@@ -385,8 +385,8 @@ void Movie::SaveMovie() {
     Core::System::GetInstance().GetAppLoader().ReadProgramId(header.program_id);
 
     std::string rev_bytes;
-    CryptoPP::StringSource(Common::g_scm_rev, true,
-                           new CryptoPP::HexDecoder(new CryptoPP::StringSink(rev_bytes)));
+    /*CryptoPP::StringSource(Common::g_scm_rev, true,
+                           new CryptoPP::HexDecoder(new CryptoPP::StringSink(rev_bytes)));*/
     std::memcpy(header.revision.data(), rev_bytes.data(), sizeof(CTMHeader::revision));
 
     save_record.WriteBytes(&header, sizeof(CTMHeader));

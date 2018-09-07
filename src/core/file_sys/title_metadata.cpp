@@ -3,7 +3,7 @@
 // Refer to the license.txt file included.
 
 #include <cinttypes>
-#include <cryptopp/sha.h>
+//#include <cryptopp/sha.h>
 #include "common/alignment.h"
 #include "common/file_util.h"
 #include "common/logging/log.h"
@@ -119,7 +119,7 @@ Loader::ResultStatus TitleMetadata::Save(const std::string& file_path) {
     tmd_body.contentinfo[0].index = 0;
     tmd_body.contentinfo[0].command_count = static_cast<u16>(tmd_chunks.size());
 
-    CryptoPP::SHA256 chunk_hash;
+    /*CryptoPP::SHA256 chunk_hash;
     for (u16 i = 0; i < tmd_body.content_count; i++) {
         chunk_hash.Update(reinterpret_cast<u8*>(&tmd_chunks[i]), sizeof(ContentChunk));
     }
@@ -129,7 +129,7 @@ Loader::ResultStatus TitleMetadata::Save(const std::string& file_path) {
     for (size_t i = 0; i < tmd_body.contentinfo.size(); i++) {
         chunk_hash.Update(reinterpret_cast<u8*>(&tmd_body.contentinfo[i]), sizeof(ContentInfo));
     }
-    chunk_hash.Final(tmd_body.contentinfo_hash.data());
+    chunk_hash.Final(tmd_body.contentinfo_hash.data());*/
 
     // Write our TMD body, then write each of our ContentChunks
     if (file.WriteBytes(&tmd_body, sizeof(TitleMetadata::Body)) != sizeof(TitleMetadata::Body))

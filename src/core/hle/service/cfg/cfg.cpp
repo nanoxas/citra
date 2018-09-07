@@ -3,8 +3,8 @@
 // Refer to the license.txt file included.
 
 #include <algorithm>
-#include <cryptopp/osrng.h>
-#include <cryptopp/sha.h>
+//#include <cryptopp/osrng.h>
+//#include <cryptopp/sha.h>
 #include "common/file_util.h"
 #include "common/logging/log.h"
 #include "common/string_util.h"
@@ -196,21 +196,21 @@ void Module::Interface::GenHashConsoleUnique(Kernel::HLERequestContext& ctx) {
     std::array<u8, 12> buffer;
     const ResultCode result = cfg->GetConfigInfoBlock(ConsoleUniqueID2BlockID, 8, 2, buffer.data());
     rb.Push(result);
-    if (result.IsSuccess()) {
-        std::memcpy(&buffer[8], &app_id_salt, sizeof(u32));
+    if (false) {
+        /*std::memcpy(&buffer[8], &app_id_salt, sizeof(u32));
         std::array<u8, CryptoPP::SHA256::DIGESTSIZE> hash;
         CryptoPP::SHA256().CalculateDigest(hash.data(), buffer.data(), sizeof(buffer));
         u32 low, high;
         memcpy(&low, &hash[hash.size() - 8], sizeof(u32));
         memcpy(&high, &hash[hash.size() - 4], sizeof(u32));
         rb.Push(low);
-        rb.Push(high);
+        rb.Push(high);*/
     } else {
         rb.Push<u32>(0);
         rb.Push<u32>(0);
     }
 
-    LOG_DEBUG(Service_CFG, "called app_id_salt=0x{:X}", app_id_salt);
+    LOG_DEBUG(Service_CFG, "lololololol");
 }
 
 void Module::Interface::GetRegionCanadaUSA(Kernel::HLERequestContext& ctx) {
@@ -678,12 +678,13 @@ u8 Module::GetCountryCode() {
 }
 
 void Module::GenerateConsoleUniqueId(u32& random_number, u64& console_id) {
-    CryptoPP::AutoSeededRandomPool rng;
+    /*CryptoPP::AutoSeededRandomPool rng;
     random_number = rng.GenerateWord32(0, 0xFFFF);
     u64_le local_friend_code_seed;
     rng.GenerateBlock(reinterpret_cast<CryptoPP::byte*>(&local_friend_code_seed),
                       sizeof(local_friend_code_seed));
-    console_id = (local_friend_code_seed & 0x3FFFFFFFF) | (static_cast<u64>(random_number) << 48);
+    console_id = (local_friend_code_seed & 0x3FFFFFFFF) | (static_cast<u64>(random_number) << 48);*/
+    console_id = 0x0123456789ABCDEF;
 }
 
 ResultCode Module::SetConsoleUniqueId(u32 random_number, u64 console_id) {

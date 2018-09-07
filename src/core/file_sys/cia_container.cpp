@@ -3,7 +3,7 @@
 // Refer to the license.txt file included.
 
 #include <cinttypes>
-#include <cryptopp/sha.h>
+//#include <cryptopp/sha.h>
 #include "common/alignment.h"
 #include "common/file_util.h"
 #include "common/logging/log.h"

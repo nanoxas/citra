@@ -1,6 +1,6 @@
 #include <algorithm>
-#include <cryptopp/aes.h>
-#include <cryptopp/modes.h>
+//#include <cryptopp/aes.h>
+//#include <cryptopp/modes.h>
 #include "core/file_sys/romfs_reader.h"
 
 namespace FileSys {
@@ -12,9 +12,9 @@ std::size_t RomFSReader::ReadFile(std::size_t offset, std::size_t length, u8* bu
     std::size_t read_length = std::min(length, data_size - offset);
     read_length = file.ReadBytes(buffer, read_length);
     if (is_encrypted) {
-        CryptoPP::CTR_Mode<CryptoPP::AES>::Decryption d(key.data(), key.size(), ctr.data());
+        /*CryptoPP::CTR_Mode<CryptoPP::AES>::Decryption d(key.data(), key.size(), ctr.data());
         d.Seek(crypto_offset + offset);
-        d.ProcessData(buffer, buffer, read_length);
+        d.ProcessData(buffer, buffer, read_length);*/
     }
     return read_length;
 }

@@ -5,8 +5,8 @@
 #include <cinttypes>
 #include <cstring>
 #include <memory>
-#include <cryptopp/aes.h>
-#include <cryptopp/modes.h>
+//#include <cryptopp/aes.h>
+//#include <cryptopp/modes.h>
 #include "common/common_types.h"
 #include "common/logging/log.h"
 #include "core/core.h"
@@ -272,14 +272,14 @@ Loader::ResultStatus NCCHContainer::Load() {
                                             "exheader. Force no crypto scheme.");
                     is_encrypted = false;
                 } else {
-                    if (failed_to_decrypt) {
+                    if (true) {
                         LOG_ERROR(Service_FS, "Failed to decrypt");
                         return Loader::ResultStatus::ErrorEncrypted;
                     }
-                    CryptoPP::byte* data = reinterpret_cast<CryptoPP::byte*>(&exheader_header);
+                    /*CryptoPP::byte* data = reinterpret_cast<CryptoPP::byte*>(&exheader_header);
                     CryptoPP::CTR_Mode<CryptoPP::AES>::Decryption(
                         primary_key.data(), primary_key.size(), exheader_ctr.data())
-                        .ProcessData(data, data, sizeof(exheader_header));
+                        .ProcessData(data, data, sizeof(exheader_header));*/
                 }
             }
 
@@ -322,12 +322,12 @@ Loader::ResultStatus NCCHContainer::Load() {
             if (file.ReadBytes(&exefs_header, sizeof(ExeFs_Header)) != sizeof(ExeFs_Header))
                 return Loader::ResultStatus::Error;
 
-            if (is_encrypted) {
+            /*if (is_encrypted) {
                 CryptoPP::byte* data = reinterpret_cast<CryptoPP::byte*>(&exefs_header);
                 CryptoPP::CTR_Mode<CryptoPP::AES>::Decryption(primary_key.data(),
                                                               primary_key.size(), exefs_ctr.data())
                     .ProcessData(data, data, sizeof(exefs_header));
-            }
+            }*/
 
             exefs_file = FileUtil::IOFile(filepath, "rb");
             has_exefs = true;
@@ -435,9 +435,9 @@ Loader::ResultStatus NCCHContainer::LoadSectionExeFS(const char* name, std::vect
                 key = secondary_key;
             }
 
-            CryptoPP::CTR_Mode<CryptoPP::AES>::Decryption dec(key.data(), key.size(),
+            /*CryptoPP::CTR_Mode<CryptoPP::AES>::Decryption dec(key.data(), key.size(),
                                                               exefs_ctr.data());
-            dec.Seek(section.offset + sizeof(ExeFs_Header));
+            dec.Seek(section.offset + sizeof(ExeFs_Header));*/
 
             if (strcmp(section.name, ".code") == 0 && is_compressed) {
                 // Section is compressed, read compressed .code section...
@@ -451,9 +451,9 @@ Loader::ResultStatus NCCHContainer::LoadSectionExeFS(const char* name, std::vect
                 if (exefs_file.ReadBytes(&temp_buffer[0], section.size) != section.size)
                     return Loader::ResultStatus::Error;
 
-                if (is_encrypted) {
+                /*if (is_encrypted) {
                     dec.ProcessData(&temp_buffer[0], &temp_buffer[0], section.size);
-                }
+                }*/
 
                 // Decompress .code section...
                 u32 decompressed_size = LZSS_GetDecompressedSize(&temp_buffer[0], section.size);
@@ -465,9 +465,9 @@ Loader::ResultStatus NCCHContainer::LoadSectionExeFS(const char* name, std::vect
                 buffer.resize(section.size);
                 if (exefs_file.ReadBytes(&buffer[0], section.size) != section.size)
                     return Loader::ResultStatus::Error;
-                if (is_encrypted) {
+                /*if (is_encrypted) {
                     dec.ProcessData(&buffer[0], &buffer[0], section.size);
-                }
+                }*/
             }
             return Loader::ResultStatus::Success;
         }

@@ -2,8 +2,8 @@
 // Licensed under GPLv2 or any later version
 // Refer to the license.txt file included.
 
-#include <cryptopp/aes.h>
-#include <cryptopp/modes.h>
+//#include <cryptopp/aes.h>
+//#include <cryptopp/modes.h>
 #include "core/file_sys/archive_ncch.h"
 #include "core/file_sys/file_backend.h"
 #include "core/hle/ipc_helpers.h"
@@ -287,7 +287,7 @@ void HTTP_C::AddRequestHeader(Kernel::HLERequestContext& ctx) {
 }
 
 void HTTP_C::DecryptClCertA() {
-    static constexpr u32 iv_length = 16;
+    /*static constexpr u32 iv_length = 16;
 
     FileSys::Path archive_path =
         FileSys::MakeNCCHArchivePath(0x0004001b00010002, Service::FS::MediaType::NAND);
@@ -364,7 +364,7 @@ void HTTP_C::DecryptClCertA() {
 
     ClCertA.certificate = std::move(cert_data);
     ClCertA.private_key = std::move(key_data);
-    ClCertA.init = true;
+    ClCertA.init = true;*/
 }
 
 HTTP_C::HTTP_C() : ServiceFramework("http:C", 32) {

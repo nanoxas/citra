@@ -11,7 +11,7 @@
 #include <mutex>
 #include <unordered_map>
 #include <vector>
-#include <cryptopp/osrng.h>
+//#include <cryptopp/osrng.h>
 #include "common/common_types.h"
 #include "common/logging/log.h"
 #include "core/core.h"
@@ -1324,10 +1324,10 @@ NWM_UDS::NWM_UDS() : ServiceFramework("nwm::UDS") {
     beacon_broadcast_event =
         CoreTiming::RegisterEvent("UDS::BeaconBroadcastCallback", BeaconBroadcastCallback);
 
-    CryptoPP::AutoSeededRandomPool rng;
+//    CryptoPP::AutoSeededRandomPool rng;
     auto mac = SharedPage::DefaultMac;
     // Keep the Nintendo 3DS MAC header and randomly generate the last 3 bytes
-    rng.GenerateBlock(static_cast<CryptoPP::byte*>(mac.data() + 3), 3);
+  //  rng.GenerateBlock(static_cast<CryptoPP::byte*>(mac.data() + 3), 3);
 
     if (auto room_member = Network::GetRoomMember().lock()) {
         if (room_member->IsConnected()) {

@@ -2,6 +2,8 @@
 // Licensed under GPLv2 or any later version
 // Refer to the license.txt file included.
 
+#include <array>
+
 #include "common/common_paths.h"
 #include "common/file_util.h"
 #include "common/logging/log.h"
@@ -698,7 +700,7 @@ void Module::Interface::Wrap(Kernel::HLERequestContext& ctx) {
     input.Read(pdata.data() + nonce_offset, nonce_offset + nonce_size, pdata_size - nonce_offset);
 
     // Encrypts the plaintext using AES-CCM
-    auto cipher = HW::AES::EncryptSignCCM(pdata, nonce, HW::AES::KeySlotID::APTWrap);
+    auto cipher = std::array<char, 1>{}; //HW::AES::EncryptSignCCM(pdata, nonce, HW::AES::KeySlotID::APTWrap);
 
     // Puts the nonce to the beginning of the output, with ciphertext followed
     output.Write(nonce.data(), 0, nonce_size);
@@ -742,7 +744,7 @@ void Module::Interface::Unwrap(Kernel::HLERequestContext& ctx) {
     input.Read(cipher.data(), nonce_size, cipher_size);
 
     // Decrypts the ciphertext using AES-CCM
-    auto pdata = HW::AES::DecryptVerifyCCM(cipher, nonce, HW::AES::KeySlotID::APTWrap);
+    auto pdata = std::array<char, 1>{};//HW::AES::DecryptVerifyCCM(cipher, nonce, HW::AES::KeySlotID::APTWrap);
 
     IPC::RequestBuilder rb = rp.MakeBuilder(1, 4);
     if (!pdata.empty()) {

@@ -3,10 +3,10 @@
 // Refer to the license.txt file included.
 
 #include <algorithm>
-#include <cryptopp/aes.h>
-#include <cryptopp/ccm.h>
-#include <cryptopp/cryptlib.h>
-#include <cryptopp/filters.h>
+//#include <cryptopp/aes.h>
+//#include <cryptopp/ccm.h>
+//#include <cryptopp/cryptlib.h>
+//#include <cryptopp/filters.h>
 #include "common/alignment.h"
 #include "common/logging/log.h"
 #include "core/hw/aes/ccm.h"
@@ -15,7 +15,7 @@
 namespace HW {
 namespace AES {
 
-namespace {
+/*namespace {
 
 // 3DS uses a non-standard AES-CCM algorithm, so we need to derive a sub class from the standard one
 // and override with the non-standard part.
@@ -89,7 +89,7 @@ std::vector<u8> DecryptVerifyCCM(const std::vector<u8>& cipher, const CCMNonce& 
         return {};
     }
     return pdata;
-}
+}*/
 
 } // namespace AES
 } // namespace HW
