@@ -17,7 +17,10 @@ class Process;
 }
 
 namespace Memory {
-
+#ifdef __ANDROID__
+#undef PAGE_SIZE
+#undef PAGE_MASK
+#endif
 /**
  * Page size used by the ARM architecture. This is the smallest granularity with which memory can
  * be mapped.
