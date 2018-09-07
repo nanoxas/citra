@@ -311,7 +311,7 @@ static std::string CodeToUTF8(const char* fromcode, const std::basic_string<T>& 
 
     iconv_close(conv_desc);*/
 
-    return "";
+    return std::string();
 }
 
 std::u16string UTF8ToUTF16(const std::string& input) {
@@ -357,7 +357,7 @@ std::u16string UTF8ToUTF16(const std::string& input) {
 
     iconv_close(conv_desc);*/
 
-    return "";
+    return std::u16string();
 }
 
 std::string UTF16ToUTF8(const std::u16string& input) {
