@@ -70,6 +70,9 @@
 // REMEMBER: strdup considered harmful!
 namespace FileUtil {
 
+    std::string cache_path;
+    std::string external_files_path;
+
 // Remove any ending forward slashes from directory paths
 // Modifies argument.
 static void StripTailDirSlashes(std::string& fname) {
@@ -633,6 +636,8 @@ static const std::string GetUserDirectory(const std::string& envvar) {
     if (directory) {
         user_dir = directory;
     } else {
+
+#ifndef __ANDROID__
         std::string subdirectory;
         if (envvar == "XDG_DATA_HOME")
             subdirectory = DIR_SEP ".local" DIR_SEP "share";
@@ -643,10 +648,22 @@ static const std::string GetUserDirectory(const std::string& envvar) {
         else
             ASSERT_MSG(false, "Unknown XDG variable {}.", envvar);
         user_dir = GetHomeDirectory() + subdirectory;
+#else
+        if (envvar == "XDG_DATA_HOME") {
+            user_dir = cache_path;
+        } else if (envvar == "XDG_CONFIG_HOME") {
+            user_dir = external_files_path + "config";
+        } else if (envvar == "XDG_CACHE_HOME") {
+            user_dir = external_files_path;
+        } else
+            ASSERT_MSG(false, "Unknown XDG variable {}.", envvar);
+#endif
     }
 
     ASSERT_MSG(!user_dir.empty(), "User directory {} musn’t be empty.", envvar);
-    ASSERT_MSG(user_dir[0] == '/', "User directory {} must be absolute.", envvar);
+#ifndef  __ANDROID__
+        ASSERT_MSG(user_dir[0] == '/', "User directory {} must be absolute.", envvar);
+#endif
 
     return user_dir;
 }

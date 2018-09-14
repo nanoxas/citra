@@ -41,6 +41,11 @@ struct FSTEntry {
     std::vector<FSTEntry> children;
 };
 
+#ifdef __ANDROID__
+    extern std::string cache_path;
+    extern std::string external_files_path;
+#endif
+
 // Returns true if file filename exists
 bool Exists(const std::string& filename);
 
