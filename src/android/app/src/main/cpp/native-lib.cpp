@@ -6,6 +6,11 @@
 #include "config.h"
 #include "core/frontend/emu_window.h"
 #include "core/core.h"
+#include "common/logging/backend.h"
+#include "common/logging/filter.h"
+#include "common/logging/log.h"
+#include "core/settings.h"
+#include "common/common_paths.h"
 
 class EmuWindow_Android : public EmuWindow {
 public:
@@ -63,5 +68,19 @@ Java_org_citra_1emu_citra_MainActivity_setFilePaths(JNIEnv *env, jobject obj,
                                                     jstring cache_path) {
     FileUtil::external_files_path = env->GetStringUTFChars(external_file_path, 0);
     FileUtil::cache_path = env->GetStringUTFChars(cache_path, 0);
+} ;
+}
+
+extern "C" {
+JNIEXPORT void JNICALL
+Java_org_citra_1emu_citra_MainActivity_initLogging(JNIEnv *env, jobject obj) {
+    Log::Filter log_filter;
+    log_filter.ParseFilterString(Settings::values.log_filter);
+    Log::SetGlobalFilter(log_filter);
+
+    Log::AddBackend(std::make_unique<Log::ColorConsoleBackend>());
+    FileUtil::CreateFullPath(FileUtil::GetUserPath(D_LOGS_IDX));
+    Log::AddBackend(
+            std::make_unique<Log::FileBackend>(FileUtil::GetUserPath(D_LOGS_IDX) + LOG_FILE));
 } ;
 }

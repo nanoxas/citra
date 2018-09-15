@@ -8,6 +8,9 @@
 #ifdef _WIN32
 #include <windows.h>
 #endif
+#ifdef __ANDROID__
+#include <android/log.h>
+#endif
 
 #include "common/assert.h"
 #include "common/common_funcs.h"
@@ -70,6 +73,30 @@ void PrintColoredMessage(const Entry& entry) {
     }
 
     SetConsoleTextAttribute(console_handle, color);
+#elif __ANDROID__
+    android_LogPriority priority;
+    switch (entry.log_level) {
+        case Level::Trace:
+            priority = ANDROID_LOG_VERBOSE;
+            break;
+        case Level::Debug: // Cyan
+            priority = ANDROID_LOG_DEBUG;
+            break;
+        case Level::Info: // Bright gray
+            priority = ANDROID_LOG_INFO;
+            break;
+        case Level::Warning: // Bright yellow
+            priority = ANDROID_LOG_WARN;
+            break;
+        case Level::Error: // Bright red
+            priority = ANDROID_LOG_ERROR;
+            break;
+        case Level::Critical: // Bright magenta
+            priority = ANDROID_LOG_FATAL;
+            break;
+        case Level::Count:
+            UNREACHABLE();
+    }
 #else
 #define ESC "\x1b"
     const char* color = "";
@@ -99,10 +126,16 @@ void PrintColoredMessage(const Entry& entry) {
     fputs(color, stderr);
 #endif
 
+#ifndef __ANDROID__
     PrintMessage(entry);
+#else
+    auto str = FormatLogMessage(entry) + '\n';
+    __android_log_print(priority, "Citra", "%s", str.c_str());
+#endif
 
 #ifdef _WIN32
     SetConsoleTextAttribute(console_handle, original_info.wAttributes);
+#elif __ANDROID__
 #else
     fputs(ESC "[0m", stderr);
 #undef ESC

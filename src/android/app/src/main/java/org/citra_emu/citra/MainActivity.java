@@ -26,6 +26,8 @@ public class MainActivity extends AppCompatActivity {
 
     public static native void setFilePaths(String external_file_path, String cache_path);
 
+    public static native void initLogging();
+
     /**
      * Get a file path from a Uri. This will get the the path for Storage Access
      * Framework Documents, as well as the _data field for the MediaStore and
@@ -168,6 +170,7 @@ public class MainActivity extends AppCompatActivity {
         String external_files_path = getPathFromUri(this, android.net.Uri.parse(getExternalFilesDir(null).toURI().toString()));
         String cache_path = getPathFromUri(this, android.net.Uri.parse(getCacheDir().toURI().toString()));
         setFilePaths(external_files_path, cache_path);
+        initLogging();
     }
 
     public void performFileSearch() {
