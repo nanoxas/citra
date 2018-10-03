@@ -43,6 +43,8 @@
 #include "core/movie.h"
 #include "core/settings.h"
 #include "network/network.h"
+#include "video_core/renderer_base.h"
+#include "video_core/video_core.h"
 
 #ifdef _WIN32
 extern "C" {
@@ -60,6 +62,8 @@ static void PrintHelp(const char* argv0) {
                  " Nickname, password, address and port for multiplayer\n"
                  "-r, --movie-record=[file]  Record a movie (game inputs) to the given file\n"
                  "-p, --movie-play=[file]    Playback the movie (game inputs) from the given file\n"
+                 "-d, --dump-frames=[top],[bottom]   Dumps the frames of the screens to the given "
+                 "video files\n"
                  "-f, --fullscreen     Start in fullscreen mode\n"
                  "-h, --help           Display this help and exit\n"
                  "-v, --version        Output version information and exit\n";
@@ -137,6 +141,7 @@ int main(int argc, char** argv) {
     u32 gdb_port = static_cast<u32>(Settings::values.gdbstub_port);
     std::string movie_record;
     std::string movie_play;
+    std::string dump_frames_top, dump_frames_bottom;
 
     InitializeLogging();
 
@@ -160,15 +165,11 @@ int main(int argc, char** argv) {
     u16 port = Network::DefaultRoomPort;
 
     static struct option long_options[] = {
-        {"gdbport", required_argument, 0, 'g'},
-        {"install", required_argument, 0, 'i'},
-        {"multiplayer", required_argument, 0, 'm'},
-        {"movie-record", required_argument, 0, 'r'},
-        {"movie-play", required_argument, 0, 'p'},
-        {"fullscreen", no_argument, 0, 'f'},
-        {"help", no_argument, 0, 'h'},
-        {"version", no_argument, 0, 'v'},
-        {0, 0, 0, 0},
+        {"gdbport", required_argument, 0, 'g'},     {"install", required_argument, 0, 'i'},
+        {"multiplayer", required_argument, 0, 'm'}, {"movie-record", required_argument, 0, 'r'},
+        {"movie-play", required_argument, 0, 'p'},  {"dump-frames", required_argument, 0, 'd'},
+        {"fullscreen", no_argument, 0, 'f'},        {"help", no_argument, 0, 'h'},
+        {"version", no_argument, 0, 'v'},           {0, 0, 0, 0},
     };
 
     while (optind < argc) {
@@ -235,6 +236,24 @@ int main(int argc, char** argv) {
             case 'p':
                 movie_play = optarg;
                 break;
+            case 'd': {
+                const std::string str_arg(optarg);
+                // Format is <Top screen path>,<Bottom screen path>
+                const std::regex dump_frames_regex("^(.+),(.+)$");
+
+                if (!std::regex_match(str_arg, dump_frames_regex)) {
+                    std::cout << "Wrong format for option --dump-frames\n";
+                    PrintHelp(argv[0]);
+                    return 0;
+                }
+                std::smatch match;
+                std::regex_search(str_arg, match, dump_frames_regex);
+                ASSERT(match.size() == 3);
+
+                dump_frames_top = match[1];
+                dump_frames_bottom = match[2];
+                break;
+            }
             case 'f':
                 fullscreen = true;
                 LOG_INFO(Frontend, "Starting in fullscreen mode...");
@@ -339,12 +358,16 @@ int main(int argc, char** argv) {
     if (!movie_record.empty()) {
         Core::Movie::GetInstance().StartRecording(movie_record);
     }
+    if (!dump_frames_top.empty() && !dump_frames_bottom.empty()) {
+        VideoCore::g_renderer->StartFrameDumping(dump_frames_top, dump_frames_bottom);
+    }
 
     while (emu_window->IsOpen()) {
         system.RunLoop();
     }
 
     Core::Movie::GetInstance().Shutdown();
+    VideoCore::g_renderer->StopFrameDumping();
 
     detached_tasks.WaitForAllTasks();
     return 0;
