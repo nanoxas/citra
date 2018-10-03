@@ -60,6 +60,8 @@
 #include "core/movie.h"
 #include "core/settings.h"
 #include "game_list_p.h"
+#include "video_core/renderer_base.h"
+#include "video_core/video_core.h"
 
 #ifdef USE_DISCORD_PRESENCE
 #include "citra_qt/discord_impl.h"
@@ -539,6 +541,13 @@ void GMainWindow::ConnectMenuEvents() {
     connect(ui.action_Play_Movie, &QAction::triggered, this, &GMainWindow::OnPlayMovie);
     connect(ui.action_Stop_Recording_Playback, &QAction::triggered, this,
             &GMainWindow::OnStopRecordingPlayback);
+    connect(ui.action_Dump_Frames, &QAction::triggered, this, [this] {
+        if (ui.action_Dump_Frames->isChecked()) {
+            OnStartFrameDumping();
+        } else {
+            OnStopFrameDumping();
+        }
+    });
 
     // Help
     connect(ui.action_FAQ, &QAction::triggered,
@@ -783,12 +792,21 @@ void GMainWindow::BootGame(const QString& filename) {
     if (ui.action_Fullscreen->isChecked()) {
         ShowFullscreen();
     }
+
+    if (frame_dumping_on_start) {
+        VideoCore::g_renderer->StartFrameDumping(frame_dumping_path_top.toStdString(),
+                                                 frame_dumping_path_bottom.toStdString());
+        frame_dumping_on_start = false;
+        frame_dumping_path_top.clear();
+        frame_dumping_path_bottom.clear();
+    }
     OnStartGame();
 }
 
 void GMainWindow::ShutdownGame() {
     discord_rpc->Pause();
     OnStopRecordingPlayback();
+    OnStopFrameDumping();
     emu_thread->RequestStop();
 
     // Release emu threads from any breakpoints
@@ -1380,6 +1398,41 @@ void GMainWindow::OnStopRecordingPlayback() {
     ui.action_Record_Movie->setEnabled(true);
     ui.action_Play_Movie->setEnabled(true);
     ui.action_Stop_Recording_Playback->setEnabled(false);
+}
+
+void GMainWindow::OnStartFrameDumping() {
+    const QString path_top = QFileDialog::getSaveFileName(
+        this, tr("Save Top Screen Dump"), UISettings::values.frame_dumping_path_top,
+        tr("AVI Videos (*.avi);;MPEG-4 Videos (*.mp4);;Any File (*.*)"));
+    if (path_top.isEmpty())
+        return;
+    UISettings::values.frame_dumping_path_top = QFileInfo(path_top).path();
+    const QString path_bottom = QFileDialog::getSaveFileName(
+        this, tr("Save Bottom Screen Dump"), UISettings::values.frame_dumping_path_bottom,
+        tr("AVI Videos (*.avi);;MPEG-4 Videos (*.mp4);;Any File (*.*)"));
+    if (path_bottom.isEmpty())
+        return;
+    UISettings::values.frame_dumping_path_bottom = QFileInfo(path_bottom).path();
+    if (emulation_running) {
+        VideoCore::g_renderer->StartFrameDumping(path_top.toStdString(), path_bottom.toStdString());
+    } else {
+        frame_dumping_on_start = true;
+        frame_dumping_path_top = path_top;
+        frame_dumping_path_bottom = path_bottom;
+    }
+}
+
+void GMainWindow::OnStopFrameDumping() {
+    if (frame_dumping_on_start) {
+        frame_dumping_on_start = false;
+        frame_dumping_path_top.clear();
+        frame_dumping_path_bottom.clear();
+    } else {
+        const bool was_dumping = VideoCore::g_renderer->IsDumpingFrames();
+        VideoCore::g_renderer->StopFrameDumping();
+        if (was_dumping)
+            QMessageBox::information(this, tr("Dump Frames"), tr("The videos are saved."));
+    }
 }
 
 void GMainWindow::UpdateStatusBar() {

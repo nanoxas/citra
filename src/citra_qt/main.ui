@@ -114,6 +114,8 @@
     <addaction name="action_Record_Movie"/>
     <addaction name="action_Play_Movie"/>
     <addaction name="action_Stop_Recording_Playback"/>
+    <addaction name="separator"/>
+    <addaction name="action_Dump_Frames"/>
    </widget>
    <widget class="QMenu" name="menu_Multiplayer">
     <property name="enabled">
@@ -274,6 +276,14 @@
    </property>
    <property name="text">
     <string>Stop Recording / Playback</string>
+   </property>
+  </action>
+  <action name="action_Dump_Frames">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Dump Frames</string>
    </property>
   </action>
   <action name="action_View_Lobby">
