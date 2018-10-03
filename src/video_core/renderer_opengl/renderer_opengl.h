@@ -8,6 +8,7 @@
 #include <glad/glad.h>
 #include "common/common_types.h"
 #include "common/math_util.h"
+#include "core/frontend/framebuffer_layout.h"
 #include "core/hw/gpu.h"
 #include "video_core/renderer_base.h"
 #include "video_core/renderer_opengl/gl_resource_manager.h"
@@ -51,7 +52,8 @@ private:
     void ConfigureFramebufferTexture(TextureInfo& texture,
                                      const GPU::Regs::FramebufferConfig& framebuffer);
     void DrawScreens();
-    void DrawSingleScreenRotated(const ScreenInfo& screen_info, float x, float y, float w, float h);
+    void DrawSingleScreenRotated(const ScreenInfo& screen_info, float x, float y, float w, float h,
+                                 int screen_id);
     void UpdateFramerate();
 
     // Loads framebuffer from emulated memory into the display information structure
@@ -77,4 +79,9 @@ private:
     // Shader attribute input indices
     GLuint attrib_position;
     GLuint attrib_tex_coord;
+
+    // PBOs used to dump frames faster
+    std::array<std::array<OGLBuffer, 2>, 2> frame_dumping_pbos;
+    std::array<GLuint, 2> current_pbo{1, 1}, next_pbo;
+    std::array<std::array<int, 2>, 2> pbo_width, pbo_height;
 };

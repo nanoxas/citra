@@ -4,6 +4,8 @@
 
 #include <memory>
 #include "common/logging/log.h"
+#include "core/settings.h"
+#include "core/frontend/emu_window.h"
 #include "video_core/pica.h"
 #include "video_core/renderer_base.h"
 #include "video_core/renderer_opengl/renderer_opengl.h"
@@ -46,6 +48,17 @@ void Shutdown() {
     g_renderer.reset();
 
     LOG_DEBUG(Render, "shutdown OK");
+}
+
+u16 GetResolutionScaleFactor() {
+    if (g_hw_renderer_enabled) {
+        return !Settings::values.resolution_factor
+                   ? g_renderer->GetRenderWindow().GetFramebufferLayout().GetScalingRatio()
+                   : Settings::values.resolution_factor;
+    } else {
+        // Software renderer always render at native resolution
+        return 1;
+    }
 }
 
 } // namespace VideoCore

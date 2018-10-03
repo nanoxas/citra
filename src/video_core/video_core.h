@@ -33,4 +33,6 @@ Core::System::ResultStatus Init(EmuWindow& emu_window);
 /// Shutdown the video core
 void Shutdown();
 
+u16 GetResolutionScaleFactor();
+
 } // namespace VideoCore

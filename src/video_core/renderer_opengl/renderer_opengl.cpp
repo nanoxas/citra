@@ -10,6 +10,7 @@
 #include "common/assert.h"
 #include "common/bit_field.h"
 #include "common/logging/log.h"
+#include "core/3ds.h"
 #include "core/core.h"
 #include "core/core_timing.h"
 #include "core/frontend/emu_window.h"
@@ -20,6 +21,7 @@
 #include "core/settings.h"
 #include "core/tracer/recorder.h"
 #include "video_core/debug_utils/debug_utils.h"
+#include "video_core/frame_dumper.h"
 #include "video_core/rasterizer_interface.h"
 #include "video_core/renderer_opengl/renderer_opengl.h"
 #include "video_core/video_core.h"
@@ -107,12 +109,7 @@ void RendererOpenGL::SwapBuffers() {
         int fb_id = i == 2 ? 1 : 0;
         const auto& framebuffer = GPU::g_regs.framebuffer_config[fb_id];
 
-        // Main LCD (0): 0x1ED02204, Sub LCD (1): 0x1ED02A04
-        u32 lcd_color_addr =
-            (fb_id == 0) ? LCD_REG_INDEX(color_fill_top) : LCD_REG_INDEX(color_fill_bottom);
-        lcd_color_addr = HW::VADDR_LCD + 4 * lcd_color_addr;
-        LCD::Regs::ColorFill color_fill = {0};
-        LCD::Read(color_fill.raw, lcd_color_addr);
+        LCD::Regs::ColorFill color_fill{GetColorFillForFramebuffer(i)};
 
         if (color_fill.is_enabled) {
             LoadColorToActiveGLTexture(color_fill.color_r, color_fill.color_g, color_fill.color_b,
@@ -138,7 +135,21 @@ void RendererOpenGL::SwapBuffers() {
         }
     }
 
+    if (start_dumping.exchange(false)) {
+        dump_frames = true;
+    }
+
     DrawScreens();
+
+    // Check if frame dumping was stopped within the last frame
+    // If so, we need to write an empty frame to mark the end of frame queue
+    if (stop_dumping.exchange(false)) {
+        // Add an empty data to mark the end of frame queue
+        FrameDumper::FrameData empty_data;
+        for (auto& frame_dumper : frame_dumpers)
+            frame_dumper->AddFrame(empty_data);
+        dump_frames = false;
+    }
 
     Core::System::GetInstance().perf_stats.EndSystemFrame();
 
@@ -292,6 +303,13 @@ void RendererOpenGL::InitOpenGLObjects() {
         screen_info.display_texture = screen_info.texture.resource.handle;
     }
 
+    // Generate frame dumping PBOs
+    for (auto& buffers : frame_dumping_pbos) {
+        for (OGLBuffer& buffer : buffers) {
+            buffer.Create();
+        }
+    }
+
     state.texture_units[0].texture_2d = 0;
     state.Apply();
 }
@@ -360,7 +378,7 @@ void RendererOpenGL::ConfigureFramebufferTexture(TextureInfo& texture,
  * rotation.
  */
 void RendererOpenGL::DrawSingleScreenRotated(const ScreenInfo& screen_info, float x, float y,
-                                             float w, float h) {
+                                             float w, float h, int screen_id) {
     auto& texcoords = screen_info.display_texcoords;
 
     std::array<ScreenRectVertex, 4> vertices = {{
@@ -372,6 +390,49 @@ void RendererOpenGL::DrawSingleScreenRotated(const ScreenInfo& screen_info, floa
 
     state.texture_units[0].texture_2d = screen_info.display_texture;
     state.Apply();
+
+    if (dump_frames) {
+        std::size_t width, height;
+        if (screen_id == 0) {
+            width = Core::kScreenTopWidth * VideoCore::GetResolutionScaleFactor();
+            height = Core::kScreenTopHeight * VideoCore::GetResolutionScaleFactor();
+        } else {
+            width = Core::kScreenBottomWidth * VideoCore::GetResolutionScaleFactor();
+            height = Core::kScreenBottomHeight * VideoCore::GetResolutionScaleFactor();
+        }
+
+        // Read the pixels back. Use PBOs to make the process quicker
+        current_pbo[screen_id] = (current_pbo[screen_id] + 1) % 2;
+        next_pbo[screen_id] = (current_pbo[screen_id] + 1) % 2;
+
+        glBindBuffer(GL_PIXEL_PACK_BUFFER,
+                     frame_dumping_pbos[screen_id][current_pbo[screen_id]].handle);
+        if (width != pbo_width[screen_id][current_pbo[screen_id]] ||
+            height != pbo_height[screen_id][current_pbo[screen_id]]) {
+            // re-allocate storage for pbo
+            glBufferData(GL_PIXEL_PACK_BUFFER, width * height * 4, nullptr, GL_STREAM_READ);
+            pbo_width[screen_id][current_pbo[screen_id]] = width;
+            pbo_height[screen_id][current_pbo[screen_id]] = height;
+        }
+        glGetTexImage(GL_TEXTURE_2D, 0, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, 0);
+
+        glBindBuffer(GL_PIXEL_PACK_BUFFER,
+                     frame_dumping_pbos[screen_id][next_pbo[screen_id]].handle);
+        if (width != pbo_width[screen_id][next_pbo[screen_id]] ||
+            height != pbo_height[screen_id][next_pbo[screen_id]]) {
+            // re-allocate storage for pbo
+            glBufferData(GL_PIXEL_PACK_BUFFER, width * height * 4, nullptr, GL_STREAM_READ);
+            pbo_width[screen_id][next_pbo[screen_id]] = width;
+            pbo_height[screen_id][next_pbo[screen_id]] = height;
+        }
+        GLubyte* pixels = static_cast<GLubyte*>(glMapBuffer(GL_PIXEL_PACK_BUFFER, GL_READ_ONLY));
+
+        FrameDumper::FrameData frame_data{width, height, pixels};
+        frame_dumpers[screen_id]->AddFrame(frame_data);
+
+        glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
+        glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+    }
 
     glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices.data());
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
@@ -409,30 +470,30 @@ void RendererOpenGL::DrawScreens() {
     if (layout.top_screen_enabled) {
         if (!Settings::values.toggle_3d) {
             DrawSingleScreenRotated(screen_infos[0], (float)top_screen.left, (float)top_screen.top,
-                                    (float)top_screen.GetWidth(), (float)top_screen.GetHeight());
+                                    (float)top_screen.GetWidth(), (float)top_screen.GetHeight(), 0);
         } else {
             DrawSingleScreenRotated(screen_infos[0], (float)top_screen.left / 2,
                                     (float)top_screen.top, (float)top_screen.GetWidth() / 2,
-                                    (float)top_screen.GetHeight());
+                                    (float)top_screen.GetHeight(), 0);
             DrawSingleScreenRotated(screen_infos[1],
                                     ((float)top_screen.left / 2) + ((float)layout.width / 2),
                                     (float)top_screen.top, (float)top_screen.GetWidth() / 2,
-                                    (float)top_screen.GetHeight());
+                                    (float)top_screen.GetHeight(), 0);
         }
     }
     if (layout.bottom_screen_enabled) {
         if (!Settings::values.toggle_3d) {
             DrawSingleScreenRotated(screen_infos[2], (float)bottom_screen.left,
                                     (float)bottom_screen.top, (float)bottom_screen.GetWidth(),
-                                    (float)bottom_screen.GetHeight());
+                                    (float)bottom_screen.GetHeight(), 1);
         } else {
             DrawSingleScreenRotated(screen_infos[2], (float)bottom_screen.left / 2,
                                     (float)bottom_screen.top, (float)bottom_screen.GetWidth() / 2,
-                                    (float)bottom_screen.GetHeight());
+                                    (float)bottom_screen.GetHeight(), 1);
             DrawSingleScreenRotated(screen_infos[2],
                                     ((float)bottom_screen.left / 2) + ((float)layout.width / 2),
                                     (float)bottom_screen.top, (float)bottom_screen.GetWidth() / 2,
-                                    (float)bottom_screen.GetHeight());
+                                    (float)bottom_screen.GetHeight(), 1);
         }
     }
 
