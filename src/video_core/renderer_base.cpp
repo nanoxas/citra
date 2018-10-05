@@ -3,7 +3,6 @@
 // Refer to the license.txt file included.
 
 #include <memory>
-#include "common/color.h"
 #include "core/3ds.h"
 #include "core/core.h"
 #include "core/frontend/emu_window.h"
@@ -58,14 +57,4 @@ bool RendererBase::StartFrameDumping(const std::string& path_top, const std::str
 
 void RendererBase::StopFrameDumping() {
     stop_dumping = true;
-}
-
-u32 RendererBase::GetColorFillForFramebuffer(int framebuffer_index) {
-    // Main LCD (0): 0x1ED02204, Sub LCD (1): 0x1ED02A04
-    u32 lcd_color_addr =
-        (framebuffer_index == 0) ? LCD_REG_INDEX(color_fill_top) : LCD_REG_INDEX(color_fill_bottom);
-    lcd_color_addr = HW::VADDR_LCD + 4 * lcd_color_addr;
-    LCD::Regs::ColorFill color_fill = {0};
-    LCD::Read(color_fill.raw, lcd_color_addr);
-    return color_fill.raw;
 }

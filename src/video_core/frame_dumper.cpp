@@ -31,7 +31,10 @@ void FrameDumper::Initialize() {
 }
 
 bool FrameDumper::InitializeDumping() {
-    FileUtil::CreateFullPath(dump_path);
+    if (!FileUtil::CreateFullPath(dump_path)) {
+        return false;
+    }
+
     frame_count = 0;
 
     // Get output format

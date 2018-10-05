@@ -58,17 +58,18 @@ public:
     bool StartFrameDumping(const std::string& path_top, const std::string& path_bottom,
                            const std::string& format = "");
     void StopFrameDumping();
-    bool IsDumpingFrames() {
-        return dump_frames;
+    bool IsDumpingFrames() const {
+        return dump_frames.load(std::memory_order_relaxed);
     }
 
 protected:
     EmuWindow& render_window; ///< Reference to the render window handle.
     std::unique_ptr<VideoCore::RasterizerInterface> rasterizer;
-    std::unique_ptr<FrameDumper> frame_dumpers[2]; ///< Frame dumpers (one for each screen)
+    std::array<std::unique_ptr<FrameDumper>, 2>
+        frame_dumpers;                      ///< Frame dumpers (one for each screen)
     f32 m_current_fps = 0.0f;               ///< Current framerate, should be set by the renderers
     int m_current_frame = 0;                ///< Current frame, should be set by the renderer
-    bool dump_frames = false;               ///< Whether to dump frames
+    std::atomic_bool dump_frames = false;   ///< Whether to dump frames
     std::atomic_bool start_dumping = false; ///< Signal to start dumping frames
     std::atomic_bool stop_dumping =
         false; ///< Whether to stop dumping. If the renderer receive this singal, it should write an
@@ -76,8 +77,6 @@ protected:
     Common::Event
         frame_dumping_stopped; ///< An event to mark the stopping of frame dumping. This is used to
                                ///< prevent game being stopped before "end" frame is written
-
-    u32 GetColorFillForFramebuffer(int framebuffer_index);
 
 private:
     bool opengl_rasterizer_active = false;

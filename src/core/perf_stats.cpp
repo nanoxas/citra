@@ -4,7 +4,6 @@
 
 #include <algorithm>
 #include <chrono>
-#include <cmath>
 #include <mutex>
 #include <thread>
 #include "core/hw/gpu.h"

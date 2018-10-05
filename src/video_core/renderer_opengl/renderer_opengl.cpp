@@ -109,7 +109,12 @@ void RendererOpenGL::SwapBuffers() {
         int fb_id = i == 2 ? 1 : 0;
         const auto& framebuffer = GPU::g_regs.framebuffer_config[fb_id];
 
-        LCD::Regs::ColorFill color_fill{GetColorFillForFramebuffer(i)};
+        // Main LCD (0): 0x1ED02204, Sub LCD (1): 0x1ED02A04
+        u32 lcd_color_addr =
+            (fb_id == 0) ? LCD_REG_INDEX(color_fill_top) : LCD_REG_INDEX(color_fill_bottom);
+        lcd_color_addr = HW::VADDR_LCD + 4 * lcd_color_addr;
+        LCD::Regs::ColorFill color_fill = {0};
+        LCD::Read(color_fill.raw, lcd_color_addr);
 
         if (color_fill.is_enabled) {
             LoadColorToActiveGLTexture(color_fill.color_r, color_fill.color_g, color_fill.color_b,

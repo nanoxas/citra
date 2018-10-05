@@ -39,7 +39,6 @@ public:
     void Shutdown();
 
     bool StartDumping(const std::string& path, const std::string& format, int width, int height);
-    bool IsDumpingFrames();
 
     void AddFrame(FrameData& frame);
 
@@ -52,13 +51,14 @@ private:
     void EndDumping();
 
     int width, height;
-    bool is_dumping = false;
-    std::string dump_path, dump_format;
+    std::string dump_path;
+    std::string dump_format;
 
     AVFormatContext* format_context{};
     AVCodecContext* codec_context{};
     AVStream* stream{};
-    AVFrame *current_frame{}, *scaled_frame{};
+    AVFrame* current_frame{};
+    AVFrame* scaled_frame{};
     SwsContext* sws_context{};
 
     u64 frame_count{};
