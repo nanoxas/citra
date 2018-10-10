@@ -13,6 +13,7 @@
 #include "video_core/renderer_base.h"
 #include "video_core/renderer_opengl/gl_resource_manager.h"
 #include "video_core/renderer_opengl/gl_state.h"
+#include "video_core/renderer_opengl/gl_stream_buffer.h"
 
 class EmuWindow;
 
@@ -81,7 +82,7 @@ private:
     GLuint attrib_tex_coord;
 
     // PBOs used to dump frames faster
-    std::array<std::array<OGLBuffer, 2>, 2> frame_dumping_pbos;
+    OGLStreamBuffer frame_dump_buffer;
     std::array<GLuint, 2> current_pbo{1, 1}, next_pbo;
     std::array<std::array<int, 2>, 2> pbo_width, pbo_height;
 };

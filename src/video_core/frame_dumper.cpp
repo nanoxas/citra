@@ -11,12 +11,13 @@ FrameDumper::FrameData::FrameData(size_t width_, size_t height_, u8* data_)
     // rotate the data by 270 degrees while copying
     stride = width * 4;
     data.resize(width * height * 4);
-    for (size_t x = 0; x < height; x++)
+    for (size_t x = 0; x < height; x++) {
         for (size_t y = 0; y < width; y++) {
             for (size_t k = 0; k < 4; k++) {
                 data[(height - 1 - x) * stride + y * 4 + k] = data_[y * height * 4 + x * 4 + k];
             }
         }
+    }
 }
 
 void FrameDumper::Initialize() {

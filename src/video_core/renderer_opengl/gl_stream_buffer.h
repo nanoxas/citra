@@ -12,7 +12,7 @@
 class OGLStreamBuffer : private NonCopyable {
 public:
     explicit OGLStreamBuffer(GLenum target, GLsizeiptr size, bool array_buffer_for_amd,
-                             bool prefer_coherent = false);
+                             bool prefer_coherent = false, bool for_write = true);
     ~OGLStreamBuffer();
 
     GLuint GetHandle() const;
@@ -36,6 +36,7 @@ private:
 
     bool coherent = false;
     bool persistent = false;
+    bool for_write = true;
 
     GLintptr buffer_pos = 0;
     GLsizeiptr buffer_size = 0;

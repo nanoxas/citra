@@ -96,7 +96,11 @@ static std::array<GLfloat, 3 * 2> MakeOrthographicMatrix(const float width, cons
     return matrix;
 }
 
-RendererOpenGL::RendererOpenGL(EmuWindow& window) : RendererBase{window} {}
+constexpr size_t FRAME_DUMP_BUFFER_SIZE = 0x2000000; // 32MB arbitrarily chosen for now
+
+RendererOpenGL::RendererOpenGL(EmuWindow& window)
+    : RendererBase{window},
+      frame_dump_buffer(GL_PIXEL_PACK_BUFFER, FRAME_DUMP_BUFFER_SIZE, false, true, false) {}
 RendererOpenGL::~RendererOpenGL() = default;
 
 /// Swap buffers (render frame)
@@ -308,13 +312,6 @@ void RendererOpenGL::InitOpenGLObjects() {
         screen_info.display_texture = screen_info.texture.resource.handle;
     }
 
-    // Generate frame dumping PBOs
-    for (auto& buffers : frame_dumping_pbos) {
-        for (OGLBuffer& buffer : buffers) {
-            buffer.Create();
-        }
-    }
-
     state.texture_units[0].texture_2d = 0;
     state.Apply();
 }
@@ -409,34 +406,19 @@ void RendererOpenGL::DrawSingleScreenRotated(const ScreenInfo& screen_info, floa
         // Read the pixels back. Use PBOs to make the process quicker
         current_pbo[screen_id] = (current_pbo[screen_id] + 1) % 2;
         next_pbo[screen_id] = (current_pbo[screen_id] + 1) % 2;
-
-        glBindBuffer(GL_PIXEL_PACK_BUFFER,
-                     frame_dumping_pbos[screen_id][current_pbo[screen_id]].handle);
-        if (width != pbo_width[screen_id][current_pbo[screen_id]] ||
-            height != pbo_height[screen_id][current_pbo[screen_id]]) {
-            // re-allocate storage for pbo
-            glBufferData(GL_PIXEL_PACK_BUFFER, width * height * 4, nullptr, GL_STREAM_READ);
-            pbo_width[screen_id][current_pbo[screen_id]] = width;
-            pbo_height[screen_id][current_pbo[screen_id]] = height;
-        }
+        size_t frame_size = width * height * 4;
+        u8* frames;
+        GLintptr offset;
+        bool invalidate;
+        // todo alignment?
+        glBindBuffer(GL_PIXEL_PACK_BUFFER, frame_dump_buffer.GetHandle());
         glGetTexImage(GL_TEXTURE_2D, 0, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, 0);
+        std::tie(frames, offset, invalidate) = frame_dump_buffer.Map(frame_size, 4);
 
-        glBindBuffer(GL_PIXEL_PACK_BUFFER,
-                     frame_dumping_pbos[screen_id][next_pbo[screen_id]].handle);
-        if (width != pbo_width[screen_id][next_pbo[screen_id]] ||
-            height != pbo_height[screen_id][next_pbo[screen_id]]) {
-            // re-allocate storage for pbo
-            glBufferData(GL_PIXEL_PACK_BUFFER, width * height * 4, nullptr, GL_STREAM_READ);
-            pbo_width[screen_id][next_pbo[screen_id]] = width;
-            pbo_height[screen_id][next_pbo[screen_id]] = height;
-        }
-        GLubyte* pixels = static_cast<GLubyte*>(glMapBuffer(GL_PIXEL_PACK_BUFFER, GL_READ_ONLY));
-
-        FrameDumper::FrameData frame_data{width, height, pixels};
+        FrameDumper::FrameData frame_data{width, height, frames};
         frame_dumpers[screen_id]->AddFrame(frame_data);
 
-        glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
-        glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+        frame_dump_buffer.Unmap(frame_size);
     }
 
     glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices.data());
