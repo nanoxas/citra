@@ -6,6 +6,13 @@
 #include <cubeb/cubeb.h>
 #include "audio_core/cubeb_input.h"
 #include "common/logging/log.h"
+#include "core/3ds.h"
+#include "core/core.h"
+#include "core/core_timing.h"
+#include "core/hle/ipc_helpers.h"
+#include "core/hle/kernel/event.h"
+#include "core/hle/kernel/handle_table.h"
+#include "core/hle/kernel/shared_memory.h"
 
 namespace AudioCore {
 
@@ -29,10 +36,12 @@ struct CubebInput::Impl {
 };
 
 CubebInput::CubebInput() : impl(std::make_unique<Impl>()) {
+
     if (cubeb_init(&impl->ctx, "Citra Input", nullptr) != CUBEB_OK) {
         LOG_ERROR(Audio, "cubeb_init failed! Mic will not work properly");
         return;
     }
+
 }
 
 CubebInput::~CubebInput() {
@@ -107,6 +116,7 @@ long CubebInput::Impl::DataCallback(cubeb_stream* stream, void* user_data, const
     }
 
     if (!impl->buffer) {
+
         return 0;
     }
 
@@ -116,6 +126,7 @@ long CubebInput::Impl::DataCallback(cubeb_stream* stream, void* user_data, const
     if (to_write > remaining_space) {
         to_write = remaining_space;
     }
+
     std::memcpy(impl->buffer + impl->offset, data, to_write);
     impl->offset += to_write;
     total_written += to_write;
@@ -129,8 +140,9 @@ long CubebInput::Impl::DataCallback(cubeb_stream* stream, void* user_data, const
     }
     // The last 4 bytes of the shared memory contains the latest offset
     // so update that as well https://www.3dbrew.org/wiki/MIC_Shared_Memory
-    std::memcpy(impl->buffer + (impl->buffer_size - sizeof(u32)),
-                reinterpret_cast<u8*>(&impl->offset), sizeof(u32));
+
+    std::memcpy(impl->buffer + impl->buffer_size - sizeof(u32),
+               reinterpret_cast<u8*>(&impl->offset), sizeof(u32));
 
     // returning less than num_frames here signals cubeb to stop sampling
     return total_written;

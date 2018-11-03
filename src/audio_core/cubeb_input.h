@@ -26,6 +26,10 @@ private:
     std::unique_ptr<Impl> impl;
 };
 
+struct SharedMem {
+
+};
+
 std::vector<std::string> ListCubebInputDevices();
 
 } // namespace AudioCore
