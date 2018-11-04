@@ -14,11 +14,10 @@ class CubebInput final : public Frontend::Mic::Interface {
 public:
     CubebInput();
     ~CubebInput();
-
+    struct MemoryWriteNode;
     void StartSampling(Frontend::Mic::Parameters params) override;
 
     void StopSampling() override;
-
     void AdjustSampleRate(u32 sample_rate) override;
 
 private:
@@ -26,9 +25,7 @@ private:
     std::unique_ptr<Impl> impl;
 };
 
-struct SharedMem {
-
-};
+struct SharedMem {};
 
 std::vector<std::string> ListCubebInputDevices();
 

@@ -16,13 +16,19 @@
 
 namespace AudioCore {
 
+struct CubebInput::MemoryWriteNode {
+
+    const u8* source;
+    u8* dest;
+    int size = 0;
+};
+
 struct CubebInput::Impl {
     // unsigned int sample_rate = 0;
     // std::vector<std::string> device_list;
 
     cubeb* ctx = nullptr;
     cubeb_stream* stream = nullptr;
-
     bool looped_buffer;
     u8* buffer;
     u32 buffer_size;
@@ -30,9 +36,14 @@ struct CubebInput::Impl {
     u32 offset;
     u32 audio_buffer_size;
 
+    std::vector<MemoryWriteNode>* mem_list = new std::vector<MemoryWriteNode>;
+
+    static void write_to_mem_buffer(CubebInput::Impl* impl, u8* dest, const u8* source, int size);
+
     static long DataCallback(cubeb_stream* stream, void* user_data, const void* input_buffer,
                              void* output_buffer, long num_frames);
     static void StateCallback(cubeb_stream* stream, void* user_data, cubeb_state state);
+    static void UpdateSharedMemory(u64 userdata, s64 cycles_late);
 };
 
 CubebInput::CubebInput() : impl(std::make_unique<Impl>()) {
@@ -41,7 +52,16 @@ CubebInput::CubebInput() : impl(std::make_unique<Impl>()) {
         LOG_ERROR(Audio, "cubeb_init failed! Mic will not work properly");
         return;
     }
+}
 
+void CubebInput::Impl::write_to_mem_buffer(CubebInput::Impl* impl, u8* dest, const u8* source,
+                                           int size) {
+    CubebInput::MemoryWriteNode node;
+    node.dest = dest;
+    node.source = source;
+    node.size = size;
+    std::vector<MemoryWriteNode>* list = impl->mem_list;
+    list->push_back(node);
 }
 
 CubebInput::~CubebInput() {
@@ -127,22 +147,30 @@ long CubebInput::Impl::DataCallback(cubeb_stream* stream, void* user_data, const
         to_write = remaining_space;
     }
 
-    std::memcpy(impl->buffer + impl->offset, data, to_write);
+    // std::memcpy(impl->buffer + impl->offset, data, to_write);
+    write_to_mem_buffer(impl, impl->buffer + impl->offset, data, to_write);
+
     impl->offset += to_write;
     total_written += to_write;
 
     if (impl->looped_buffer && num_frames > total_written) {
         impl->offset = impl->initial_offset;
         to_write = num_frames - to_write;
-        std::memcpy(impl->buffer + impl->offset, data, to_write);
+
+        // std::memcpy(impl->buffer + impl->offset, data, to_write);
+        write_to_mem_buffer(impl, impl->buffer + impl->offset, data, to_write);
+
         impl->offset += to_write;
         total_written += to_write;
     }
     // The last 4 bytes of the shared memory contains the latest offset
     // so update that as well https://www.3dbrew.org/wiki/MIC_Shared_Memory
 
-    std::memcpy(impl->buffer + impl->buffer_size - sizeof(u32),
-               reinterpret_cast<u8*>(&impl->offset), sizeof(u32));
+    write_to_mem_buffer(impl, impl->buffer + impl->buffer_size - sizeof(u32),
+                        reinterpret_cast<u8*>(&impl->offset), sizeof(u32));
+
+    // std::memcpy(impl->buffer + impl->buffer_size - sizeof(u32),
+    // reinterpret_cast<u8*>(&impl->offset), sizeof(u32));
 
     // returning less than num_frames here signals cubeb to stop sampling
     return total_written;
