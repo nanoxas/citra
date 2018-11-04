@@ -18,7 +18,7 @@ namespace AudioCore {
 
 struct CubebInput::MemoryWriteNode {
 
-    const u8* source;
+    u8 source;
     u8* dest;
     int size = 0;
 };
@@ -38,7 +38,7 @@ struct CubebInput::Impl {
 
     std::vector<MemoryWriteNode>* mem_list = new std::vector<MemoryWriteNode>;
 
-    static void write_to_mem_buffer(CubebInput::Impl* impl, u8* dest, const u8* source, int size);
+    static void write_to_mem_buffer(CubebInput::Impl* impl, u8* dest, u8 source, int size);
 
     static long DataCallback(cubeb_stream* stream, void* user_data, const void* input_buffer,
                              void* output_buffer, long num_frames);
@@ -54,7 +54,7 @@ CubebInput::CubebInput() : impl(std::make_unique<Impl>()) {
     }
 }
 
-void CubebInput::Impl::write_to_mem_buffer(CubebInput::Impl* impl, u8* dest, const u8* source,
+void CubebInput::Impl::write_to_mem_buffer(CubebInput::Impl* impl, u8* dest, u8 source,
                                            int size) {
     CubebInput::MemoryWriteNode node;
     node.dest = dest;
@@ -148,7 +148,7 @@ long CubebInput::Impl::DataCallback(cubeb_stream* stream, void* user_data, const
     }
 
     // std::memcpy(impl->buffer + impl->offset, data, to_write);
-    write_to_mem_buffer(impl, impl->buffer + impl->offset, data, to_write);
+    write_to_mem_buffer(impl, impl->buffer + impl->offset, *data, to_write);
 
     impl->offset += to_write;
     total_written += to_write;
@@ -158,7 +158,7 @@ long CubebInput::Impl::DataCallback(cubeb_stream* stream, void* user_data, const
         to_write = num_frames - to_write;
 
         // std::memcpy(impl->buffer + impl->offset, data, to_write);
-        write_to_mem_buffer(impl, impl->buffer + impl->offset, data, to_write);
+        write_to_mem_buffer(impl, impl->buffer + impl->offset, *data, to_write);
 
         impl->offset += to_write;
         total_written += to_write;
@@ -167,7 +167,7 @@ long CubebInput::Impl::DataCallback(cubeb_stream* stream, void* user_data, const
     // so update that as well https://www.3dbrew.org/wiki/MIC_Shared_Memory
 
     write_to_mem_buffer(impl, impl->buffer + impl->buffer_size - sizeof(u32),
-                        reinterpret_cast<u8*>(&impl->offset), sizeof(u32));
+                        *reinterpret_cast<u8*>(&impl->offset), sizeof(u32));
 
     // std::memcpy(impl->buffer + impl->buffer_size - sizeof(u32),
     // reinterpret_cast<u8*>(&impl->offset), sizeof(u32));
