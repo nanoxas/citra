@@ -78,7 +78,7 @@ CubebInput::~CubebInput() {
 
 void CubebInput::Impl::UpdateSharedMemory(u64 userdata, s64 cycles_late) {
 
-    std::vector<MemoryWriteNode>* buffer;
+    LOG_ERROR(Audio, "Update Event");
 
     // flush
 }
@@ -127,6 +127,9 @@ void CubebInput::StartSampling(Frontend::Mic::Parameters params) {
     }
 
     cubeb_stream_start(impl->stream);
+
+    impl->event_mem_write->Signal();
+    CoreTiming::ScheduleEvent(105, impl->mem_write_update_event);
 }
 
 void CubebInput::StopSampling() {
