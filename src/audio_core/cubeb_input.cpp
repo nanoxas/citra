@@ -37,6 +37,8 @@ struct CubebInput::Impl {
     u32 audio_buffer_size;
 
     std::vector<MemoryWriteNode>* mem_list = new std::vector<MemoryWriteNode>;
+    Kernel::SharedPtr<Kernel::Event> event_mem_write;
+    CoreTiming::EventType* mem_write_update_event;
 
     static void write_to_mem_buffer(CubebInput::Impl* impl, u8* dest, u8 source, int size);
 
@@ -54,8 +56,7 @@ CubebInput::CubebInput() : impl(std::make_unique<Impl>()) {
     }
 }
 
-void CubebInput::Impl::write_to_mem_buffer(CubebInput::Impl* impl, u8* dest, u8 source,
-                                           int size) {
+void CubebInput::Impl::write_to_mem_buffer(CubebInput::Impl* impl, u8* dest, u8 source, int size) {
     CubebInput::MemoryWriteNode node;
     node.dest = dest;
     node.source = source;
@@ -75,6 +76,13 @@ CubebInput::~CubebInput() {
     cubeb_destroy(impl->ctx);
 }
 
+void CubebInput::Impl::UpdateSharedMemory(u64 userdata, s64 cycles_late) {
+
+    std::vector<MemoryWriteNode>* buffer;
+
+    // flush
+}
+
 void CubebInput::StartSampling(Frontend::Mic::Parameters params) {
     // Cubeb apparently only supports signed 16 bit PCM (and float32 which the 3ds doesn't support)
     // TODO resample the input stream
@@ -86,6 +94,12 @@ void CubebInput::StartSampling(Frontend::Mic::Parameters params) {
         LOG_ERROR(Audio,
                   "Application requested unsupported 8 bit pcm format. Falling back to 16 bits");
     }
+    impl->event_mem_write = Core::System::GetInstance().Kernel().CreateEvent(
+        Kernel::ResetType::OneShot, "MIC:Flush_memory");
+
+    impl->mem_write_update_event = CoreTiming::RegisterEvent(
+        "Impl::UpdateSharedMemory",
+        [this](u64 userdata, s64 cycles_late) { Impl::UpdateSharedMemory(userdata, cycles_late); });
 
     impl->buffer = backing_memory;
     impl->buffer_size = backing_memory_size;
